@@ -1,0 +1,10 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout" xmlns:st="jelly:stapler">
+    <l:layout title="${it.displayName}">
+        <st:include page="sidepanel.jelly" it="${it}" />
+        <l:main-panel>
+            <h1>${it.displayName}</h1>
+            <p>Welcome to your custom item configuration and status page.</p>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

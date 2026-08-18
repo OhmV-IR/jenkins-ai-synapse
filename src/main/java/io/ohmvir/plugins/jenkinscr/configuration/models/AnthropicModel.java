@@ -1,0 +1,99 @@
+package io.ohmvir.plugins.jenkinscr.configuration.models;
+
+import com.anthropic.client.AnthropicClient;
+import com.anthropic.client.okhttp.AnthropicOkHttpClient;
+import com.anthropic.models.models.ModelListPage;
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
+import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import hudson.Extension;
+import hudson.model.Descriptor;
+import hudson.model.Item;
+import hudson.security.ACL;
+import hudson.util.FormValidation;
+import hudson.util.ListBoxModel;
+import io.ohmvir.plugins.jenkinscr.utils.SecretsUtils;
+import jenkins.model.Jenkins;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
+import org.jspecify.annotations.NonNull;
+import org.kohsuke.stapler.AncestorInPath;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.verb.POST;
+
+import java.util.Collections;
+
+public class AnthropicModel extends AuthenticatedModel {
+
+    @DataBoundConstructor
+    public AnthropicModel(String modelName, String apiKeyCredentialsId) throws Descriptor.FormException {
+        super(modelName, apiKeyCredentialsId);
+    }
+
+    @Extension
+    public static class DescriptorImpl extends Descriptor<Model> {
+
+        @Override
+        public @NonNull String getDisplayName() {
+            return "Anthropic Model";
+        }
+
+        public ListBoxModel doFillApiKeyCredentialsIdItems (
+                @AncestorInPath Item context,
+                @QueryParameter String apiBaseUrlCredentialId) {
+
+            if (context == null ? !Jenkins.get().hasPermission(Jenkins.ADMINISTER) : !context.hasPermission(Item.CONFIGURE)) {
+                return new StandardListBoxModel().includeCurrentValue(apiBaseUrlCredentialId);
+            }
+
+            return new StandardListBoxModel()
+                    .includeEmptyValue()
+                    .includeMatchingAs(
+                            ACL.SYSTEM2,
+                            context,
+                            StandardCredentials.class,
+                            Collections.emptyList(),
+                            CredentialsMatchers.instanceOf(StringCredentials.class)
+                    );
+        }
+
+        public ListBoxModel doFillModelNameItems(@QueryParameter String apiKeyCredentialsId){
+            if(doCheckApiKeyCredentialsId(apiKeyCredentialsId).kind != FormValidation.Kind.OK){
+                return new StandardListBoxModel();
+            }
+            AnthropicClient client = AnthropicOkHttpClient.builder()
+                    .apiKey(SecretsUtils.getSecretText(apiKeyCredentialsId, null))
+                    .build();
+            ModelListPage models = client.models().list();
+            ListBoxModel modelsMap = new ListBoxModel();
+            models.data().stream()
+                    .filter(model -> {
+                        if(model.capabilities().isEmpty()){
+                            return false;
+                        }
+                        return model.capabilities().get().structuredOutputs().supported();
+                    })
+                    .forEach(model -> modelsMap.add(model.displayName(), model.id()));
+            return modelsMap;
+        }
+
+        @POST
+        public FormValidation doCheckModelName(@QueryParameter String value){
+            if(value == null || value.trim().isEmpty()){
+                return FormValidation.error("Model name is required");
+            }
+            return FormValidation.ok();
+        }
+
+        @POST
+        public FormValidation doCheckApiKeyCredentialsId(@QueryParameter String value){
+            if(value == null || value.trim().isEmpty()){
+                return FormValidation.error("API key credentials id is required");
+            }
+            if(SecretsUtils.getSecretText(value, null) == null){
+                return FormValidation.error("API key credentials id is required");
+            }
+            return FormValidation.ok();
+        }
+    }
+}

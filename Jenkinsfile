@@ -13,9 +13,9 @@ pipeline {
 
                 agent { label 'linux' }
                 tools { 
-			jdk "${JDK_VERSION}"
-			maven '3.9.14'
-		}
+                    jdk "${JDK_VERSION}"
+                    maven '3.9.14'
+                }
 
                 stages {
                     stage("Checkout") {
@@ -32,8 +32,8 @@ pipeline {
 
                     stage("Upload artifact") {
                         steps {
-			    sh "mkdir -p output"
-			    sh "cp target/jobcacher.hpi output/jobcacher-jvm-${JDK_VERSION}.hpi"
+                            sh "mkdir -p output"
+                            sh "cp target/jobcacher.hpi output/jobcacher-jvm-${JDK_VERSION}.hpi"
                             archiveArtifacts artifacts: "output/jobcacher-jvm-${JDK_VERSION}.hpi", fingerprint: true
                         }
                     }

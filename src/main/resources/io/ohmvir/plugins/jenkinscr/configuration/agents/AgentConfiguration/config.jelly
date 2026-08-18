@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:entry title="${%System Prompt}" field="systemPrompt">
+        <f:textbox value="${it.systemPrompt}" />
+    </f:entry>
+    <f:entry title="${%Temperature}" field="temperature">
+        <f:number value="${it.temperature}" />
+    </f:entry>
+    <f:entry title="${%Max Output Tokens}" field="maxOutputTokensPerPrompt">
+        <f:number value="${it.maxOutputTokensPerPrompt}" />
+    </f:entry>
+    <f:entry title="${%Model selector}" field="provider">
+        <f:select />
+    </f:entry>
+</j:jelly>
