@@ -62,19 +62,23 @@ public class OpenAIModel extends AuthenticatedModel {
             if(doCheckApiKeyCredentialsId(apiKeyCredentialsId).kind != FormValidation.Kind.OK){
                 return new StandardListBoxModel();
             }
-            OpenAIClient client = OpenAIOkHttpClient.builder()
-                    .apiKey(SecretsUtils.getSecretText(apiKeyCredentialsId, null))
-                    .followRedirects(true)
-                    .build();
-            ModelListPage models = client.models().list();
-            ListBoxModel modelsMap = new ListBoxModel();
-            models.data().stream()
-                    .filter(model -> !(model.id().contains("embedding") || model.id().contains("whisper")
-                    || model.id().contains("tts") || model.id().contains("dall-e") || model.id().contains("babbage")
-                    || model.id().contains("davinci")))
-                    .filter(model -> modelSupportsCustomTools(model.id()))
-                    .forEach(model -> modelsMap.add(model.id(), model.id()));
-            return modelsMap;
+            try {
+                OpenAIClient client = OpenAIOkHttpClient.builder()
+                        .apiKey(SecretsUtils.getSecretText(apiKeyCredentialsId, null))
+                        .followRedirects(true)
+                        .build();
+                ModelListPage models = client.models().list();
+                ListBoxModel modelsMap = new ListBoxModel();
+                models.data().stream()
+                        .filter(model -> !(model.id().contains("embedding") || model.id().contains("whisper")
+                                || model.id().contains("tts") || model.id().contains("dall-e") || model.id().contains("babbage")
+                                || model.id().contains("davinci")))
+                        .filter(model -> modelSupportsCustomTools(model.id()))
+                        .forEach(model -> modelsMap.add(model.id(), model.id()));
+                return modelsMap;
+            } catch(Exception e){
+                return new StandardListBoxModel();
+            }
         }
 
         private static final List<String> TOOL_SUPPORTED_PREFIXES = List.of(

@@ -63,28 +63,32 @@ public class GeminiModel extends AuthenticatedModel {
             if(doCheckApiKeyCredentialsId(apiKeyCredentialsId).kind != FormValidation.Kind.OK){
                 return new StandardListBoxModel();
             }
-            Client client = Client.builder()
-                    .apiKey(SecretsUtils.getSecretText(apiKeyCredentialsId, null))
-                    .httpOptions(HttpOptions.builder()
-                            .apiVersion("v1")
-                            .retryOptions(
-                                    HttpRetryOptions.builder()
-                                            .attempts(3)
-                                            .httpStatusCodes(408, 429)
-                                            .build()
-                            )
-                            .build())
-                    .build();
-            Pager<com.google.genai.types.Model> pager = client.models.list(ListModelsConfig.builder().build());
-            ListBoxModel modelsMap = new ListBoxModel();
-            for (com.google.genai.types.Model model : pager){
-                if(model.displayName().isEmpty() || model.name().isEmpty()){
-                    continue;
+            try {
+                Client client = Client.builder()
+                        .apiKey(SecretsUtils.getSecretText(apiKeyCredentialsId, null))
+                        .httpOptions(HttpOptions.builder()
+                                .apiVersion("v1")
+                                .retryOptions(
+                                        HttpRetryOptions.builder()
+                                                .attempts(3)
+                                                .httpStatusCodes(408, 429)
+                                                .build()
+                                )
+                                .build())
+                        .build();
+                Pager<com.google.genai.types.Model> pager = client.models.list(ListModelsConfig.builder().build());
+                ListBoxModel modelsMap = new ListBoxModel();
+                for (com.google.genai.types.Model model : pager) {
+                    if (model.displayName().isEmpty() || model.name().isEmpty()) {
+                        continue;
+                    }
+                    modelsMap.add(model.displayName().get(), model.name().get());
                 }
-                modelsMap.add(model.displayName().get(), model.name().get());
+                client.close();
+                return modelsMap;
+            } catch(Exception e){
+                return new StandardListBoxModel();
             }
-            client.close();
-            return modelsMap;
         }
 
         @POST

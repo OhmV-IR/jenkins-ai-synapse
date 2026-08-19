@@ -61,20 +61,24 @@ public class AnthropicModel extends AuthenticatedModel {
             if(doCheckApiKeyCredentialsId(apiKeyCredentialsId).kind != FormValidation.Kind.OK){
                 return new StandardListBoxModel();
             }
-            AnthropicClient client = AnthropicOkHttpClient.builder()
-                    .apiKey(SecretsUtils.getSecretText(apiKeyCredentialsId, null))
-                    .build();
-            ModelListPage models = client.models().list();
-            ListBoxModel modelsMap = new ListBoxModel();
-            models.data().stream()
-                    .filter(model -> {
-                        if(model.capabilities().isEmpty()){
-                            return false;
-                        }
-                        return model.capabilities().get().structuredOutputs().supported();
-                    })
-                    .forEach(model -> modelsMap.add(model.displayName(), model.id()));
-            return modelsMap;
+            try {
+                AnthropicClient client = AnthropicOkHttpClient.builder()
+                        .apiKey(SecretsUtils.getSecretText(apiKeyCredentialsId, null))
+                        .build();
+                ModelListPage models = client.models().list();
+                ListBoxModel modelsMap = new ListBoxModel();
+                models.data().stream()
+                        .filter(model -> {
+                            if (model.capabilities().isEmpty()) {
+                                return false;
+                            }
+                            return model.capabilities().get().structuredOutputs().supported();
+                        })
+                        .forEach(model -> modelsMap.add(model.displayName(), model.id()));
+                return modelsMap;
+            } catch(Exception e){
+                return new StandardListBoxModel();
+            }
         }
 
         @POST
