@@ -12,6 +12,7 @@ import hudson.model.Item;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import io.ohmvir.plugins.jenkinscr.api.ModelProviderType;
 import io.ohmvir.plugins.jenkinscr.utils.SecretsUtils;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
@@ -23,15 +24,20 @@ import org.kohsuke.stapler.verb.POST;
 
 import java.util.Collections;
 
-public class AnthropicModel extends AuthenticatedModel {
+public class AnthropicModelConfiguration extends AuthenticatedModelConfiguration {
 
     @DataBoundConstructor
-    public AnthropicModel(String modelName, String apiKeyCredentialsId) throws Descriptor.FormException {
+    public AnthropicModelConfiguration(String modelName, String apiKeyCredentialsId) throws Descriptor.FormException {
         super(modelName, apiKeyCredentialsId);
     }
 
+    @Override
+    public ModelProviderType getProviderType() {
+        return ModelProviderType.ANTHROPIC;
+    }
+
     @Extension
-    public static class DescriptorImpl extends Descriptor<Model> {
+    public static class DescriptorImpl extends Descriptor<ModelConfiguration> {
 
         @Override
         public @NonNull String getDisplayName() {

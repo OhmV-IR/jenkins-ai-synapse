@@ -3,10 +3,7 @@ package io.ohmvir.plugins.jenkinscr;
 import hudson.model.Describable;
 import io.ohmvir.plugins.jenkinscr.configuration.AgenticCodeReviewSettings;
 import io.ohmvir.plugins.jenkinscr.configuration.agents.AgentConfiguration;
-import io.ohmvir.plugins.jenkinscr.configuration.models.AnthropicModel;
-import io.ohmvir.plugins.jenkinscr.configuration.models.GeminiModel;
-import io.ohmvir.plugins.jenkinscr.configuration.models.OllamaModel;
-import io.ohmvir.plugins.jenkinscr.configuration.models.OpenAIModel;
+import io.ohmvir.plugins.jenkinscr.configuration.models.*;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
@@ -19,10 +16,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class DescriptorRegistrationTest {
     private static final List<Class<? extends Describable<?>>> DESCRIPTOR_CLASSES_TO_TEST = List.of(
             AgentConfiguration.class,
-            AnthropicModel.class,
-            GeminiModel.class,
-            OllamaModel.class,
-            OpenAIModel.class,
+            AnthropicModelConfiguration.class,
+            GeminiModelConfiguration.class,
+            OllamaModelConfiguration.class,
+            OpenAIModelConfiguration.class,
             AgenticCodeReviewSettings.class,
             CodeReviewProject.class
     );

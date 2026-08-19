@@ -3,14 +3,12 @@ package io.ohmvir.plugins.jenkinscr.configuration.agents;
 import hudson.ExtensionPoint;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
-import hudson.util.FormValidation;
-import io.ohmvir.plugins.jenkinscr.configuration.models.Model;
+import io.ohmvir.plugins.jenkinscr.configuration.models.ModelConfiguration;
 import jenkins.model.Jenkins;
-import org.kohsuke.stapler.DataBoundConstructor;
 
 public abstract class AbstractAgentConfiguration implements Describable<AbstractAgentConfiguration>, ExtensionPoint {
 
-    public AbstractAgentConfiguration(String systemPrompt, double temperature, long maxOutputTokensPerPrompt, String modelName) throws Descriptor.FormException {
+    public AbstractAgentConfiguration(String systemPrompt, double temperature, long maxOutputTokensPerPrompt, String modelId, AgentReasoningLevel thinkingLevel) throws Descriptor.FormException {
         this.systemPrompt = systemPrompt;
         if(temperature < 0 || temperature > 1){
             throw new Descriptor.FormException("temperature must be between 0 and 1 inclusive", "temperature");
@@ -20,16 +18,21 @@ public abstract class AbstractAgentConfiguration implements Describable<Abstract
             throw new Descriptor.FormException("maxOutputTokensPerPrompt cannot be negative", "maxOutputTokensPerPrompt");
         }
         this.maxOutputTokensPerPrompt = maxOutputTokensPerPrompt;
-        if(modelName == null){
-            throw new Descriptor.FormException("modelName cannot be null", "modelName");
+        if(modelId == null || ModelConfiguration.getFromId(modelId) == null){
+            throw new Descriptor.FormException("modelName cannot be null and must refer to an already saved model", "modelName");
         }
-        this.modelName = modelName;
+        this.modelId = modelId;
+        if(thinkingLevel == null){
+            throw new Descriptor.FormException("thinkingLevel cannot be null", "thinkingLevel");
+        }
+        this.thinkingLevel = thinkingLevel;
     }
 
     public String systemPrompt;
     public double temperature;
     public long maxOutputTokensPerPrompt;
-    public String modelName;
+    public String modelId;
+    public AgentReasoningLevel thinkingLevel;
 
     @Override
     public Descriptor<AbstractAgentConfiguration> getDescriptor() {

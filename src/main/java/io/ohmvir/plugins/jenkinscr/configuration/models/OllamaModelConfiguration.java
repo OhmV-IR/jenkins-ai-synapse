@@ -11,6 +11,7 @@ import hudson.model.Item;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import io.ohmvir.plugins.jenkinscr.api.ModelProviderType;
 import io.ohmvir.plugins.jenkinscr.utils.SecretsUtils;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
@@ -27,11 +28,11 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Collections;
 
-public class OllamaModel extends Model {
+public class OllamaModelConfiguration extends ModelConfiguration {
     public String apiBaseUrlCredentialId;
 
     @DataBoundConstructor
-    public OllamaModel(String apiBaseUrlCredentialId, String modelName) throws Descriptor.FormException {
+    public OllamaModelConfiguration(String apiBaseUrlCredentialId, String modelName) throws Descriptor.FormException {
         super(modelName);
         if(SecretsUtils.getSecretText(apiBaseUrlCredentialId, null) == null){
             throw new Descriptor.FormException("apiUrlCredentialId does not resolve to a valid string credential", "apiUrlCredentialId");
@@ -39,8 +40,13 @@ public class OllamaModel extends Model {
         this.apiBaseUrlCredentialId = apiBaseUrlCredentialId;
     }
 
+    @Override
+    public ModelProviderType getProviderType() {
+        return ModelProviderType.OLLAMA;
+    }
+
     @Extension
-    public static class DescriptorImpl extends Descriptor<Model> {
+    public static class DescriptorImpl extends Descriptor<ModelConfiguration> {
         private transient final static String MODELS_LIST_API_SUFFIX = "/api/tags";
         private transient final HttpClient httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))

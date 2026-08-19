@@ -3,15 +3,18 @@ package io.ohmvir.plugins.jenkinscr.configuration.models;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import com.openai.client.OpenAIClient;
-import com.openai.client.okhttp.OpenAIOkHttpClient;
-import com.openai.models.models.ModelListPage;
+import com.google.genai.Client;
+import com.google.genai.Pager;
+import com.google.genai.types.HttpOptions;
+import com.google.genai.types.HttpRetryOptions;
+import com.google.genai.types.ListModelsConfig;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.model.Item;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import io.ohmvir.plugins.jenkinscr.api.ModelProviderType;
 import io.ohmvir.plugins.jenkinscr.utils.SecretsUtils;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
@@ -22,21 +25,25 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
 
 import java.util.Collections;
-import java.util.List;
 
-public class OpenAIModel extends AuthenticatedModel {
+public class GeminiModelConfiguration extends AuthenticatedModelConfiguration {
 
     @DataBoundConstructor
-    public OpenAIModel(String modelName, String apiKeyCredentialsId) throws Descriptor.FormException {
+    public GeminiModelConfiguration(String modelName, String apiKeyCredentialsId) throws Descriptor.FormException {
         super(modelName, apiKeyCredentialsId);
     }
 
+    @Override
+    public ModelProviderType getProviderType() {
+        return ModelProviderType.GEMINI;
+    }
+
     @Extension
-    public static class DescriptorImpl extends Descriptor<Model> {
+    public static class DescriptorImpl extends Descriptor<ModelConfiguration> {
 
         @Override
         public @NonNull String getDisplayName() {
-            return "OpenAI Model";
+            return "Gemini Model";
         }
 
         public ListBoxModel doFillApiKeyCredentialsIdItems (
@@ -63,35 +70,31 @@ public class OpenAIModel extends AuthenticatedModel {
                 return new StandardListBoxModel();
             }
             try {
-                OpenAIClient client = OpenAIOkHttpClient.builder()
+                Client client = Client.builder()
                         .apiKey(SecretsUtils.getSecretText(apiKeyCredentialsId, null))
-                        .followRedirects(true)
+                        .httpOptions(HttpOptions.builder()
+                                .apiVersion("v1")
+                                .retryOptions(
+                                        HttpRetryOptions.builder()
+                                                .attempts(3)
+                                                .httpStatusCodes(408, 429)
+                                                .build()
+                                )
+                                .build())
                         .build();
-                ModelListPage models = client.models().list();
+                Pager<com.google.genai.types.Model> pager = client.models.list(ListModelsConfig.builder().build());
                 ListBoxModel modelsMap = new ListBoxModel();
-                models.data().stream()
-                        .filter(model -> !(model.id().contains("embedding") || model.id().contains("whisper")
-                                || model.id().contains("tts") || model.id().contains("dall-e") || model.id().contains("babbage")
-                                || model.id().contains("davinci")))
-                        .filter(model -> modelSupportsCustomTools(model.id()))
-                        .forEach(model -> modelsMap.add(model.id(), model.id()));
+                for (com.google.genai.types.Model model : pager) {
+                    if (model.displayName().isEmpty() || model.name().isEmpty()) {
+                        continue;
+                    }
+                    modelsMap.add(model.displayName().get(), model.name().get());
+                }
+                client.close();
                 return modelsMap;
             } catch(Exception e){
                 return new StandardListBoxModel();
             }
-        }
-
-        private static final List<String> TOOL_SUPPORTED_PREFIXES = List.of(
-                "gpt-4o",
-                "gpt-4-turbo",
-                "gpt-4",
-                "o1",
-                "o3-mini",
-                "gpt-3.5-turbo"
-        );
-
-        private static boolean modelSupportsCustomTools(String modelId){
-            return TOOL_SUPPORTED_PREFIXES.stream().anyMatch(modelId::startsWith);
         }
 
         @POST

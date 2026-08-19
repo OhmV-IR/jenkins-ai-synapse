@@ -6,6 +6,9 @@
             <f:repeatableHeteroProperty field="providers" hasHeader="true" addCaption="${%Add Model}" />
         </f:section>
         <f:section title="${%Agent Configurations}">
+            <f:entry field="appendDefaultAgents">
+                <f:checkbox title="${% Append built-in default Agent Configurations to list on next save}" />
+            </f:entry>
             <f:repeatableHeteroProperty field="agentConfigurations" hasHeader="true" addCaption="${%Add Agent}" />
         </f:section>
     </f:section>
