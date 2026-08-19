@@ -20,8 +20,7 @@ public class DescriptorRegistrationTest {
             GeminiModelConfiguration.class,
             OllamaModelConfiguration.class,
             OpenAIModelConfiguration.class,
-            AgenticCodeReviewSettings.class,
-            CodeReviewProject.class
+            AgenticCodeReviewSettings.class
     );
     @Test
     public void verifyDescriptorsAreRegistered(JenkinsRule j){

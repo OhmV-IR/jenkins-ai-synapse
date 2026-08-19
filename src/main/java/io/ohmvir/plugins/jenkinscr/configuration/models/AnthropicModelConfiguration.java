@@ -37,32 +37,14 @@ public class AnthropicModelConfiguration extends AuthenticatedModelConfiguration
     }
 
     @Extension
-    public static class DescriptorImpl extends Descriptor<ModelConfiguration> {
+    public static class DescriptorImpl extends AuthenticatedModelConfiguration.DescriptorImpl {
 
         @Override
         public @NonNull String getDisplayName() {
             return "Anthropic Model";
         }
 
-        public ListBoxModel doFillApiKeyCredentialsIdItems (
-                @AncestorInPath Item context,
-                @QueryParameter String apiBaseUrlCredentialId) {
-
-            if (context == null ? !Jenkins.get().hasPermission(Jenkins.ADMINISTER) : !context.hasPermission(Item.CONFIGURE)) {
-                return new StandardListBoxModel().includeCurrentValue(apiBaseUrlCredentialId);
-            }
-
-            return new StandardListBoxModel()
-                    .includeEmptyValue()
-                    .includeMatchingAs(
-                            ACL.SYSTEM2,
-                            context,
-                            StandardCredentials.class,
-                            Collections.emptyList(),
-                            CredentialsMatchers.instanceOf(StringCredentials.class)
-                    );
-        }
-
+        @Override
         public ListBoxModel doFillModelNameItems(@QueryParameter String apiKeyCredentialsId){
             if(doCheckApiKeyCredentialsId(apiKeyCredentialsId).kind != FormValidation.Kind.OK){
                 return new StandardListBoxModel();
@@ -85,25 +67,6 @@ public class AnthropicModelConfiguration extends AuthenticatedModelConfiguration
             } catch(Exception e){
                 return new StandardListBoxModel();
             }
-        }
-
-        @POST
-        public FormValidation doCheckModelName(@QueryParameter String value){
-            if(value == null || value.trim().isEmpty()){
-                return FormValidation.error("Model name is required");
-            }
-            return FormValidation.ok();
-        }
-
-        @POST
-        public FormValidation doCheckApiKeyCredentialsId(@QueryParameter String value){
-            if(value == null || value.trim().isEmpty()){
-                return FormValidation.error("API key credentials id is required");
-            }
-            if(SecretsUtils.getSecretText(value, null) == null){
-                return FormValidation.error("API key credentials id is required");
-            }
-            return FormValidation.ok();
         }
     }
 }

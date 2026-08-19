@@ -23,7 +23,7 @@ public class AgentConfiguration extends AbstractAgentConfiguration {
         return new AgentConfiguration(json.get("systemPrompt").getAsString(),
                 json.get("temperature").getAsDouble(),
                 json.get("maxOutputTokensPerPrompt").getAsLong(),
-                AgenticCodeReviewSettings.get().getProviders().getFirst().getModelId(),
+                AgenticCodeReviewSettings.get().getModels().getFirst().getModelId(),
                 AgentReasoningLevel.fromString(json.get("thinkingLevel").getAsString()));
     }
 
@@ -36,7 +36,7 @@ public class AgentConfiguration extends AbstractAgentConfiguration {
 
         public ListBoxModel doFillModelNameItems() {
             ListBoxModel items = new ListBoxModel();
-            for(ModelConfiguration modelConfiguration : AgenticCodeReviewSettings.get().getProviders()){
+            for(ModelConfiguration modelConfiguration : AgenticCodeReviewSettings.get().getModels()){
                 items.add(modelConfiguration.modelName);
             }
             return items;

@@ -4,9 +4,12 @@ import hudson.DescriptorExtensionList;
 import hudson.ExtensionPoint;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
+import hudson.util.FormValidation;
 import io.ohmvir.plugins.jenkinscr.api.ModelProviderType;
 import io.ohmvir.plugins.jenkinscr.configuration.AgenticCodeReviewSettings;
 import jenkins.model.Jenkins;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.verb.POST;
 
 import java.util.Objects;
 
@@ -40,10 +43,20 @@ public abstract class ModelConfiguration implements Describable<ModelConfigurati
     }
 
     public static ModelConfiguration getFromId(String id){
-        return AgenticCodeReviewSettings.get().getProviders()
+        return AgenticCodeReviewSettings.get().getModels()
                 .stream()
                 .filter(model -> Objects.equals(model.getProviderType().toString(), id.split(":")[0]))
                 .filter(model -> Objects.equals(id.split(":")[1], model.modelName))
                 .findFirst().orElse(null);
+    }
+
+    public abstract static class DescriptorImpl extends Descriptor<ModelConfiguration> {
+        @POST
+        public FormValidation doCheckModelName(@QueryParameter String value){
+            if(value == null || value.trim().isEmpty()){
+                return FormValidation.error("Model name is required");
+            }
+            return FormValidation.ok();
+        }
     }
 }

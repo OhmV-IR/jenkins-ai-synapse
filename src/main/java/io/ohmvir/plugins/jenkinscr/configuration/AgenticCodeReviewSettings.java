@@ -6,6 +6,7 @@ import io.ohmvir.plugins.jenkinscr.configuration.agents.AbstractAgentConfigurati
 import io.ohmvir.plugins.jenkinscr.configuration.agents.AgentConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.models.ModelConfiguration;
 import jenkins.model.GlobalConfiguration;
+import lombok.Getter;
 import net.sf.json.JSONObject;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -21,8 +22,8 @@ import java.util.List;
 @Extension
 public class AgenticCodeReviewSettings extends GlobalConfiguration {
 
-    private List<ModelConfiguration> providers = new ArrayList<>();
-    private List<AbstractAgentConfiguration> agentConfigurations = new ArrayList<>();
+    private @Getter List<ModelConfiguration> models = new ArrayList<>();
+    private @Getter List<AbstractAgentConfiguration> agentConfigurations = new ArrayList<>();
 
     public AgenticCodeReviewSettings(){
         load();
@@ -32,18 +33,10 @@ public class AgenticCodeReviewSettings extends GlobalConfiguration {
         return GlobalConfiguration.all().get(AgenticCodeReviewSettings.class);
     }
 
-    public List<ModelConfiguration> getProviders() {
-        return providers;
-    }
-
     @DataBoundSetter
-    public void setProviders(List<ModelConfiguration> providers) {
-        this.providers = providers != null ? providers : new ArrayList<>();
+    public void setModels(List<ModelConfiguration> models) {
+        this.models = models != null ? models : new ArrayList<>();
         save();
-    }
-
-    public List<AbstractAgentConfiguration> getAgentConfigurations() {
-        return agentConfigurations;
     }
 
     @DataBoundSetter
@@ -59,7 +52,6 @@ public class AgenticCodeReviewSettings extends GlobalConfiguration {
             try {
                 this.agentConfigurations.addAll(getDefaultAgents());
             } catch (IOException ignored) {
-
             }
         }
         save();

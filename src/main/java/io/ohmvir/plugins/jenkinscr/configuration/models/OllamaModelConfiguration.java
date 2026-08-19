@@ -46,7 +46,7 @@ public class OllamaModelConfiguration extends ModelConfiguration {
     }
 
     @Extension
-    public static class DescriptorImpl extends Descriptor<ModelConfiguration> {
+    public static class DescriptorImpl extends ModelConfiguration.DescriptorImpl {
         private transient final static String MODELS_LIST_API_SUFFIX = "/api/tags";
         private transient final HttpClient httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
@@ -113,14 +113,6 @@ public class OllamaModelConfiguration extends ModelConfiguration {
             }
             if(SecretsUtils.getSecretText(value, null) == null){
                 return FormValidation.error("API Base URL does not resolve to a string credential");
-            }
-            return FormValidation.ok();
-        }
-
-        @POST
-        public FormValidation doCheckModelName(@QueryParameter String value){
-            if(value == null || value.trim().isEmpty()){
-                return FormValidation.error("Model name is required");
             }
             return FormValidation.ok();
         }
