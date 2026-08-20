@@ -22,13 +22,10 @@ public abstract class ModelConfiguration implements Describable<ModelConfigurati
         this.modelName = modelName;
     }
 
-    public static DescriptorExtensionList<ModelConfiguration, Descriptor<ModelConfiguration>> all(){
-        return Jenkins.get().getDescriptorList(ModelConfiguration.class);
-    }
-
     @Override
+    @SuppressWarnings("unchecked")
     public Descriptor<ModelConfiguration> getDescriptor() {
-        return Jenkins.get().getDescriptorOrDie(getClass());
+        return (Descriptor<ModelConfiguration>) Jenkins.get().getDescriptorOrDie(getClass());
     }
 
     public String modelName;
@@ -51,6 +48,10 @@ public abstract class ModelConfiguration implements Describable<ModelConfigurati
     }
 
     public abstract static class DescriptorImpl extends Descriptor<ModelConfiguration> {
+        public DescriptorImpl(Class<? extends ModelConfiguration> clazz) {
+            super(clazz);
+        }
+
         @POST
         public FormValidation doCheckModelName(@QueryParameter String value){
             if(value == null || value.trim().isEmpty()){

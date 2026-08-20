@@ -29,8 +29,7 @@ public class ModelData {
     public ModelData(){
 
     }
-
-
+    
     private static final List<ModelDataRetriever<?>> retrievers = List.of(
             new OllamaModelDataRetriever(),
             new AnthropicModelDataRetriever(),

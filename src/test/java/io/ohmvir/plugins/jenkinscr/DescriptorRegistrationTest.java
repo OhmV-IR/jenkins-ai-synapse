@@ -2,6 +2,7 @@ package io.ohmvir.plugins.jenkinscr;
 
 import hudson.model.Describable;
 import io.ohmvir.plugins.jenkinscr.configuration.AgenticCodeReviewSettings;
+import io.ohmvir.plugins.jenkinscr.configuration.ModelClientConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.agents.AgentConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.models.*;
 import org.junit.jupiter.api.Test;
@@ -20,7 +21,8 @@ public class DescriptorRegistrationTest {
             GeminiModelConfiguration.class,
             OllamaModelConfiguration.class,
             OpenAIModelConfiguration.class,
-            AgenticCodeReviewSettings.class
+            AgenticCodeReviewSettings.class,
+            ModelClientConfiguration.class
     );
     @Test
     public void verifyDescriptorsAreRegistered(JenkinsRule j){

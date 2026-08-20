@@ -11,5 +11,13 @@
             </f:entry>
             <f:repeatableHeteroProperty field="agentConfigurations" hasHeader="true" addCaption="${%Add Agent}" />
         </f:section>
+        <f:section title="${%Model Client Configurations}">
+            <f:entry field="defaultClientConfiguration">
+                <f:property field="defaultClientConfiguration" />
+            </f:entry>
+            <f:entry field="clientConfigurations">
+                <f:repeatableHeteroProperty field="clientConfigurations" hasHeader="true" addCaption="${%Add Client Configuration}" />
+            </f:entry>
+        </f:section>
     </f:section>
 </j:jelly>

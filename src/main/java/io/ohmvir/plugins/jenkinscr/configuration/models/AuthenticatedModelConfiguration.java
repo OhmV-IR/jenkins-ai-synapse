@@ -31,6 +31,11 @@ public abstract class AuthenticatedModelConfiguration extends ModelConfiguration
     public String apiKeyCredentialsId;
 
     public abstract static class DescriptorImpl extends ModelConfiguration.DescriptorImpl {
+
+        public DescriptorImpl(Class<? extends ModelConfiguration> clazz){
+            super(clazz);
+        }
+
         public ListBoxModel doFillApiKeyCredentialsIdItems (
                 @AncestorInPath Item context,
                 @QueryParameter String apiBaseUrlCredentialId) {

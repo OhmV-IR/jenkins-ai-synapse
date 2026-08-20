@@ -28,6 +28,9 @@ public class AnthropicModelConfiguration extends AuthenticatedModelConfiguration
 
     @Extension
     public static class DescriptorImpl extends AuthenticatedModelConfiguration.DescriptorImpl {
+        public DescriptorImpl() {
+            super(AnthropicModelConfiguration.class);
+        }
 
         @Override
         public @NonNull String getDisplayName() {

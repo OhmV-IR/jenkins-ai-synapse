@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 @Extension
 public class AgenticCodeReviewSettings extends GlobalConfiguration {
@@ -64,29 +65,10 @@ public class AgenticCodeReviewSettings extends GlobalConfiguration {
     public boolean configure(StaplerRequest2 req, JSONObject json) throws FormException {
         req.bindJSON(this, json);
         if(json.optBoolean("appendDefaults", false)){
-            try {
-                this.agentConfigurations.addAll(getDefaultAgents());
-            } catch (IOException ignored) {
-            }
+            Logger.getLogger("AgenticCodeReviewSettings").info("Default agents is still TODO");
         }
         save();
         return true;
-    }
-
-    protected List<AgentConfiguration> getDefaultAgents() throws IOException, FormException {
-        ArrayList<AgentConfiguration> defaults = new ArrayList<>();
-        PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
-        Resource[] agents = resolver.getResources("classpath*:defaults/agents/*.json");
-        for(Resource r : agents){
-            if(!r.isReadable()){
-                continue;
-            }
-            try (InputStream is = r.getInputStream()){
-                String content = new String(is.readAllBytes());
-                defaults.add(AgentConfiguration.fromDefaultJson(JsonParser.parseString(content).getAsJsonObject()));
-            }
-        }
-        return defaults;
     }
 
     @Override

@@ -31,6 +31,10 @@ public class GeminiModelConfiguration extends AuthenticatedModelConfiguration {
     @Extension
     public static class DescriptorImpl extends AuthenticatedModelConfiguration.DescriptorImpl {
 
+        public DescriptorImpl(){
+            super(GeminiModelConfiguration.class);
+        }
+
         @Override
         public @NonNull String getDisplayName() {
             return "Gemini Model";
