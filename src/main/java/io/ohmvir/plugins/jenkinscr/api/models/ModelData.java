@@ -3,12 +3,18 @@ package io.ohmvir.plugins.jenkinscr.api.models;
 import hudson.Extension;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
+import io.ohmvir.plugins.jenkinscr.api.client.ModelClient;
+import io.ohmvir.plugins.jenkinscr.api.client.impl.AnthropicModelClient;
+import io.ohmvir.plugins.jenkinscr.api.client.impl.GeminiModelClient;
+import io.ohmvir.plugins.jenkinscr.api.client.impl.OllamaModelClient;
+import io.ohmvir.plugins.jenkinscr.api.client.impl.OpenAIModelClient;
 import io.ohmvir.plugins.jenkinscr.api.models.retrievers.AnthropicModelDataRetriever;
 import io.ohmvir.plugins.jenkinscr.api.models.retrievers.GeminiModelDataRetriever;
 import io.ohmvir.plugins.jenkinscr.api.models.retrievers.OllamaModelDataRetriever;
 import io.ohmvir.plugins.jenkinscr.api.models.retrievers.OpenAIModelDataRetriever;
 import io.ohmvir.plugins.jenkinscr.configuration.AgenticCodeReviewSettings;
-import io.ohmvir.plugins.jenkinscr.configuration.models.ModelConfiguration;
+import io.ohmvir.plugins.jenkinscr.configuration.ModelClientConfiguration;
+import io.ohmvir.plugins.jenkinscr.configuration.models.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -23,6 +29,8 @@ public class ModelData {
     public ModelData(){
 
     }
+
+
     private static final List<ModelDataRetriever<?>> retrievers = List.of(
             new OllamaModelDataRetriever(),
             new AnthropicModelDataRetriever(),
@@ -41,7 +49,10 @@ public class ModelData {
         }
     }
 
-    private static void initializeModelDataForConfig(ModelConfiguration config){
+    public static void initializeModelDataForConfig(ModelConfiguration config){
+        if(MODEL_DATA.containsKey(config.getModelId())){
+            return;
+        }
         MODEL_DATA.put(config.getModelId(), retrievers.stream()
                 .map(retriever -> retriever.retrieveFromConfigurationGen(config))
                 .filter(Objects::nonNull)
@@ -77,4 +88,24 @@ public class ModelData {
     private @Getter @Setter @Nullable Long maxOutputTokens;
     private @Getter @Setter long contextWindow;
     private @Getter @Setter @Nullable Double maxTemperature;
+
+    public static ModelClient CreateClient(ModelConfiguration config){
+        return switch(config){
+            case GeminiModelConfiguration geminiConfig -> new GeminiModelClient(get(config.getModelId()), geminiConfig, AgenticCodeReviewSettings.get().getDefaultClientConfiguration());
+            case OllamaModelConfiguration ollamaConfig -> new OllamaModelClient(get(config.getModelId()), ollamaConfig, AgenticCodeReviewSettings.get().getDefaultClientConfiguration());
+            case OpenAIModelConfiguration openAIConfig -> new OpenAIModelClient(get(config.getModelId()), openAIConfig, AgenticCodeReviewSettings.get().getDefaultClientConfiguration());
+            case AnthropicModelConfiguration anthropicConfig -> new AnthropicModelClient(get(config.getModelId()), anthropicConfig, AgenticCodeReviewSettings.get().getDefaultClientConfiguration());
+            case null, default -> null;
+        };
+    }
+
+    public static ModelClient CreateClient(ModelConfiguration config, ModelClientConfiguration clientConfiguration){
+        return switch(config){
+            case GeminiModelConfiguration geminiConfig -> new GeminiModelClient(get(config.getModelId()), geminiConfig, clientConfiguration);
+            case OllamaModelConfiguration ollamaConfig -> new OllamaModelClient(get(config.getModelId()), ollamaConfig, clientConfiguration);
+            case OpenAIModelConfiguration openAIConfig -> new OpenAIModelClient(get(config.getModelId()), openAIConfig, clientConfiguration);
+            case AnthropicModelConfiguration anthropicConfig -> new AnthropicModelClient(get(config.getModelId()), anthropicConfig, clientConfiguration);
+            case null, default -> null;
+        };
+    }
 }

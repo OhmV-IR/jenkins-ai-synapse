@@ -2,6 +2,7 @@ package io.ohmvir.plugins.jenkinscr.configuration;
 
 import com.google.gson.JsonParser;
 import hudson.Extension;
+import io.ohmvir.plugins.jenkinscr.api.models.ModelData;
 import io.ohmvir.plugins.jenkinscr.configuration.agents.AbstractAgentConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.agents.AgentConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.models.ModelConfiguration;
@@ -24,6 +25,8 @@ public class AgenticCodeReviewSettings extends GlobalConfiguration {
 
     private @Getter List<ModelConfiguration> models = new ArrayList<>();
     private @Getter List<AbstractAgentConfiguration> agentConfigurations = new ArrayList<>();
+    private @Getter List<ModelClientConfiguration> clientConfigurations = new ArrayList<>();
+    private @Getter ModelClientConfiguration defaultClientConfiguration = new ModelClientConfiguration();
 
     public AgenticCodeReviewSettings(){
         load();
@@ -36,12 +39,24 @@ public class AgenticCodeReviewSettings extends GlobalConfiguration {
     @DataBoundSetter
     public void setModels(List<ModelConfiguration> models) {
         this.models = models != null ? models : new ArrayList<>();
+        this.models.forEach(ModelData::initializeModelDataForConfig);
         save();
     }
 
     @DataBoundSetter
     public void setAgentConfigurations(List<AbstractAgentConfiguration> agentConfigurations) {
         this.agentConfigurations = agentConfigurations != null ? agentConfigurations : new ArrayList<>();
+        save();
+    }
+
+    @DataBoundSetter
+    public void setClientConfigurations(List<ModelClientConfiguration> clientConfigurations) {
+        this.clientConfigurations = clientConfigurations != null ? clientConfigurations : new ArrayList<>();
+    }
+
+    @DataBoundSetter
+    public void setDefaultClientConfiguration(ModelClientConfiguration defaultClientConfiguration) {
+        this.defaultClientConfiguration = defaultClientConfiguration;
         save();
     }
 
