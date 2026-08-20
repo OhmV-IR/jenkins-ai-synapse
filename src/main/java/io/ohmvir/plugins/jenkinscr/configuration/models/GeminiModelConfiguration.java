@@ -1,7 +1,5 @@
 package io.ohmvir.plugins.jenkinscr.configuration.models;
 
-import com.cloudbees.plugins.credentials.CredentialsMatchers;
-import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.google.genai.Client;
 import com.google.genai.Pager;
@@ -10,21 +8,13 @@ import com.google.genai.types.HttpRetryOptions;
 import com.google.genai.types.ListModelsConfig;
 import hudson.Extension;
 import hudson.model.Descriptor;
-import hudson.model.Item;
-import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import io.ohmvir.plugins.jenkinscr.api.ModelProviderType;
+import io.ohmvir.plugins.jenkinscr.api.models.ModelProviderType;
 import io.ohmvir.plugins.jenkinscr.utils.SecretsUtils;
-import jenkins.model.Jenkins;
-import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.jspecify.annotations.NonNull;
-import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.verb.POST;
-
-import java.util.Collections;
 
 public class GeminiModelConfiguration extends AuthenticatedModelConfiguration {
 

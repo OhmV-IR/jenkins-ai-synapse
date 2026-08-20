@@ -11,7 +11,7 @@ import hudson.model.Item;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import io.ohmvir.plugins.jenkinscr.api.ModelProviderType;
+import io.ohmvir.plugins.jenkinscr.api.models.ModelProviderType;
 import io.ohmvir.plugins.jenkinscr.utils.SecretsUtils;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;

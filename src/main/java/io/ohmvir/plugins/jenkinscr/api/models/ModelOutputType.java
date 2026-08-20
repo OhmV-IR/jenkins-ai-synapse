@@ -1,4 +1,4 @@
-package io.ohmvir.plugins.jenkinscr.api;
+package io.ohmvir.plugins.jenkinscr.api.models;
 
 public enum ModelOutputType {
     UNSTRUCTURED_TEXT,
