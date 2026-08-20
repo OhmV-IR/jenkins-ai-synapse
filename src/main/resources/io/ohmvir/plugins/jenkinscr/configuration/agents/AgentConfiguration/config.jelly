@@ -2,18 +2,18 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
     <f:entry title="${%System Prompt}" field="systemPrompt">
-        <f:textbox />
+        <f:textbox/>
     </f:entry>
     <f:entry title="${%Temperature}" field="temperature">
-        <f:number />
+        <f:number/>
     </f:entry>
     <f:entry title="${%Max Output Tokens}" field="maxOutputTokensPerPrompt">
-        <f:number />
+        <f:number/>
     </f:entry>
     <f:entry title="${%Model selector}" field="modelId">
-        <f:select />
+        <f:select/>
     </f:entry>
     <f:entry title="${%Model Effort Level}" field="thinkingLevel">
-        <f:select />
+        <f:select/>
     </f:entry>
 </j:jelly>

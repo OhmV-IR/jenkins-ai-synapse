@@ -4,7 +4,10 @@ import hudson.model.Describable;
 import io.ohmvir.plugins.jenkinscr.configuration.AgenticCodeReviewSettings;
 import io.ohmvir.plugins.jenkinscr.configuration.ModelClientConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.agents.AgentConfiguration;
-import io.ohmvir.plugins.jenkinscr.configuration.models.*;
+import io.ohmvir.plugins.jenkinscr.configuration.models.AnthropicModelConfiguration;
+import io.ohmvir.plugins.jenkinscr.configuration.models.GeminiModelConfiguration;
+import io.ohmvir.plugins.jenkinscr.configuration.models.OllamaModelConfiguration;
+import io.ohmvir.plugins.jenkinscr.configuration.models.OpenAIModelConfiguration;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
@@ -24,9 +27,10 @@ public class DescriptorRegistrationTest {
             AgenticCodeReviewSettings.class,
             ModelClientConfiguration.class
     );
+
     @Test
-    public void verifyDescriptorsAreRegistered(JenkinsRule j){
-        for(Class<? extends Describable<?>> c : DESCRIPTOR_CLASSES_TO_TEST){
+    public void verifyDescriptorsAreRegistered(JenkinsRule j) {
+        for (Class<? extends Describable<?>> c : DESCRIPTOR_CLASSES_TO_TEST) {
             assertNotNull(j.jenkins.getDescriptorOrDie(c));
         }
     }

@@ -38,8 +38,8 @@ public class AnthropicModelConfiguration extends AuthenticatedModelConfiguration
         }
 
         @Override
-        public ListBoxModel doFillModelNameItems(@QueryParameter String apiKeyCredentialsId){
-            if(doCheckApiKeyCredentialsId(apiKeyCredentialsId).kind != FormValidation.Kind.OK){
+        public ListBoxModel doFillModelNameItems(@QueryParameter String apiKeyCredentialsId) {
+            if (doCheckApiKeyCredentialsId(apiKeyCredentialsId).kind != FormValidation.Kind.OK) {
                 return new StandardListBoxModel();
             }
             try {
@@ -57,7 +57,7 @@ public class AnthropicModelConfiguration extends AuthenticatedModelConfiguration
                         })
                         .forEach(model -> modelsMap.add(model.displayName(), model.id()));
                 return modelsMap;
-            } catch(Exception e){
+            } catch (Exception e) {
                 return new StandardListBoxModel();
             }
         }

@@ -38,8 +38,8 @@ public class OpenAIModelConfiguration extends AuthenticatedModelConfiguration {
             return "OpenAI Model";
         }
 
-        public ListBoxModel doFillModelNameItems(@QueryParameter String apiKeyCredentialsId){
-            if(doCheckApiKeyCredentialsId(apiKeyCredentialsId).kind != FormValidation.Kind.OK){
+        public ListBoxModel doFillModelNameItems(@QueryParameter String apiKeyCredentialsId) {
+            if (doCheckApiKeyCredentialsId(apiKeyCredentialsId).kind != FormValidation.Kind.OK) {
                 return new StandardListBoxModel();
             }
             try {
@@ -52,7 +52,7 @@ public class OpenAIModelConfiguration extends AuthenticatedModelConfiguration {
                 models.data()
                         .forEach(model -> modelsMap.add(model.id(), model.id()));
                 return modelsMap;
-            } catch(Exception e){
+            } catch (Exception e) {
                 return new StandardListBoxModel();
             }
         }

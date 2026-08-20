@@ -1,10 +1,8 @@
 package io.ohmvir.plugins.jenkinscr.configuration;
 
-import com.google.gson.JsonParser;
 import hudson.Extension;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelData;
 import io.ohmvir.plugins.jenkinscr.configuration.agents.AbstractAgentConfiguration;
-import io.ohmvir.plugins.jenkinscr.configuration.agents.AgentConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.models.ModelConfiguration;
 import jenkins.model.GlobalConfiguration;
 import lombok.Getter;
@@ -12,11 +10,7 @@ import net.sf.json.JSONObject;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.StaplerRequest2;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -29,7 +23,7 @@ public class AgenticCodeReviewSettings extends GlobalConfiguration {
     private @Getter List<ModelClientConfiguration> clientConfigurations = new ArrayList<>();
     private @Getter ModelClientConfiguration defaultClientConfiguration = new ModelClientConfiguration();
 
-    public AgenticCodeReviewSettings(){
+    public AgenticCodeReviewSettings() {
         load();
     }
 
@@ -64,7 +58,7 @@ public class AgenticCodeReviewSettings extends GlobalConfiguration {
     @Override
     public boolean configure(StaplerRequest2 req, JSONObject json) throws FormException {
         req.bindJSON(this, json);
-        if(json.optBoolean("appendDefaults", false)){
+        if (json.optBoolean("appendDefaults", false)) {
             Logger.getLogger("AgenticCodeReviewSettings").info("Default agents is still TODO");
         }
         save();

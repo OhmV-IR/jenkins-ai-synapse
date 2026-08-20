@@ -3,7 +3,6 @@ package io.ohmvir.plugins.jenkinscr.configuration.models;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.model.Item;
 import hudson.security.ACL;
@@ -20,23 +19,23 @@ import java.util.Collections;
 
 public abstract class AuthenticatedModelConfiguration extends ModelConfiguration {
 
+    public String apiKeyCredentialsId;
+
     public AuthenticatedModelConfiguration(String modelName, String apiKeyCredentialsId) throws Descriptor.FormException {
         super(modelName);
-        if(SecretsUtils.getSecretText(apiKeyCredentialsId, null) == null){
+        if (SecretsUtils.getSecretText(apiKeyCredentialsId, null) == null) {
             throw new Descriptor.FormException("API Key credentials id is invalid", "apiKeyCredentialsId");
         }
         this.apiKeyCredentialsId = apiKeyCredentialsId;
     }
 
-    public String apiKeyCredentialsId;
-
     public abstract static class DescriptorImpl extends ModelConfiguration.DescriptorImpl {
 
-        public DescriptorImpl(Class<? extends ModelConfiguration> clazz){
+        public DescriptorImpl(Class<? extends ModelConfiguration> clazz) {
             super(clazz);
         }
 
-        public ListBoxModel doFillApiKeyCredentialsIdItems (
+        public ListBoxModel doFillApiKeyCredentialsIdItems(
                 @AncestorInPath Item context,
                 @QueryParameter String apiBaseUrlCredentialId) {
 
@@ -56,11 +55,11 @@ public abstract class AuthenticatedModelConfiguration extends ModelConfiguration
         }
 
         @POST
-        public FormValidation doCheckApiKeyCredentialsId(@QueryParameter String value){
-            if(value == null || value.trim().isEmpty()){
+        public FormValidation doCheckApiKeyCredentialsId(@QueryParameter String value) {
+            if (value == null || value.trim().isEmpty()) {
                 return FormValidation.error("API key credentials id is required");
             }
-            if(SecretsUtils.getSecretText(value, null) == null){
+            if (SecretsUtils.getSecretText(value, null) == null) {
                 return FormValidation.error("API key credentials id is required");
             }
             return FormValidation.ok();

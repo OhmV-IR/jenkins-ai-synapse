@@ -26,10 +26,6 @@ import java.util.logging.Logger;
 
 @Extension
 public class ModelData {
-    public ModelData(){
-
-    }
-    
     private static final List<ModelDataRetriever<?>> retrievers = List.of(
             new OllamaModelDataRetriever(),
             new AnthropicModelDataRetriever(),
@@ -38,18 +34,43 @@ public class ModelData {
     );
     private static final Logger LOGGER = Logger.getLogger(ModelData.class.getName());
     private static final HashMap<String, ModelData> MODEL_DATA = new HashMap<>();
+    private @Getter
+    @Setter List<ModelCapability> capabilities;
+    private @Getter
+    @Setter List<ModelInputType> inputs;
+    private @Getter
+    @Setter List<ModelOutputType> outputs;
+    private @Getter
+    @Setter List<ModelThinkingLevel> supportedThinkingLevels;
+    private @Getter
+    @Setter ModelProviderType providerType;
+    private @Getter
+    @Setter
+    @Nullable Long maxInputTokens;
+    private @Getter
+    @Setter
+    @Nullable Long maxOutputTokens;
+    private @Getter
+    @Setter long contextWindow;
+    private @Getter
+    @Setter
+    @Nullable Double maxTemperature;
+
+    public ModelData() {
+
+    }
 
     @Initializer(after = InitMilestone.PLUGINS_STARTED)
-    public static void initializeModelDataCache(){
+    public static void initializeModelDataCache() {
         LOGGER.info("Prefetching model data");
-        for(ModelConfiguration config : AgenticCodeReviewSettings.get().getModels()){
+        for (ModelConfiguration config : AgenticCodeReviewSettings.get().getModels()) {
             LOGGER.info("Prefetching model data for " + config.getModelId());
             initializeModelDataForConfig(config);
         }
     }
 
-    public static void initializeModelDataForConfig(ModelConfiguration config){
-        if(MODEL_DATA.containsKey(config.getModelId())){
+    public static void initializeModelDataForConfig(ModelConfiguration config) {
+        if (MODEL_DATA.containsKey(config.getModelId())) {
             return;
         }
         MODEL_DATA.put(config.getModelId(), retrievers.stream()
@@ -58,53 +79,55 @@ public class ModelData {
                 .findFirst().orElseThrow());
     }
 
-    public static ModelData get(String modelId){
+    public static ModelData get(String modelId) {
         return ModelData.MODEL_DATA.get(modelId);
     }
 
-    private @Getter @Setter List<ModelCapability> capabilities;
-    public boolean hasCapability(ModelCapability capability){
+    public static ModelClient CreateClient(ModelConfiguration config) {
+        return switch (config) {
+            case GeminiModelConfiguration geminiConfig ->
+                    new GeminiModelClient(get(config.getModelId()), geminiConfig, AgenticCodeReviewSettings.get().getDefaultClientConfiguration());
+            case OllamaModelConfiguration ollamaConfig ->
+                    new OllamaModelClient(get(config.getModelId()), ollamaConfig, AgenticCodeReviewSettings.get().getDefaultClientConfiguration());
+            case OpenAIModelConfiguration openAIConfig ->
+                    new OpenAIModelClient(get(config.getModelId()), openAIConfig, AgenticCodeReviewSettings.get().getDefaultClientConfiguration());
+            case AnthropicModelConfiguration anthropicConfig ->
+                    new AnthropicModelClient(get(config.getModelId()), anthropicConfig, AgenticCodeReviewSettings.get().getDefaultClientConfiguration());
+            case null, default -> null;
+        };
+    }
+
+    public static ModelClient CreateClient(ModelConfiguration config, ModelClientConfiguration clientConfiguration) {
+        return switch (config) {
+            case GeminiModelConfiguration geminiConfig ->
+                    new GeminiModelClient(get(config.getModelId()), geminiConfig, clientConfiguration);
+            case OllamaModelConfiguration ollamaConfig ->
+                    new OllamaModelClient(get(config.getModelId()), ollamaConfig, clientConfiguration);
+            case OpenAIModelConfiguration openAIConfig ->
+                    new OpenAIModelClient(get(config.getModelId()), openAIConfig, clientConfiguration);
+            case AnthropicModelConfiguration anthropicConfig ->
+                    new AnthropicModelClient(get(config.getModelId()), anthropicConfig, clientConfiguration);
+            case null, default -> null;
+        };
+    }
+
+    public boolean hasCapability(ModelCapability capability) {
         return capabilities.contains(capability);
     }
-    private @Getter @Setter List<ModelInputType> inputs;
-    public boolean supportsInput(ModelInputType input){
+
+    public boolean supportsInput(ModelInputType input) {
         return inputs.contains(input);
     }
-    private @Getter @Setter List<ModelOutputType> outputs;
-    public boolean supportsOutput(ModelOutputType output){
+
+    public boolean supportsOutput(ModelOutputType output) {
         return outputs.contains(output);
     }
 
-    private @Getter @Setter List<ModelThinkingLevel> supportedThinkingLevels;
-    public boolean supportsThinkingLevel(ModelThinkingLevel input){
+    public boolean supportsThinkingLevel(ModelThinkingLevel input) {
         return supportedThinkingLevels.contains(input);
     }
-    public boolean supportsThinking(){ return !supportedThinkingLevels.isEmpty(); }
 
-    private @Getter @Setter ModelProviderType providerType;
-
-    private @Getter @Setter @Nullable Long maxInputTokens;
-    private @Getter @Setter @Nullable Long maxOutputTokens;
-    private @Getter @Setter long contextWindow;
-    private @Getter @Setter @Nullable Double maxTemperature;
-
-    public static ModelClient CreateClient(ModelConfiguration config){
-        return switch(config){
-            case GeminiModelConfiguration geminiConfig -> new GeminiModelClient(get(config.getModelId()), geminiConfig, AgenticCodeReviewSettings.get().getDefaultClientConfiguration());
-            case OllamaModelConfiguration ollamaConfig -> new OllamaModelClient(get(config.getModelId()), ollamaConfig, AgenticCodeReviewSettings.get().getDefaultClientConfiguration());
-            case OpenAIModelConfiguration openAIConfig -> new OpenAIModelClient(get(config.getModelId()), openAIConfig, AgenticCodeReviewSettings.get().getDefaultClientConfiguration());
-            case AnthropicModelConfiguration anthropicConfig -> new AnthropicModelClient(get(config.getModelId()), anthropicConfig, AgenticCodeReviewSettings.get().getDefaultClientConfiguration());
-            case null, default -> null;
-        };
-    }
-
-    public static ModelClient CreateClient(ModelConfiguration config, ModelClientConfiguration clientConfiguration){
-        return switch(config){
-            case GeminiModelConfiguration geminiConfig -> new GeminiModelClient(get(config.getModelId()), geminiConfig, clientConfiguration);
-            case OllamaModelConfiguration ollamaConfig -> new OllamaModelClient(get(config.getModelId()), ollamaConfig, clientConfiguration);
-            case OpenAIModelConfiguration openAIConfig -> new OpenAIModelClient(get(config.getModelId()), openAIConfig, clientConfiguration);
-            case AnthropicModelConfiguration anthropicConfig -> new AnthropicModelClient(get(config.getModelId()), anthropicConfig, clientConfiguration);
-            case null, default -> null;
-        };
+    public boolean supportsThinking() {
+        return !supportedThinkingLevels.isEmpty();
     }
 }

@@ -18,13 +18,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class OllamaModelDataRetriever extends ModelDataRetriever<OllamaModelConfiguration>
-{
-    private HttpClient httpClient = HttpClient.newBuilder()
+public class OllamaModelDataRetriever extends ModelDataRetriever<OllamaModelConfiguration> {
+    private static final String RETRIEVE_MODEL_INFO_SUFFIX = "/api/show";
+    private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .followRedirects(HttpClient.Redirect.NORMAL)
             .build();
-    private static final String RETRIEVE_MODEL_INFO_SUFFIX = "/api/show";
+
     public OllamaModelDataRetriever() {
         super(OllamaModelConfiguration.class);
     }
@@ -42,21 +42,21 @@ public class OllamaModelDataRetriever extends ModelDataRetriever<OllamaModelConf
                 .stream().map(JsonElement::getAsString)
                 .collect(Collectors.toSet());
         ModelData ret = new ModelData();
-        if(configuration.modelName.contains("gpt-oss")){
-            ret.setSupportedThinkingLevels(List.of(ModelThinkingLevel.LOW, ModelThinkingLevel.MEDIUM,  ModelThinkingLevel.HIGH));
+        if (configuration.modelName.contains("gpt-oss")) {
+            ret.setSupportedThinkingLevels(List.of(ModelThinkingLevel.LOW, ModelThinkingLevel.MEDIUM, ModelThinkingLevel.HIGH));
         } else if (capabilities.contains("thinking")) {
             ret.setSupportedThinkingLevels(List.of(ModelThinkingLevel.OFF, ModelThinkingLevel.LOW, ModelThinkingLevel.MEDIUM, ModelThinkingLevel.HIGH, ModelThinkingLevel.MAX));
         }
         ArrayList<ModelCapability> capabilitiesEnumArr = new ArrayList<>();
         capabilitiesEnumArr.add(ModelCapability.STREAMING);
-        if(capabilities.contains("tools")){
+        if (capabilities.contains("tools")) {
             capabilitiesEnumArr.add(ModelCapability.TOOLS);
         }
         ArrayList<ModelInputType> supportedInputTypes = new ArrayList<>();
-        if(capabilities.contains("audio")){
+        if (capabilities.contains("audio")) {
             supportedInputTypes.add(ModelInputType.AUDIO);
         }
-        if(capabilities.contains("vision")){
+        if (capabilities.contains("vision")) {
             supportedInputTypes.add(ModelInputType.IMAGE);
             supportedInputTypes.add(ModelInputType.VIDEO); // Technically supported by passing multiple frames to the model.
         }
@@ -65,7 +65,7 @@ public class OllamaModelDataRetriever extends ModelDataRetriever<OllamaModelConf
         ArrayList<ModelOutputType> outputTypes = new ArrayList<>();
         outputTypes.add(ModelOutputType.UNSTRUCTURED_TEXT);
         outputTypes.add(ModelOutputType.STRUCTURED_OUTPUT);
-        if(capabilities.contains("embeddings")){
+        if (capabilities.contains("embeddings")) {
             outputTypes.add(ModelOutputType.EMBEDDINGS);
         }
         ret.setOutputs(outputTypes);

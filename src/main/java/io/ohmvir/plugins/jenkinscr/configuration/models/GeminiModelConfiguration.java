@@ -31,7 +31,7 @@ public class GeminiModelConfiguration extends AuthenticatedModelConfiguration {
     @Extension
     public static class DescriptorImpl extends AuthenticatedModelConfiguration.DescriptorImpl {
 
-        public DescriptorImpl(){
+        public DescriptorImpl() {
             super(GeminiModelConfiguration.class);
         }
 
@@ -42,7 +42,7 @@ public class GeminiModelConfiguration extends AuthenticatedModelConfiguration {
 
         @Override
         public ListBoxModel doFillModelNameItems(@QueryParameter String apiKeyCredentialsId) {
-            if(doCheckApiKeyCredentialsId(apiKeyCredentialsId).kind != FormValidation.Kind.OK){
+            if (doCheckApiKeyCredentialsId(apiKeyCredentialsId).kind != FormValidation.Kind.OK) {
                 return new StandardListBoxModel();
             }
             try {
@@ -68,7 +68,7 @@ public class GeminiModelConfiguration extends AuthenticatedModelConfiguration {
                 }
                 client.close();
                 return modelsMap;
-            } catch(Exception e){
+            } catch (Exception e) {
                 return new StandardListBoxModel();
             }
         }

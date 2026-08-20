@@ -10,8 +10,7 @@ import io.ohmvir.plugins.jenkinscr.utils.SecretsUtils;
 import java.io.IOException;
 import java.util.ArrayList;
 
-public class AnthropicModelDataRetriever extends ModelDataRetriever<AnthropicModelConfiguration>
-{
+public class AnthropicModelDataRetriever extends ModelDataRetriever<AnthropicModelConfiguration> {
     public AnthropicModelDataRetriever() {
         super(AnthropicModelConfiguration.class);
     }
@@ -25,27 +24,27 @@ public class AnthropicModelDataRetriever extends ModelDataRetriever<AnthropicMod
         ModelInfo model = httpClient.models().retrieve(configuration.modelName);
         ret.setProviderType(ModelProviderType.ANTHROPIC);
         ret.setMaxTemperature(1.0d);
-        if(model.capabilities().isEmpty()){
+        if (model.capabilities().isEmpty()) {
             throw new IOException("No capabilities provided");
         }
-        if(model.maxInputTokens().isEmpty() || model.maxTokens().isEmpty()){
+        if (model.maxInputTokens().isEmpty() || model.maxTokens().isEmpty()) {
             throw new IOException("No token caps provided");
         }
-        if(model.capabilities().get().effort().supported()){
+        if (model.capabilities().get().effort().supported()) {
             ArrayList<ModelThinkingLevel> thinkingLevels = new ArrayList<>();
-            if(model.capabilities().get().effort().low().supported()){
+            if (model.capabilities().get().effort().low().supported()) {
                 thinkingLevels.add(ModelThinkingLevel.LOW);
             }
-            if(model.capabilities().get().effort().medium().supported()){
+            if (model.capabilities().get().effort().medium().supported()) {
                 thinkingLevels.add(ModelThinkingLevel.MEDIUM);
             }
-            if(model.capabilities().get().effort().high().supported()){
+            if (model.capabilities().get().effort().high().supported()) {
                 thinkingLevels.add(ModelThinkingLevel.HIGH);
             }
-            if(model.capabilities().get().effort().xhigh().isPresent() && model.capabilities().get().effort().xhigh().get().supported()){
+            if (model.capabilities().get().effort().xhigh().isPresent() && model.capabilities().get().effort().xhigh().get().supported()) {
                 thinkingLevels.add(ModelThinkingLevel.EXTRA_HIGH);
             }
-            if(model.capabilities().get().effort().max().supported()){
+            if (model.capabilities().get().effort().max().supported()) {
                 thinkingLevels.add(ModelThinkingLevel.MAX);
             }
             ret.setSupportedThinkingLevels(thinkingLevels);
@@ -55,10 +54,10 @@ public class AnthropicModelDataRetriever extends ModelDataRetriever<AnthropicMod
         ArrayList<ModelInputType> inputs = new ArrayList<>();
         ArrayList<ModelOutputType> outputs = new ArrayList<>();
         outputs.add(ModelOutputType.UNSTRUCTURED_TEXT);
-        if(model.capabilities().get().pdfInput().supported()){
+        if (model.capabilities().get().pdfInput().supported()) {
             inputs.add(ModelInputType.PDF);
         }
-        if(model.capabilities().get().imageInput().supported()){
+        if (model.capabilities().get().imageInput().supported()) {
             inputs.add(ModelInputType.IMAGE);
             inputs.add(ModelInputType.VIDEO);
         }
@@ -71,10 +70,10 @@ public class AnthropicModelDataRetriever extends ModelDataRetriever<AnthropicMod
         ret.setMaxOutputTokens(model.maxTokens().get() - model.maxInputTokens().get());
         ret.setContextWindow(model.maxInputTokens().get());
         ArrayList<ModelCapability> capabilities = new ArrayList<>();
-        if(model.capabilities().get().citations().supported()){
+        if (model.capabilities().get().citations().supported()) {
             capabilities.add(ModelCapability.CITATIONS);
         }
-        if(model.capabilities().get().codeExecution().supported()){
+        if (model.capabilities().get().codeExecution().supported()) {
             capabilities.add(ModelCapability.CODE_EXECUTION);
         }
         capabilities.add(ModelCapability.WEB_SEARCH);

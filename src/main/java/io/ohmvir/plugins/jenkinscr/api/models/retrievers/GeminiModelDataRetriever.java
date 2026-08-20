@@ -28,7 +28,7 @@ public class GeminiModelDataRetriever extends ModelDataRetriever<GeminiModelConf
         thinkingLevels.add(ModelThinkingLevel.LOW);
         thinkingLevels.add(ModelThinkingLevel.MEDIUM);
         thinkingLevels.add(ModelThinkingLevel.HIGH);
-        if(!configuration.modelName.contains("pro") && !configuration.modelName.contains("3.7-flash")){
+        if (!configuration.modelName.contains("pro") && !configuration.modelName.contains("3.7-flash")) {
             thinkingLevels.add(ModelThinkingLevel.OFF); // Gemini calls this "minimal" ref: https://ai.google.dev/gemini-api/docs/generate-content/thinking#:~:text=Table_title%3A%20Thinking%20levels%20(Gemini%203)%20Table_content%3A%20%7C,the%20%22no%20thinking%22%20setting%20for%20most%20queries.
             // Note that for 2.5-x models we will need to translate these qualitative levels into specific token budgets for thinking
         }
@@ -38,16 +38,15 @@ public class GeminiModelDataRetriever extends ModelDataRetriever<GeminiModelConf
         capabilitiesEnumArr.add(ModelCapability.STREAMING);
         ArrayList<ModelInputType> inputTypes = new ArrayList<>();
         ArrayList<ModelOutputType> outputTypes = new ArrayList<>();
-        if(configuration.modelName.contains("-image")){
+        if (configuration.modelName.contains("-image")) {
             inputTypes.add(ModelInputType.TEXT);
             outputTypes.add(ModelOutputType.IMAGE);
             outputTypes.add(ModelOutputType.VIDEO);
-        }
-        else if(configuration.modelName.contains("-live") || configuration.modelName.contains("-audio")){
+        } else if (configuration.modelName.contains("-live") || configuration.modelName.contains("-audio")) {
             inputTypes.add(ModelInputType.TEXT);
             outputTypes.add(ModelOutputType.AUDIO);
             inputTypes.add(ModelInputType.AUDIO);
-        } else if (configuration.modelName.contains("embedding")){
+        } else if (configuration.modelName.contains("embedding")) {
             inputTypes.add(ModelInputType.TEXT);
             outputTypes.add(ModelOutputType.EMBEDDINGS);
         } else {

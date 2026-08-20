@@ -3,20 +3,21 @@
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
     <f:section title="${%AI Code Review Settings}">
         <f:section title="${%Models}">
-            <f:repeatableHeteroProperty field="providers" hasHeader="true" addCaption="${%Add Model}" />
+            <f:repeatableHeteroProperty field="providers" hasHeader="true" addCaption="${%Add Model}"/>
         </f:section>
         <f:section title="${%Agent Configurations}">
             <f:entry field="appendDefaultAgents">
-                <f:checkbox title="${% Append built-in default Agent Configurations to list on next save}" />
+                <f:checkbox title="${% Append built-in default Agent Configurations to list on next save}"/>
             </f:entry>
-            <f:repeatableHeteroProperty field="agentConfigurations" hasHeader="true" addCaption="${%Add Agent}" />
+            <f:repeatableHeteroProperty field="agentConfigurations" hasHeader="true" addCaption="${%Add Agent}"/>
         </f:section>
         <f:section title="${%Model Client Configurations}">
             <f:entry field="defaultClientConfiguration">
-                <f:property field="defaultClientConfiguration" />
+                <f:property field="defaultClientConfiguration"/>
             </f:entry>
             <f:entry field="clientConfigurations">
-                <f:repeatableHeteroProperty field="clientConfigurations" hasHeader="true" addCaption="${%Add Client Configuration}" />
+                <f:repeatableHeteroProperty field="clientConfigurations" hasHeader="true"
+                                            addCaption="${%Add Client Configuration}"/>
             </f:entry>
         </f:section>
     </f:section>
