@@ -1,6 +1,8 @@
 package io.ohmvir.plugins.jenkinscr.api.models;
 
-public enum ModelEffortLevel {
+public enum ModelThinkingLevel {
+    OFF,
+    ON,
     LOW,
     MEDIUM,
     HIGH,

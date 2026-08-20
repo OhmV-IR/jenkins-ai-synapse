@@ -87,16 +87,6 @@ public class OllamaModelConfiguration extends ModelConfiguration {
                 ListBoxModel models = new ListBoxModel();
                 resJson.get("models")
                         .getAsJsonArray()
-                        .asList()
-                        .stream()
-                        .filter(model ->
-                                model.getAsJsonObject()
-                                        .get("capabilities")
-                                        .getAsJsonArray()
-                                        .asList()
-                                        .stream()
-                                        .anyMatch(capability -> capability.getAsString().equals("tools"))
-                        )
                         .forEach(model -> models.add(model.getAsJsonObject().get("name").getAsString(),
                                 model.getAsJsonObject().get("model").getAsString())
                         );
