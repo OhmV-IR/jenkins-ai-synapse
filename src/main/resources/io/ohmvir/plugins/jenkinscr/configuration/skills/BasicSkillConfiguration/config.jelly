@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:entry title="${%Skill Name}" field="skillName" description="${%The name for the skill}">
+        <f:textbox />
+    </f:entry>
+    <f:entry title="${%Skill Description}" field="skillDescription" description="${%The description of the skill}">
+        <f:textbox />
+    </f:entry>
+    <f:entry title="${%Skill Text}" field="skillText" description="${%The main body of the skill that informs the agent on how to behave and specializes them}">
+        <f:textbox />
+    </f:entry>
+</j:jelly>
