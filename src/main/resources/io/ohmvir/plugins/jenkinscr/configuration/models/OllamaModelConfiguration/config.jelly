@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
-    <f:entry title="${%API Key}" field="apiKeyCredentialsId">
+    <f:entry title="${%API Base URL}" field="apiBaseUrlCredentialId">
         <c:select/>
     </f:entry>
     <f:entry title="${%Model Name}" field="modelName">
-        <f:select />
+        <f:select/>
     </f:entry>
 </j:jelly>

@@ -11,7 +11,7 @@ import hudson.model.Item;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import io.ohmvir.plugins.jenkinscr.api.ModelProviderType;
+import io.ohmvir.plugins.jenkinscr.api.models.ModelProviderType;
 import io.ohmvir.plugins.jenkinscr.utils.SecretsUtils;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
@@ -34,7 +34,7 @@ public class OllamaModelConfiguration extends ModelConfiguration {
     @DataBoundConstructor
     public OllamaModelConfiguration(String apiBaseUrlCredentialId, String modelName) throws Descriptor.FormException {
         super(modelName);
-        if(SecretsUtils.getSecretText(apiBaseUrlCredentialId, null) == null){
+        if (SecretsUtils.getSecretText(apiBaseUrlCredentialId, null) == null) {
             throw new Descriptor.FormException("apiUrlCredentialId does not resolve to a valid string credential", "apiUrlCredentialId");
         }
         this.apiBaseUrlCredentialId = apiBaseUrlCredentialId;
@@ -46,8 +46,8 @@ public class OllamaModelConfiguration extends ModelConfiguration {
     }
 
     @Extension
-    public static class DescriptorImpl extends Descriptor<ModelConfiguration> {
-        private transient final static String MODELS_LIST_API_SUFFIX = "/api/tags";
+    public static class DescriptorImpl extends ModelConfiguration.DescriptorImpl {
+        private final static String MODELS_LIST_API_SUFFIX = "/api/tags";
         private transient final HttpClient httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .followRedirects(HttpClient.Redirect.NORMAL)
@@ -77,7 +77,7 @@ public class OllamaModelConfiguration extends ModelConfiguration {
                     );
         }
 
-        public ListBoxModel doFillModelNameItems(@QueryParameter String apiBaseUrlCredentialId){
+        public ListBoxModel doFillModelNameItems(@QueryParameter String apiBaseUrlCredentialId) {
             try {
                 HttpRequest modelsListReq = HttpRequest.newBuilder()
                         .uri(URI.create(SecretsUtils.getSecretText(apiBaseUrlCredentialId, null) + MODELS_LIST_API_SUFFIX))
@@ -87,40 +87,22 @@ public class OllamaModelConfiguration extends ModelConfiguration {
                 ListBoxModel models = new ListBoxModel();
                 resJson.get("models")
                         .getAsJsonArray()
-                        .asList()
-                        .stream()
-                        .filter(model ->
-                                model.getAsJsonObject()
-                                        .get("capabilities")
-                                        .getAsJsonArray()
-                                        .asList()
-                                        .stream()
-                                        .anyMatch(capability -> capability.getAsString().equals("tools"))
-                        )
                         .forEach(model -> models.add(model.getAsJsonObject().get("name").getAsString(),
                                 model.getAsJsonObject().get("model").getAsString())
                         );
                 return models;
-            } catch(Exception e){
+            } catch (Exception e) {
                 return new ListBoxModel();
             }
         }
 
         @POST
-        public FormValidation doCheckApiBaseUrlCredentialId(@QueryParameter String value){
-            if(value == null || value.trim().isEmpty()){
+        public FormValidation doCheckApiBaseUrlCredentialId(@QueryParameter String value) {
+            if (value == null || value.trim().isEmpty()) {
                 return FormValidation.error("API Base URL is required");
             }
-            if(SecretsUtils.getSecretText(value, null) == null){
+            if (SecretsUtils.getSecretText(value, null) == null) {
                 return FormValidation.error("API Base URL does not resolve to a string credential");
-            }
-            return FormValidation.ok();
-        }
-
-        @POST
-        public FormValidation doCheckModelName(@QueryParameter String value){
-            if(value == null || value.trim().isEmpty()){
-                return FormValidation.error("Model name is required");
             }
             return FormValidation.ok();
         }

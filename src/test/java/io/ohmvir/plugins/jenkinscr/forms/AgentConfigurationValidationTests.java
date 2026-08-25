@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @WithJenkins
 public class AgentConfigurationValidationTests {
     @Test
-    public void checkAgentConfigurationFormValidation(JenkinsRule j){
+    public void checkAgentConfigurationFormValidation(JenkinsRule j) {
         AgentConfiguration.DescriptorImpl descriptor = j.jenkins.getDescriptorByType(AgentConfiguration.DescriptorImpl.class);
 
         FormValidation nullProvider = descriptor.doCheckProvider(null);
