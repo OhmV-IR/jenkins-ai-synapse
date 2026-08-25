@@ -1,14 +1,15 @@
 package io.ohmvir.plugins.jenkinscr.configuration.agents;
 
 import hudson.ExtensionPoint;
+import hudson.model.AbstractDescribableImpl;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelThinkingLevel;
 import io.ohmvir.plugins.jenkinscr.configuration.models.ModelConfiguration;
 import jenkins.model.Jenkins;
 
-public abstract class AbstractAgentConfiguration<T extends AbstractAgentConfiguration<T>>
-        implements Describable<T>, ExtensionPoint {
+public abstract class AbstractAgentConfiguration
+        implements Describable<AbstractAgentConfiguration>, ExtensionPoint {
 
     public String systemPrompt;
     public double temperature;
@@ -34,11 +35,5 @@ public abstract class AbstractAgentConfiguration<T extends AbstractAgentConfigur
             throw new Descriptor.FormException("thinkingLevel cannot be null", "thinkingLevel");
         }
         this.thinkingLevel = thinkingLevel;
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public Descriptor<T> getDescriptor() {
-        return (Descriptor<T>) Jenkins.get().getDescriptorOrDie(getClass());
     }
 }

@@ -13,7 +13,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
 
-public class AgentConfiguration extends AbstractAgentConfiguration<AgentConfiguration> {
+public class AgentConfiguration extends AbstractAgentConfiguration {
 
     @DataBoundConstructor
     public AgentConfiguration(String systemPrompt, double temperature, long maxOutputTokensPerPrompt, String modelId, ModelThinkingLevel thinkingLevel) throws Descriptor.FormException {
@@ -21,7 +21,7 @@ public class AgentConfiguration extends AbstractAgentConfiguration<AgentConfigur
     }
 
     @Extension
-    public static class DescriptorImpl extends Descriptor<AgentConfiguration> {
+    public static class DescriptorImpl extends Descriptor<AbstractAgentConfiguration> {
 
         @Override
         public @NonNull String getDisplayName() {

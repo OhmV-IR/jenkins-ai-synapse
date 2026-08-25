@@ -28,11 +28,6 @@ public class OpenAIModelConfiguration extends AuthenticatedModelConfiguration {
 
     @Extension
     public static class DescriptorImpl extends AuthenticatedModelConfiguration.DescriptorImpl {
-
-        public DescriptorImpl() {
-            super(OpenAIModelConfiguration.class);
-        }
-
         @Override
         public @NonNull String getDisplayName() {
             return "OpenAI Model";

@@ -32,12 +32,6 @@ public abstract class ModelConfiguration implements Describable<ModelConfigurati
                 .findFirst().orElse(null);
     }
 
-    @Override
-    @SuppressWarnings("unchecked")
-    public Descriptor<ModelConfiguration> getDescriptor() {
-        return (Descriptor<ModelConfiguration>) Jenkins.get().getDescriptorOrDie(getClass());
-    }
-
     public abstract ModelProviderType getProviderType();
 
     public String getModelIdDisplayName() {
@@ -49,10 +43,6 @@ public abstract class ModelConfiguration implements Describable<ModelConfigurati
     }
 
     public abstract static class DescriptorImpl extends Descriptor<ModelConfiguration> {
-        public DescriptorImpl(Class<? extends ModelConfiguration> clazz) {
-            super(clazz);
-        }
-
         @POST
         public FormValidation doCheckModelName(@QueryParameter String value) {
             if (value == null || value.trim().isEmpty()) {

@@ -53,10 +53,6 @@ public class OllamaModelConfiguration extends ModelConfiguration {
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
 
-        public DescriptorImpl() {
-            super(OllamaModelConfiguration.class);
-        }
-
         @Override
         public @NonNull String getDisplayName() {
             return "Ollama Model";
