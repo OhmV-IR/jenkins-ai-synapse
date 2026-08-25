@@ -3,6 +3,7 @@ package io.ohmvir.plugins.jenkinscr.api.models;
 import io.ohmvir.plugins.jenkinscr.configuration.models.ModelConfiguration;
 
 import java.io.IOException;
+import java.util.logging.Logger;
 
 public abstract class ModelDataRetriever<T extends ModelConfiguration> {
     private final Class<T> configurationClass;
@@ -19,7 +20,10 @@ public abstract class ModelDataRetriever<T extends ModelConfiguration> {
                 return retrieveFromConfiguration(configurationClass.cast(config));
             }
             return null;
-        } catch (Exception ignored) {
+        } catch (Exception ex) {
+            Logger.getLogger(getClass().getName())
+                    .severe(String.format("Exception thrown when trying to get model data for model configuration with id %s: %s", config.getModelId(), ex.getLocalizedMessage()));
+            ex.printStackTrace();
             return null;
         }
     }

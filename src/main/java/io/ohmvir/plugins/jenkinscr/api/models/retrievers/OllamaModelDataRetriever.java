@@ -34,7 +34,7 @@ public class OllamaModelDataRetriever extends ModelDataRetriever<OllamaModelConf
         HttpRequest modelDetailsReq = HttpRequest.newBuilder()
                 .uri(URI.create(
                         SecretsUtils.getSecretText(configuration.apiBaseUrlCredentialId, null) + RETRIEVE_MODEL_INFO_SUFFIX))
-                .POST(HttpRequest.BodyPublishers.ofString(String.format("{\"model\":\"%s\"\"verbose\":true}", configuration.modelName)))
+                .POST(HttpRequest.BodyPublishers.ofString(String.format("{\"model\":\"%s\",\"verbose\":true}", configuration.modelName)))
                 .build();
         HttpResponse<String> res = httpClient.send(modelDetailsReq, HttpResponse.BodyHandlers.ofString());
         JsonObject resJson = JsonParser.parseString(res.body()).getAsJsonObject();
