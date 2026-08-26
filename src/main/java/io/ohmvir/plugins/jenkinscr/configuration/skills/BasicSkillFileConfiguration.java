@@ -8,7 +8,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import java.util.Map;
 
 public class BasicSkillFileConfiguration extends SkillConfiguration {
-    private final String fileContent;
+    public String fileContent;
 
     @DataBoundConstructor
     public BasicSkillFileConfiguration(String skillId, String fileContent) throws Descriptor.FormException {
