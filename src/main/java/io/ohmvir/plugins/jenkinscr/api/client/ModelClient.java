@@ -14,7 +14,10 @@ public abstract class ModelClient {
 
     public abstract ModelResponse generateResponse(ModelRequest request);
 
-    public abstract ModelResponse generateConversationResponse(ModelRequest request, ModelConversation conversation);
+    public ModelResponse generateConversationResponse(ModelRequest request, ModelConversation conversation){
+        request.setConversationHistory(conversation);
+        return generateResponse(request);
+    }
 
     public abstract ModelConversation beginConversation();
 }

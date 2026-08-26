@@ -19,11 +19,6 @@ public class OpenAIModelClient extends ModelClient {
     }
 
     @Override
-    public ModelResponse generateConversationResponse(ModelRequest request, ModelConversation conversation) {
-        return null;
-    }
-
-    @Override
     public ModelConversation beginConversation() {
         return null;
     }
