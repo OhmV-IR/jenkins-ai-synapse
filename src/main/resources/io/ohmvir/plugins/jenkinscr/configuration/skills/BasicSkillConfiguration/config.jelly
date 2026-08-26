@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:entry title="${%Skill ID}" field="skillId" description="${%The unique identifier for the skill}">
+        <f:textbox />
+    </f:entry>
     <f:entry title="${%Skill Name}" field="skillName" description="${%The name for the skill}">
         <f:textbox />
     </f:entry>

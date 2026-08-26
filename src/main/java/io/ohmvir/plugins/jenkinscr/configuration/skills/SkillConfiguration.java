@@ -12,7 +12,6 @@ import org.kohsuke.stapler.QueryParameter;
 import java.util.Objects;
 
 public abstract class SkillConfiguration implements Describable<SkillConfiguration>, ExtensionPoint {
-
     public SkillConfiguration(String skillId) throws Descriptor.FormException {
         if(skillId == null){
             throw new Descriptor.FormException("Skill ID cannot be null", "skillId");

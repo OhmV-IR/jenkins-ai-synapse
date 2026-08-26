@@ -11,7 +11,7 @@ import java.util.Map;
 public class BasicSkillConfiguration extends SkillConfiguration {
     @Override
     protected SkillData generateSkill() {
-        return new SkillData(skillName, skillDescription, null, null, null, null, skillText, Map.of(), Map.of(), Map.of());
+        return new SkillData(skillName, skillDescription, null, null, null, null, skillText, Map.of());
     }
 
     @DataBoundConstructor
