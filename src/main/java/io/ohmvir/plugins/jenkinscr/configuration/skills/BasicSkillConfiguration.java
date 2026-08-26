@@ -11,11 +11,11 @@ import java.util.Map;
 public class BasicSkillConfiguration extends SkillConfiguration {
     @Override
     protected SkillData generateSkill() {
-        return new SkillData(skillName, skillDescription, null, null, null, null, skillText, Map.of(), Map.of(), Map.of());
+        return new SkillData(skillName, skillDescription, null, null, null, null, skillText, Map.of());
     }
 
     @DataBoundConstructor
-    public BasicSkillConfiguration(String skillId, String skillText, String skillVersion, String skillName, String skillDescription) throws Descriptor.FormException {
+    public BasicSkillConfiguration(String skillId, String skillText, String skillName, String skillDescription) throws Descriptor.FormException {
         super(skillId);
         this.skillName = skillName;
         this.skillDescription = skillDescription;

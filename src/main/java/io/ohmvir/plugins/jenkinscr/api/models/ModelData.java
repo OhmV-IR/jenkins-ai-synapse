@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.logging.Logger;
 
-@Extension
 public class ModelData {
     private static final List<ModelDataRetriever<?>> retrievers = List.of(
             new OllamaModelDataRetriever(),
