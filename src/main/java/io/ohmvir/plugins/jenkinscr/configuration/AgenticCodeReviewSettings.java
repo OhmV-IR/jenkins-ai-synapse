@@ -2,8 +2,10 @@ package io.ohmvir.plugins.jenkinscr.configuration;
 
 import hudson.Extension;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelData;
+import io.ohmvir.plugins.jenkinscr.api.skills.SkillData;
 import io.ohmvir.plugins.jenkinscr.configuration.agents.AbstractAgentConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.models.ModelConfiguration;
+import io.ohmvir.plugins.jenkinscr.configuration.skills.SkillConfiguration;
 import jenkins.model.GlobalConfiguration;
 import lombok.Getter;
 import net.sf.json.JSONObject;
@@ -22,6 +24,7 @@ public class AgenticCodeReviewSettings extends GlobalConfiguration {
     private @Getter List<AbstractAgentConfiguration> agentConfigurations = new ArrayList<>();
     private @Getter List<ModelClientConfiguration> clientConfigurations = new ArrayList<>();
     private @Getter ModelClientConfiguration defaultClientConfiguration = new ModelClientConfiguration();
+    private @Getter List<SkillConfiguration> skills = new ArrayList<>();
 
     public AgenticCodeReviewSettings() {
         load();
@@ -35,6 +38,13 @@ public class AgenticCodeReviewSettings extends GlobalConfiguration {
     public void setModels(List<ModelConfiguration> models) {
         this.models = models != null ? models : new ArrayList<>();
         this.models.forEach(ModelData::initializeModelDataForConfig);
+        save();
+    }
+
+    @DataBoundSetter
+    public void setSkills(List<SkillConfiguration> skills) {
+        this.skills = skills != null ? skills : new ArrayList<>();
+        this.skills.forEach(SkillData::initializeSkillDataForConfig);
         save();
     }
 

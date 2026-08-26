@@ -17,5 +17,8 @@
             </f:section>
             <f:repeatableProperty field="clientConfigurations" />
         </f:section>
+        <f:section title="${%Skills}">
+            <f:repeatableHeteroProperty field="skills" hasHeader="true" addCaption="${%Add Skill}" />
+        </f:section>
     </f:section>
 </j:jelly>
