@@ -30,29 +30,8 @@
         <f:textbox />
     </f:entry>
 
-    <f:entry title="${%Skill Scripts}" field="skillScripts" description="${%Executable code files or custom scripts bundled with the skill}">
-        <f:textbox />
-    </f:entry>
-
-    <f:entry title="${%Skill References}" field="skillReferences" description="${%External documentation and procedures loaded into context for the skill to reference}">
-        <f:textbox />
-    </f:entry>
-
-    <f:entry title="${%Skill Assets}" field="skillAssets" description="${%Supporting media and templates the skill can use}">
+    <f:entry title="${%Skill References}" field="skillReferences" description="${%Supporting media and templates the skill can use}">
         <f:textbox />
     </f:entry>
 
 </j:jelly>
-
-<!--
-skillName
-skillDescription
-skillLicense
-skillCompatibility
-skillMetadata
-allowedTools
-skillText
-skillScripts
-skillReferences
-skillAssets
--->

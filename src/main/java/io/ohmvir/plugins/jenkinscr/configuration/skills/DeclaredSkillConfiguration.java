@@ -12,7 +12,7 @@ import java.util.HashMap;
 public class DeclaredSkillConfiguration extends SkillConfiguration {
     @Override
     protected SkillData generateSkill() {
-        return new SkillData(skillName, skillDescription, skillLicense, skillCompatibility, skillMetadata, allowedTools, skillText, skillScripts, skillReferences, skillAssets);
+        return new SkillData(skillName, skillDescription, skillLicense, skillCompatibility, skillMetadata, allowedTools, skillText, skillReferences);
     }
 
     @DataBoundConstructor
@@ -24,9 +24,7 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
                                       String skillMetadata,
                                       List<String> allowedTools,
                                       String skillText,
-                                      HashMap<String, String> skillScripts,
-                                      HashMap<String, String> skillReferences,
-                                      HashMap<String, String> skillAssets) throws Descriptor.FormException {
+                                      HashMap<String, String> skillReferences) throws Descriptor.FormException {
         super(skillId);
         this.skillName = skillName;
         this.skillDescription = skillDescription;
@@ -35,9 +33,7 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
         this.skillMetadata = skillMetadata;
         this.allowedTools = allowedTools;
         this.skillText = skillText;
-        this.skillScripts = skillScripts;
         this.skillReferences = skillReferences;
-        this.skillAssets = skillAssets;
     }
 
     public String skillName;
@@ -47,9 +43,7 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
     public String skillMetadata;
     public List<String> allowedTools;
     public String skillText;
-    public HashMap<String,String> skillScripts;
     public HashMap<String,String> skillReferences;
-    public HashMap<String,String> skillAssets;
 
     @Extension
     public static class DescriptorImpl extends SkillConfiguration.DescriptorImpl {
@@ -57,16 +51,3 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
         public @NonNull String getDisplayName() { return "Declared Skill"; }
     }
 }
-
-/*
-skillName
-skillDescription
-skillLicense
-skillCompatibility
-skillMetadata
-allowedTools
-skillText
-skillScripts
-skillReferences
-skillAssets
- */
