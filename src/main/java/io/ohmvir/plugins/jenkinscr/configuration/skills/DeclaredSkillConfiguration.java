@@ -6,8 +6,7 @@ import io.ohmvir.plugins.jenkinscr.api.skills.SkillData;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import java.util.List;
-import java.util.HashMap;
+import java.util.*;
 
 public class DeclaredSkillConfiguration extends SkillConfiguration {
     @Override
@@ -24,7 +23,8 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
                                       String skillMetadata,
                                       List<String> allowedTools,
                                       String skillText,
-                                      HashMap<String, String> skillReferences) throws Descriptor.FormException {
+                                      Object referencePaths,
+                                      Object fileContents) throws Descriptor.FormException {
         super(skillId);
         this.skillName = skillName;
         this.skillDescription = skillDescription;
@@ -33,7 +33,19 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
         this.skillMetadata = skillMetadata;
         this.allowedTools = allowedTools;
         this.skillText = skillText;
-        this.skillReferences = skillReferences;
+        skillReferences = new HashMap<>();
+        if(referencePaths instanceof String refPath && fileContents instanceof String fContent){
+            skillReferences.put(refPath, fContent);
+        }
+        if(referencePaths instanceof List rContents && fileContents instanceof List lContents){
+            for(int i = 0; i < rContents.size(); i++){
+                skillReferences.put(Objects.toString(rContents.get(i)), Objects.toString(lContents.get(i)));
+            }
+        }
+    }
+
+    public List<Map.Entry<String, String>> getEntriesAsList(){
+        return new ArrayList<>(skillReferences.entrySet());
     }
 
     public String skillName;
