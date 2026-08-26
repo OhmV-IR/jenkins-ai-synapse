@@ -15,7 +15,7 @@ public class BasicSkillConfiguration extends SkillConfiguration {
     }
 
     @DataBoundConstructor
-    public BasicSkillConfiguration(String skillId, String skillText, String skillVersion, String skillName, String skillDescription) throws Descriptor.FormException {
+    public BasicSkillConfiguration(String skillId, String skillText, String skillName, String skillDescription) throws Descriptor.FormException {
         super(skillId);
         this.skillName = skillName;
         this.skillDescription = skillDescription;
