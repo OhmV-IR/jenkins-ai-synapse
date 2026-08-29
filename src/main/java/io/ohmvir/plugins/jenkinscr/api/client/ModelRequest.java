@@ -2,6 +2,9 @@ package io.ohmvir.plugins.jenkinscr.api.client;
 
 import io.ohmvir.plugins.jenkinscr.api.models.ModelInputType;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelOutputType;
+import io.ohmvir.plugins.jenkinscr.api.skills.SkillData;
+import io.ohmvir.plugins.jenkinscr.api.tools.Tool;
+import io.ohmvir.plugins.jenkinscr.api.tools.ToolRegistry;
 import io.ohmvir.plugins.jenkinscr.configuration.agents.AgentConfiguration;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,6 +20,8 @@ public class ModelRequest implements Cloneable {
     private final Set<ModelInputType> inputTypes = new HashSet<>();
     private @Getter @Setter String promptText = "";
     private @Getter @Setter @Nullable ModelConversation conversationHistory = null;
+    private final ArrayList<SkillData> skills = new ArrayList<>();
+    private final @Getter List<Tool> tools = new ArrayList<>();
 
     public ModelRequest(AgentConfiguration agentConfiguration) {
         this.agentConfiguration = agentConfiguration;
@@ -67,8 +72,22 @@ public class ModelRequest implements Cloneable {
     public void RemoveOutputTypeRequest(ModelOutputType outputType) {
         requestedOutputTypes.remove(outputType);
     }
-    //  public abstract void AttachTool(ToolData tool); future TODO
-    //  public abstract void AttachSkill(SkillData skill); future TODO
+    public void AttachTool(Tool tool){
+        if(tool == null){
+            throw new IllegalArgumentException("tool parameter should not be null");
+        }
+        tools.add(tool);
+    }
+    public void AttachTool(String toolName){
+        AttachTool(ToolRegistry.getTool(toolName));
+    }
+    public void AttachSkill(SkillData skill){
+        skills.add(skill);
+    }
+
+    public List<SkillData> getSkills() {
+        return Collections.unmodifiableList(skills);
+    }
 
     /**
      * For convenience, generally flow will be to make a base request with all tools, skills and such and then clone it and add
@@ -85,6 +104,7 @@ public class ModelRequest implements Cloneable {
         newRequest.promptText = promptText;
         newRequest.conversationHistory = conversationHistory;
         newRequest.requestedOutputTypes.addAll(requestedOutputTypes);
+        newRequest.skills.addAll(skills);
         return newRequest;
     }
 }
