@@ -48,7 +48,7 @@ public class OllamaModelClient extends ModelClient<OllamaModelConfiguration, Oll
             reqBody.addProperty("stream", false);
             reqBody.addProperty("prompt", request.getPromptText());
             reqBody.addProperty("system", request.getAgentConfiguration().systemPrompt);
-            reqBody.addProperty("think", thinkingLevelToString(request.getAgentConfiguration().thinkingLevel)); // TODO check if the model supports thinking and what levels before doing this
+            reqBody.addProperty("think", thinkingLevelToString(request.getAgentConfiguration().thinkingLevel));
             if(clientConfiguration.getKeepAliveSeconds() != 0) {
                 reqBody.addProperty("keep_alive", clientConfiguration.getKeepAliveSeconds() + "s");
             }
