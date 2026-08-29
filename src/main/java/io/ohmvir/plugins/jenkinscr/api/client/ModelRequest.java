@@ -6,6 +6,7 @@ import io.ohmvir.plugins.jenkinscr.configuration.agents.AgentConfiguration;
 import lombok.Getter;
 import lombok.Setter;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 public class ModelRequest implements Cloneable {
@@ -15,7 +16,7 @@ public class ModelRequest implements Cloneable {
     private final Set<ModelOutputType> requestedOutputTypes = new HashSet<>();
     private final Set<ModelInputType> inputTypes = new HashSet<>();
     private @Getter @Setter String promptText = "";
-    private @Getter @Setter ModelConversation conversationHistory = null;
+    private @Getter @Setter @Nullable ModelConversation conversationHistory = null;
 
     public ModelRequest(AgentConfiguration agentConfiguration) {
         this.agentConfiguration = agentConfiguration;
