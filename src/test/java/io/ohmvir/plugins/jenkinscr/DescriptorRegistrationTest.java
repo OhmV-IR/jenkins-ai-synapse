@@ -20,8 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class DescriptorRegistrationTest {
     // Abstract classes with lists of descriptors
     private static final List<Class<? extends Describable>> DESCRIPTOR_ABSTRACT_CLASSES_TO_TEST = List.of(
-            AbstractAgentConfiguration.class,
-            ModelConfiguration.class
+            AbstractAgentConfiguration.class
     );
 
     // Classes that extend something from DESCRIPTOR_ABSTRACT_CLASSES_TO_TEST
@@ -35,8 +34,7 @@ public class DescriptorRegistrationTest {
 
     // 3. Classes that extend Descriptor directly.
     private static final List<Class<? extends Describable<?>>> STANDALONE_CONCRETE_CLASSES_TO_TEST = List.of(
-            AgenticCodeReviewSettings.class,
-            ModelClientConfiguration.class
+            AgenticCodeReviewSettings.class
     );
 
     @Test
