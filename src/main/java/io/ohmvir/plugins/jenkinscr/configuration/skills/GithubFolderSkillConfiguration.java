@@ -4,20 +4,32 @@ import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
 import io.ohmvir.plugins.jenkinscr.api.skills.SkillData;
-import jenkins.org.apache.commons.validator.routines.UrlValidator;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
+import java.net.URI;
+
 public class GithubFolderSkillConfiguration extends SkillConfiguration {
+
+    private static boolean isValidUrl(String value){
+        if(value == null || value.trim().isEmpty()){
+            return false;
+        }
+        try {
+            URI uri = new URI(value);
+            return uri.getScheme() != null && uri.getHost() != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
     @DataBoundConstructor
     public GithubFolderSkillConfiguration(String skillId, String folderPath) throws Descriptor.FormException {
         super(skillId);
         if(folderPath.trim().isEmpty()) {
             throw new Descriptor.FormException("Folder path is required", "folderPath");
         }
-        var validator = new UrlValidator(new String[]{"https"});
-        if(!validator.isValid(folderPath)){
+        if(isValidUrl(folderPath)){
             throw new Descriptor.FormException("Invalid folder path", "folderPath");
         }
     }
@@ -40,8 +52,7 @@ public class GithubFolderSkillConfiguration extends SkillConfiguration {
             if(value.trim().isEmpty()) {
                 return FormValidation.error("Folder path is required");
             }
-            var validator = new UrlValidator(new String[]{"https"});
-            if(!validator.isValid(value)){
+            if(isValidUrl(value)){
                 return FormValidation.error("Invalid folder path");
             }
             return FormValidation.ok();
