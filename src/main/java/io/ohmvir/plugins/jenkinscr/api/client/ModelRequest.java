@@ -2,6 +2,7 @@ package io.ohmvir.plugins.jenkinscr.api.client;
 
 import io.ohmvir.plugins.jenkinscr.api.models.ModelInputType;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelOutputType;
+import io.ohmvir.plugins.jenkinscr.api.skills.SkillData;
 import io.ohmvir.plugins.jenkinscr.configuration.agents.AgentConfiguration;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,6 +18,7 @@ public class ModelRequest implements Cloneable {
     private final Set<ModelInputType> inputTypes = new HashSet<>();
     private @Getter @Setter String promptText = "";
     private @Getter @Setter @Nullable ModelConversation conversationHistory = null;
+    private final ArrayList<SkillData> skills = new ArrayList<>();
 
     public ModelRequest(AgentConfiguration agentConfiguration) {
         this.agentConfiguration = agentConfiguration;
@@ -68,7 +70,13 @@ public class ModelRequest implements Cloneable {
         requestedOutputTypes.remove(outputType);
     }
     //  public abstract void AttachTool(ToolData tool); future TODO
-    //  public abstract void AttachSkill(SkillData skill); future TODO
+    public void AttachSkill(SkillData skill){
+        skills.add(skill);
+    }
+
+    public List<SkillData> getSkills() {
+        return Collections.unmodifiableList(skills);
+    }
 
     /**
      * For convenience, generally flow will be to make a base request with all tools, skills and such and then clone it and add
@@ -85,6 +93,7 @@ public class ModelRequest implements Cloneable {
         newRequest.promptText = promptText;
         newRequest.conversationHistory = conversationHistory;
         newRequest.requestedOutputTypes.addAll(requestedOutputTypes);
+        newRequest.skills.addAll(skills);
         return newRequest;
     }
 }
