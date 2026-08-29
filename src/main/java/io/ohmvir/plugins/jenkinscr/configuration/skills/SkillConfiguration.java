@@ -26,7 +26,7 @@ public abstract class SkillConfiguration implements Describable<SkillConfigurati
     }
 
     protected abstract SkillData generateSkill();
-    private @Getter String skillId;
+    private final @Getter String skillId;
 
     public SkillData getSkillData(){
         var cacheData = SkillData.getSkillData(this);

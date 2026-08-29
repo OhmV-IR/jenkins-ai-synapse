@@ -1,20 +1,18 @@
-package io.ohmvir.plugins.jenkinscr.configuration;
+package io.ohmvir.plugins.jenkinscr.configuration.client;
 
-import hudson.Extension;
 import hudson.ExtensionPoint;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
+import io.ohmvir.plugins.jenkinscr.api.client.ModelClient;
 import lombok.Getter;
-import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
-public class ModelClientConfiguration implements Describable<ModelClientConfiguration>, ExtensionPoint {
-    private @Getter Long timeoutSeconds = 300L;
+public abstract class ModelClientConfiguration implements Describable<ModelClientConfiguration>, ExtensionPoint {
+    private @Getter Long timeoutSeconds;
 
-    @DataBoundConstructor
     public ModelClientConfiguration(Long timeoutSeconds) throws Descriptor.FormException {
         if (timeoutSeconds == null) {
             throw new Descriptor.FormException("Timeout seconds must not be null", "timeoutSeconds");
@@ -25,22 +23,12 @@ public class ModelClientConfiguration implements Describable<ModelClientConfigur
         this.timeoutSeconds = timeoutSeconds;
     }
 
-    public ModelClientConfiguration() {
-
-    }
-
     @DataBoundSetter
     public void setTimeoutSeconds(Long timeoutSeconds) {
         this.timeoutSeconds = timeoutSeconds;
     }
 
-    @Extension
-    public static class DescriptorImpl extends Descriptor<ModelClientConfiguration> {
-        @Override
-        public @NonNull String getDisplayName() {
-            return "Model Client Configuration";
-        }
-
+    public abstract static class DescriptorImpl extends Descriptor<ModelClientConfiguration> {
         public FormValidation doCheckTimeoutSeconds(@QueryParameter Long timeoutSeconds) {
             if (timeoutSeconds == null) {
                 return FormValidation.error("Timeout seconds is required");

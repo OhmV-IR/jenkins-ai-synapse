@@ -5,21 +5,18 @@ import io.ohmvir.plugins.jenkinscr.api.client.ModelConversation;
 import io.ohmvir.plugins.jenkinscr.api.client.ModelRequest;
 import io.ohmvir.plugins.jenkinscr.api.client.ModelResponse;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelData;
-import io.ohmvir.plugins.jenkinscr.configuration.ModelClientConfiguration;
+import io.ohmvir.plugins.jenkinscr.configuration.agents.AgentConfiguration;
+import io.ohmvir.plugins.jenkinscr.configuration.client.AnthropicClientConfiguration;
+import io.ohmvir.plugins.jenkinscr.configuration.client.ModelClientConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.models.AnthropicModelConfiguration;
 
-public class AnthropicModelClient extends ModelClient {
-    public AnthropicModelClient(ModelData modelData, AnthropicModelConfiguration configuration, ModelClientConfiguration clientConfiguration) {
+public class AnthropicModelClient extends ModelClient<AnthropicModelConfiguration, AnthropicClientConfiguration> {
+    public AnthropicModelClient(ModelData modelData, AnthropicModelConfiguration configuration, AnthropicClientConfiguration clientConfiguration) {
         super(modelData, configuration, clientConfiguration);
     }
 
     @Override
     public ModelResponse generateResponse(ModelRequest request) {
-        return null;
-    }
-
-    @Override
-    public ModelResponse generateConversationResponse(ModelRequest request, ModelConversation conversation) {
         return null;
     }
 

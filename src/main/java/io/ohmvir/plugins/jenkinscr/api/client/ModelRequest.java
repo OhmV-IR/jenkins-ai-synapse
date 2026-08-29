@@ -9,15 +9,13 @@ import lombok.Setter;
 import java.util.*;
 
 public class ModelRequest implements Cloneable {
-    private final AgentConfiguration agentConfiguration;
+    private final @Getter AgentConfiguration agentConfiguration;
     private final HashMap<UUID, byte[]> files = new HashMap<>();
     private final HashMap<UUID, ModelInputType> fileInputTypes = new HashMap<>();
     private final Set<ModelOutputType> requestedOutputTypes = new HashSet<>();
     private final Set<ModelInputType> inputTypes = new HashSet<>();
-    private @Getter
-    @Setter String promptText = "";
-    private @Getter
-    @Setter ModelConversation conversationHistory = null;
+    private @Getter @Setter String promptText = "";
+    private @Getter @Setter ModelConversation conversationHistory = null;
 
     public ModelRequest(AgentConfiguration agentConfiguration) {
         this.agentConfiguration = agentConfiguration;

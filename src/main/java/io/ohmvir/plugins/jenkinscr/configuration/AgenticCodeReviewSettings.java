@@ -4,6 +4,7 @@ import hudson.Extension;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelData;
 import io.ohmvir.plugins.jenkinscr.api.skills.SkillData;
 import io.ohmvir.plugins.jenkinscr.configuration.agents.AbstractAgentConfiguration;
+import io.ohmvir.plugins.jenkinscr.configuration.client.*;
 import io.ohmvir.plugins.jenkinscr.configuration.models.ModelConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.skills.SkillConfiguration;
 import jenkins.model.GlobalConfiguration;
@@ -22,9 +23,11 @@ public class AgenticCodeReviewSettings extends GlobalConfiguration {
 
     private @Getter List<ModelConfiguration> models = new ArrayList<>();
     private @Getter List<AbstractAgentConfiguration> agentConfigurations = new ArrayList<>();
-    private @Getter List<ModelClientConfiguration> clientConfigurations = new ArrayList<>();
-    private @Getter ModelClientConfiguration defaultClientConfiguration = new ModelClientConfiguration();
     private @Getter List<SkillConfiguration> skills = new ArrayList<>();
+    private @Getter AnthropicClientConfiguration anthropicClientConfiguration;
+    private @Getter GeminiClientConfiguration geminiClientConfiguration;
+    private @Getter OllamaClientConfiguration ollamaClientConfiguration;
+    private @Getter OpenAIClientConfiguration openAIClientConfiguration;
 
     public AgenticCodeReviewSettings() {
         load();
@@ -55,24 +58,23 @@ public class AgenticCodeReviewSettings extends GlobalConfiguration {
     }
 
     @DataBoundSetter
-    public void setClientConfigurations(List<ModelClientConfiguration> clientConfigurations) {
-        this.clientConfigurations = clientConfigurations != null ? clientConfigurations : new ArrayList<>();
+    public void setAnthropicClientConfiguration(AnthropicClientConfiguration anthropicClientConfiguration) {
+        this.anthropicClientConfiguration = anthropicClientConfiguration;
     }
 
     @DataBoundSetter
-    public void setDefaultClientConfiguration(ModelClientConfiguration defaultClientConfiguration) {
-        this.defaultClientConfiguration = defaultClientConfiguration;
-        save();
+    public void setGeminiClientConfiguration(GeminiClientConfiguration geminiClientConfiguration) {
+        this.geminiClientConfiguration = geminiClientConfiguration;
     }
 
-    @Override
-    public boolean configure(StaplerRequest2 req, JSONObject json) throws FormException {
-        req.bindJSON(this, json);
-        if (json.optBoolean("appendDefaults", false)) {
-            Logger.getLogger("AgenticCodeReviewSettings").info("Default agents is still TODO");
-        }
-        save();
-        return true;
+    @DataBoundSetter
+    public void setOllamaClientConfiguration(OllamaClientConfiguration ollamaClientConfiguration) {
+        this.ollamaClientConfiguration = ollamaClientConfiguration;
+    }
+
+    @DataBoundSetter
+    public void setOpenAIClientConfiguration(OpenAIClientConfiguration openAIClientConfiguration) {
+        this.openAIClientConfiguration = openAIClientConfiguration;
     }
 
     @Override

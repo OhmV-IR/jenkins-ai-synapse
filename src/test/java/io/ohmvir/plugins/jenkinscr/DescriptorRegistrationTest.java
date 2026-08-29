@@ -1,9 +1,8 @@
 package io.ohmvir.plugins.jenkinscr;
 
 import hudson.model.Describable;
-import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinscr.configuration.AgenticCodeReviewSettings;
-import io.ohmvir.plugins.jenkinscr.configuration.ModelClientConfiguration;
+import io.ohmvir.plugins.jenkinscr.configuration.client.ModelClientConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.agents.AbstractAgentConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.agents.AgentConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.models.*;

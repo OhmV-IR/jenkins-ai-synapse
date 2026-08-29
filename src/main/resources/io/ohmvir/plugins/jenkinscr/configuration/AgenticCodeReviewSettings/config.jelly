@@ -6,9 +6,6 @@
             <f:repeatableHeteroProperty field="models" hasHeader="true" addCaption="${%Add Model}"/>
         </f:section>
         <f:section title="${%Agent Configurations}">
-            <f:entry field="appendDefaults">
-                <f:checkbox title="${%Append built-in default Agent Configurations to list on next save}"/>
-            </f:entry>
             <f:repeatableHeteroProperty field="agentConfigurations" hasHeader="true" addCaption="${%Add Agent}"/>
         </f:section>
         <f:section title="${%Model Client Configurations}">
@@ -19,6 +16,20 @@
         </f:section>
         <f:section title="${%Skills}">
             <f:repeatableHeteroProperty field="skills" hasHeader="true" addCaption="${%Add Skill}" />
+        </f:section>
+        <f:section title="${%Model Client Configurations}">
+            <f:section title="${%Anthropic}">
+                <f:property field="anthropicClientConfiguration" />
+            </f:section>
+            <f:section title="${%Gemini}">
+                <f:property field="geminiClientConfiguration" />
+            </f:section>
+            <f:section title="${%Ollama}">
+                <f:property field="ollamaClientConfiguration" />
+            </f:section>
+            <f:section title="${%OpenAI}">
+                <f:property field="openAIClientConfiguration" />
+            </f:section>
         </f:section>
     </f:section>
 </j:jelly>

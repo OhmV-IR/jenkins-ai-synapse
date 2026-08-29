@@ -1,9 +1,9 @@
 package io.ohmvir.plugins.jenkinscr.api.models;
 
-import hudson.Extension;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import io.ohmvir.plugins.jenkinscr.api.client.ModelClient;
+import io.ohmvir.plugins.jenkinscr.api.client.ModelRequest;
 import io.ohmvir.plugins.jenkinscr.api.client.impl.AnthropicModelClient;
 import io.ohmvir.plugins.jenkinscr.api.client.impl.GeminiModelClient;
 import io.ohmvir.plugins.jenkinscr.api.client.impl.OllamaModelClient;
@@ -13,7 +13,7 @@ import io.ohmvir.plugins.jenkinscr.api.models.retrievers.GeminiModelDataRetrieve
 import io.ohmvir.plugins.jenkinscr.api.models.retrievers.OllamaModelDataRetriever;
 import io.ohmvir.plugins.jenkinscr.api.models.retrievers.OpenAIModelDataRetriever;
 import io.ohmvir.plugins.jenkinscr.configuration.AgenticCodeReviewSettings;
-import io.ohmvir.plugins.jenkinscr.configuration.ModelClientConfiguration;
+import io.ohmvir.plugins.jenkinscr.configuration.client.ModelClientConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.models.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -82,32 +82,27 @@ public class ModelData {
         return ModelData.MODEL_DATA.get(modelId);
     }
 
-    public static ModelClient CreateClient(ModelConfiguration config) {
+    public static ModelClient<?, ?> CreateClient(ModelConfiguration config) {
         return switch (config) {
             case GeminiModelConfiguration geminiConfig ->
-                    new GeminiModelClient(get(config.getModelId()), geminiConfig, AgenticCodeReviewSettings.get().getDefaultClientConfiguration());
+                    new GeminiModelClient(get(config.getModelId()), geminiConfig, AgenticCodeReviewSettings.get().getGeminiClientConfiguration());
             case OllamaModelConfiguration ollamaConfig ->
-                    new OllamaModelClient(get(config.getModelId()), ollamaConfig, AgenticCodeReviewSettings.get().getDefaultClientConfiguration());
+                    new OllamaModelClient(get(config.getModelId()), ollamaConfig, AgenticCodeReviewSettings.get().getOllamaClientConfiguration());
             case OpenAIModelConfiguration openAIConfig ->
-                    new OpenAIModelClient(get(config.getModelId()), openAIConfig, AgenticCodeReviewSettings.get().getDefaultClientConfiguration());
+                    new OpenAIModelClient(get(config.getModelId()), openAIConfig, AgenticCodeReviewSettings.get().getOpenAIClientConfiguration());
             case AnthropicModelConfiguration anthropicConfig ->
-                    new AnthropicModelClient(get(config.getModelId()), anthropicConfig, AgenticCodeReviewSettings.get().getDefaultClientConfiguration());
+                    new AnthropicModelClient(get(config.getModelId()), anthropicConfig, AgenticCodeReviewSettings.get().getAnthropicClientConfiguration());
             case null, default -> null;
         };
     }
 
-    public static ModelClient CreateClient(ModelConfiguration config, ModelClientConfiguration clientConfiguration) {
-        return switch (config) {
-            case GeminiModelConfiguration geminiConfig ->
-                    new GeminiModelClient(get(config.getModelId()), geminiConfig, clientConfiguration);
-            case OllamaModelConfiguration ollamaConfig ->
-                    new OllamaModelClient(get(config.getModelId()), ollamaConfig, clientConfiguration);
-            case OpenAIModelConfiguration openAIConfig ->
-                    new OpenAIModelClient(get(config.getModelId()), openAIConfig, clientConfiguration);
-            case AnthropicModelConfiguration anthropicConfig ->
-                    new AnthropicModelClient(get(config.getModelId()), anthropicConfig, clientConfiguration);
-            case null, default -> null;
-        };
+    /**
+     * Tries to find a model that will accommodate your request.
+     * @param request The model request you want to execute.
+     * @return null if no models are capable of fulfilling that request or a model client that can fulfill the request.
+     */
+    public static @Nullable ModelClient<?, ?> CreateClientForRequest(ModelRequest request){
+        return null; // TODO
     }
 
     public boolean hasCapability(ModelCapability capability) {

@@ -2,22 +2,20 @@ package io.ohmvir.plugins.jenkinscr.api.client;
 
 import io.ohmvir.plugins.jenkinscr.api.models.ModelOutputType;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.*;
 
 public class ModelResponse {
-    private HashMap<UUID, byte[]> fileOutputs = new HashMap<>();
-    private HashMap<UUID, ModelOutputType> fileOutputTypes = new HashMap<>();
-    private HashSet<ModelOutputType> outputTypes = new HashSet<>();
-    private @Getter String responseText = "";
+    private final HashMap<UUID, byte[]> fileOutputs = new HashMap<>();
+    private final HashMap<UUID, ModelOutputType> fileOutputTypes = new HashMap<>();
+    private final HashSet<ModelOutputType> outputTypes = new HashSet<>();
+    private @Getter @Setter String responseText = "";
+    private @Getter @Setter String thinkingText = "";
     // TODO add tool calls and other model outputs here.
 
-    public ModelResponse(HashMap<UUID, byte[]> fileOutputs, HashMap<UUID, ModelOutputType> fileOutputTypes,
-                         HashSet<ModelOutputType> outputTypes, String responseText) {
-        this.fileOutputs = fileOutputs;
-        this.fileOutputTypes = fileOutputTypes;
-        this.outputTypes = outputTypes;
-        this.responseText = responseText;
+    public ModelResponse(){
+
     }
 
     public void AddOutputType(ModelOutputType outputType) {
