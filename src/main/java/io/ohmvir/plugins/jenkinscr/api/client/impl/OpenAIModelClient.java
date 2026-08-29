@@ -5,11 +5,13 @@ import io.ohmvir.plugins.jenkinscr.api.client.ModelConversation;
 import io.ohmvir.plugins.jenkinscr.api.client.ModelRequest;
 import io.ohmvir.plugins.jenkinscr.api.client.ModelResponse;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelData;
-import io.ohmvir.plugins.jenkinscr.configuration.ModelClientConfiguration;
+import io.ohmvir.plugins.jenkinscr.configuration.agents.AgentConfiguration;
+import io.ohmvir.plugins.jenkinscr.configuration.client.OpenAIClientConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.models.OpenAIModelConfiguration;
 
-public class OpenAIModelClient extends ModelClient {
-    public OpenAIModelClient(ModelData modelData, OpenAIModelConfiguration configuration, ModelClientConfiguration clientConfiguration) {
+public class OpenAIModelClient extends ModelClient<OpenAIModelConfiguration, OpenAIClientConfiguration> {
+
+    public OpenAIModelClient(ModelData modelData, OpenAIModelConfiguration configuration, OpenAIClientConfiguration clientConfiguration) {
         super(modelData, configuration, clientConfiguration);
     }
 
