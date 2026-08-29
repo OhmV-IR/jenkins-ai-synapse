@@ -63,7 +63,7 @@ public abstract class Tool {
                                 }
                             })
                             .toArray()
-                    ); // TODO pass arguments
+                    );
             if (returnValue instanceof String returnValueStr){
                 return returnValueStr.describeConstable();
             } else if (returnValue != null){
