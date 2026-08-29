@@ -8,9 +8,7 @@ import io.ohmvir.plugins.jenkinscr.api.client.ModelConversation;
 import io.ohmvir.plugins.jenkinscr.api.client.ModelRequest;
 import io.ohmvir.plugins.jenkinscr.api.client.ModelResponse;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelData;
-import io.ohmvir.plugins.jenkinscr.configuration.agents.AgentConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.client.AnthropicClientConfiguration;
-import io.ohmvir.plugins.jenkinscr.configuration.client.ModelClientConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.models.AnthropicModelConfiguration;
 import io.ohmvir.plugins.jenkinscr.utils.SecretsUtils;
 
@@ -25,6 +23,7 @@ import static com.anthropic.models.messages.ContentBlock.Type.THINKING;
 public class AnthropicModelClient extends ModelClient<AnthropicModelConfiguration, AnthropicClientConfiguration> {
     private final AnthropicClient client;
     private final Logger logger;
+
     public AnthropicModelClient(ModelData modelData, AnthropicModelConfiguration configuration, AnthropicClientConfiguration clientConfiguration) {
         super(modelData, configuration, clientConfiguration);
         client = AnthropicOkHttpClient.builder()
@@ -34,11 +33,10 @@ public class AnthropicModelClient extends ModelClient<AnthropicModelConfiguratio
         logger = Logger.getLogger(AnthropicModelClient.class.getName());
     }
 
-    private void applyContentBlockToResponse(ContentBlock contentBlock, ModelResponse res){
-        if(contentBlock.type() == TEXT){
+    private void applyContentBlockToResponse(ContentBlock contentBlock, ModelResponse res) {
+        if (contentBlock.type() == TEXT) {
             res.setResponseText(contentBlock.text().get().text());
-        }
-        else if (contentBlock.type() == THINKING){
+        } else if (contentBlock.type() == THINKING) {
             res.setThinkingText(contentBlock.thinking().get().thinking());
         } else {
             logger.warning("applyContentBlockToResponse got a ContentBlock of type " + contentBlock.type().asString() + " it didn't know what to do with, ignoring it");
@@ -63,11 +61,9 @@ public class AnthropicModelClient extends ModelClient<AnthropicModelConfiguratio
                             .build()))
                     .build());
             ModelResponse ret = new ModelResponse();
-            responseMessage.content().forEach(contentBlock -> {
-                applyContentBlockToResponse(contentBlock, ret);
-            });
+            responseMessage.content().forEach(contentBlock -> applyContentBlockToResponse(contentBlock, ret));
             return ret;
-        } catch (Exception e){
+        } catch (Exception e) {
             logger.severe("Anthropic API Client failed to execute model request due to exception " + e.getMessage());
             return null;
         }
