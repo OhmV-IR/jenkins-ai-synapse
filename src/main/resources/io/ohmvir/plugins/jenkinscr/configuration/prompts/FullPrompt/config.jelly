@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:section title="${%Full Prompt}">
+        <f:entry title="${%Prompt Id}" field="promptId">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="${%Prompt Text}" field="promptText">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="${%System Prompt}" field="systemPrompt">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="${%Temperature}" field="temperature">
+            <f:number min="0" max="1" />
+        </f:entry>
+        <f:entry title="${%Max Output Tokens}" field="maxOutputTokensCount">
+            <f:number min="0" />
+        </f:entry>
+        <f:entry title="${%Thinking Level}" field="thinkingLevel">
+            <f:enum field="thinkingLevel" />
+        </f:entry>
+    </f:section>
+</j:jelly>
