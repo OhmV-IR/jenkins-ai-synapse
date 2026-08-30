@@ -1,26 +1,35 @@
 package io.ohmvir.plugins.jenkinscr;
 
 import hudson.EnvVars;
+import hudson.Extension;
 import hudson.model.AbstractProject;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
 import io.ohmvir.plugins.jenkinscr.api.client.ModelClient;
 import io.ohmvir.plugins.jenkinscr.api.client.ModelRequest;
+import io.ohmvir.plugins.jenkinscr.api.client.ModelResponse;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelData;
 import jenkins.tasks.SimpleBuildStep;
+import org.jenkinsci.Symbol;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.kohsuke.stapler.DataBoundConstructor;
 import hudson.tasks.Builder;
 
 import java.io.IOException;
+import java.io.PrintStream;
 
 public class ModelRequestExecutionStep extends Builder implements SimpleBuildStep {
     private final ModelRequest request;
     @DataBoundConstructor
-    public ModelRequestExecutionStep(String requestText, String systemPrompt, double temperature)
+    public ModelRequestExecutionStep(String requestText, String systemPrompt, double temperature, @Nullable Long maxOutputTokens)
     {
         this.request = new ModelRequest();
+        this.request.setPromptText(requestText);
+        this.request.setMaxOutputTokensCount(maxOutputTokens);
+        this.request.setSystemPrompt(systemPrompt);
+        this.request.setTemperature(temperature);
     }
 
     @Override
@@ -29,9 +38,17 @@ public class ModelRequestExecutionStep extends Builder implements SimpleBuildSte
         if(client == null){
             throw new IOException("Failed to get a client that could respond to the request");
         }
-        client.generateResponse(request);
+        ModelResponse response = client.generateResponse(request);
+        if(response == null){
+            throw new IOException("Failed to get a response that could respond to the request");
+        }
+        PrintStream logger = listener.getLogger();
+        logger.println("Model thinking: " + response.getThinkingText());
+        logger.println("Model response: " + response.getResponseText());
     }
 
+    @Symbol("customStep")
+    @Extension
     public static class DescriptorImpl extends BuildStepDescriptor<Builder> {
         @Override
         public boolean isApplicable(Class<? extends AbstractProject> jobType) {
