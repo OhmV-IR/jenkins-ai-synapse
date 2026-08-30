@@ -16,34 +16,17 @@ import java.util.List;
 
 @Extension
 public class AgenticCodeReviewSettings extends GlobalConfiguration {
+    private @Getter AnthropicClientConfiguration anthropicClientConfiguration = new AnthropicClientConfiguration(0L);
+    private @Getter GeminiClientConfiguration geminiClientConfiguration = new GeminiClientConfiguration(0L);
+    private @Getter OllamaClientConfiguration ollamaClientConfiguration = new OllamaClientConfiguration(0L, 0L);
+    private @Getter OpenAIClientConfiguration openAIClientConfiguration = new OpenAIClientConfiguration(0L);
 
-    private @Getter List<ModelConfiguration> models = new ArrayList<>();
-    private @Getter List<SkillConfiguration> skills = new ArrayList<>();
-    private @Getter AnthropicClientConfiguration anthropicClientConfiguration;
-    private @Getter GeminiClientConfiguration geminiClientConfiguration;
-    private @Getter OllamaClientConfiguration ollamaClientConfiguration;
-    private @Getter OpenAIClientConfiguration openAIClientConfiguration;
-
-    public AgenticCodeReviewSettings() {
+    public AgenticCodeReviewSettings() throws FormException {
         load();
     }
 
     public static AgenticCodeReviewSettings get() {
         return GlobalConfiguration.all().get(AgenticCodeReviewSettings.class);
-    }
-
-    @DataBoundSetter
-    public void setModels(List<ModelConfiguration> models) {
-        this.models = models != null ? models : new ArrayList<>();
-        this.models.forEach(ModelData::initializeModelDataForConfig);
-        save();
-    }
-
-    @DataBoundSetter
-    public void setSkills(List<SkillConfiguration> skills) {
-        this.skills = skills != null ? skills : new ArrayList<>();
-        this.skills.forEach(SkillData::initializeSkillDataForConfig);
-        save();
     }
 
     @DataBoundSetter

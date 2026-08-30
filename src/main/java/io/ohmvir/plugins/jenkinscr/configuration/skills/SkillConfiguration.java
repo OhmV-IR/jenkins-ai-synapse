@@ -6,6 +6,7 @@ import hudson.model.Descriptor;
 import hudson.util.FormValidation;
 import io.ohmvir.plugins.jenkinscr.api.skills.SkillData;
 import io.ohmvir.plugins.jenkinscr.configuration.AgenticCodeReviewSettings;
+import io.ohmvir.plugins.jenkinscr.configuration.SkillsManagementLink;
 import lombok.Getter;
 import org.kohsuke.stapler.QueryParameter;
 
@@ -19,7 +20,7 @@ public abstract class SkillConfiguration implements Describable<SkillConfigurati
         if(skillId.trim().isEmpty()){
             throw new Descriptor.FormException("Skill ID cannot be empty", "skillId");
         }
-        if(AgenticCodeReviewSettings.get().getSkills().stream().anyMatch(skill -> skill.skillId.equals(skillId))){
+        if(SkillsManagementLink.get().getSkills().stream().anyMatch(skill -> skill.skillId.equals(skillId))){
             throw new Descriptor.FormException("Skill IDs cannot be the same", "skillId");
         }
         this.skillId = skillId;
@@ -41,7 +42,7 @@ public abstract class SkillConfiguration implements Describable<SkillConfigurati
             if(value.trim().isEmpty()){
                 return FormValidation.error("Skill ID cannot be empty");
             }
-            if(AgenticCodeReviewSettings.get().getSkills().stream().anyMatch(skill -> Objects.equals(skill.skillId, value))){
+            if(SkillsManagementLink.get().getSkills().stream().anyMatch(skill -> Objects.equals(skill.skillId, value))){
                 return FormValidation.error("Skill ID cannot be the same as any other skill");
             }
             return FormValidation.ok();

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:l="/lib/layout">
+    <l:layout title="${it.displayName}">
+        <l:side-panel>
+            <l:tasks>
+                <l:task icon="symbol-arrow-back-outline plugin-ionicons-api" href="${rootURL}/manage" title="${%Back to manage Jenkins}" />
+            </l:tasks>
+        </l:side-panel>
+        <l:main-panel>
+            <h1>${it.displayName}</h1>
+            <p>Manage all your base prompts here</p>
+            <f:form action="configSubmit" method="post" name="config">
+                <f:section title="${%Prompts Registry}">
+                    <f:entry title="${%Registered Prompts}">
+                        <f:hetero-list name="prompts" hasHeader="true" descriptors="${it.promptDescriptors}" items="${it.prompts}"
+                                       addCaption="Add new Prompt" />
+                    </f:entry>
+                </f:section>
+                <f:bottomButtonBar>
+                    <f:submit value="Save Prompts" />
+                </f:bottomButtonBar>
+            </f:form>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

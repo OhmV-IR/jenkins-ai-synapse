@@ -8,6 +8,7 @@ import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinscr.configuration.AgenticCodeReviewSettings;
+import io.ohmvir.plugins.jenkinscr.configuration.SkillsManagementLink;
 import io.ohmvir.plugins.jenkinscr.configuration.skills.SkillConfiguration;
 import lombok.Getter;
 import javax.annotation.Nullable;
@@ -29,13 +30,17 @@ public class SkillData {
 
     @Initializer(after = InitMilestone.PLUGINS_STARTED)
     public static void initializeSkillDataCache(){
-        for(SkillConfiguration skillConfig : AgenticCodeReviewSettings.get().getSkills()){
+        for(SkillConfiguration skillConfig : SkillsManagementLink.get().getSkills()){
             initializeSkillDataForConfig(skillConfig);
         }
     }
 
     public static @Nullable SkillData getSkillData(SkillConfiguration config){
         return skillDataCache.get(config.getSkillId());
+    }
+
+    public static List<SkillData> getAllSkills(){
+        return skillDataCache.values().stream().toList();
     }
 
     public static void initializeSkillDataForConfig(SkillConfiguration config){
