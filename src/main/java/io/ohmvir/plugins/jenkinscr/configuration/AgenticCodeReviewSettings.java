@@ -3,26 +3,21 @@ package io.ohmvir.plugins.jenkinscr.configuration;
 import hudson.Extension;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelData;
 import io.ohmvir.plugins.jenkinscr.api.skills.SkillData;
-import io.ohmvir.plugins.jenkinscr.configuration.agents.AbstractAgentConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.client.*;
 import io.ohmvir.plugins.jenkinscr.configuration.models.ModelConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.skills.SkillConfiguration;
 import jenkins.model.GlobalConfiguration;
 import lombok.Getter;
-import net.sf.json.JSONObject;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundSetter;
-import org.kohsuke.stapler.StaplerRequest2;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 @Extension
 public class AgenticCodeReviewSettings extends GlobalConfiguration {
 
     private @Getter List<ModelConfiguration> models = new ArrayList<>();
-    private @Getter List<AbstractAgentConfiguration> agentConfigurations = new ArrayList<>();
     private @Getter List<SkillConfiguration> skills = new ArrayList<>();
     private @Getter AnthropicClientConfiguration anthropicClientConfiguration;
     private @Getter GeminiClientConfiguration geminiClientConfiguration;
@@ -48,12 +43,6 @@ public class AgenticCodeReviewSettings extends GlobalConfiguration {
     public void setSkills(List<SkillConfiguration> skills) {
         this.skills = skills != null ? skills : new ArrayList<>();
         this.skills.forEach(SkillData::initializeSkillDataForConfig);
-        save();
-    }
-
-    @DataBoundSetter
-    public void setAgentConfigurations(List<AbstractAgentConfiguration> agentConfigurations) {
-        this.agentConfigurations = agentConfigurations != null ? agentConfigurations : new ArrayList<>();
         save();
     }
 

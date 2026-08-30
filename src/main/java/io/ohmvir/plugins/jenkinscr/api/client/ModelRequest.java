@@ -2,10 +2,10 @@ package io.ohmvir.plugins.jenkinscr.api.client;
 
 import io.ohmvir.plugins.jenkinscr.api.models.ModelInputType;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelOutputType;
+import io.ohmvir.plugins.jenkinscr.api.models.ModelThinkingLevel;
 import io.ohmvir.plugins.jenkinscr.api.skills.SkillData;
 import io.ohmvir.plugins.jenkinscr.api.tools.Tool;
 import io.ohmvir.plugins.jenkinscr.api.tools.ToolRegistry;
-import io.ohmvir.plugins.jenkinscr.configuration.agents.AgentConfiguration;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -13,7 +13,6 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 public class ModelRequest implements Cloneable {
-    private final @Getter AgentConfiguration agentConfiguration;
     private final HashMap<UUID, byte[]> files = new HashMap<>();
     private final HashMap<UUID, ModelInputType> fileInputTypes = new HashMap<>();
     private final Set<ModelOutputType> requestedOutputTypes = new HashSet<>();
@@ -22,10 +21,12 @@ public class ModelRequest implements Cloneable {
     private @Getter @Setter @Nullable ModelConversation conversationHistory = null;
     private final ArrayList<SkillData> skills = new ArrayList<>();
     private final @Getter List<Tool> tools = new ArrayList<>();
+    private @Getter @Setter String systemPrompt = "";
+    private @Getter @Setter @Nullable Double temperature = null;
+    private @Getter @Setter @Nullable Long maxOutputTokensCount = null;
+    private @Getter @Setter ModelThinkingLevel thinkingLevel = ModelThinkingLevel.OFF;
 
-    public ModelRequest(AgentConfiguration agentConfiguration) {
-        this.agentConfiguration = agentConfiguration;
-    }
+    public ModelRequest() {}
 
     public UUID AttachFile(byte[] fileBytes, ModelInputType fileType) {
         UUID uuid = UUID.randomUUID();
@@ -97,7 +98,11 @@ public class ModelRequest implements Cloneable {
      */
     @Override
     public ModelRequest clone() {
-        ModelRequest newRequest = new ModelRequest(agentConfiguration);
+        ModelRequest newRequest = new ModelRequest();
+        newRequest.maxOutputTokensCount = maxOutputTokensCount;
+        newRequest.temperature = temperature;
+        newRequest.systemPrompt = systemPrompt;
+        newRequest.thinkingLevel = thinkingLevel;
         newRequest.files.putAll(files);
         newRequest.inputTypes.addAll(inputTypes);
         newRequest.fileInputTypes.putAll(fileInputTypes);

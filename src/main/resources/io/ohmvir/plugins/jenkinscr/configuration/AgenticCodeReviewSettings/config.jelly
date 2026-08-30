@@ -5,9 +5,6 @@
         <f:section title="${%Models}">
             <f:repeatableHeteroProperty field="models" hasHeader="true" addCaption="${%Add Model}"/>
         </f:section>
-        <f:section title="${%Agent Configurations}">
-            <f:repeatableHeteroProperty field="agentConfigurations" hasHeader="true" addCaption="${%Add Agent}"/>
-        </f:section>
         <f:section title="${%Model Client Configurations}">
             <f:section title="${%Default Client Configuration}">
             <f:property field="defaultClientConfiguration"/>

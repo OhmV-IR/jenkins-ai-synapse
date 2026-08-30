@@ -1,8 +1,6 @@
 package io.ohmvir.plugins.jenkinscr.api.client;
 
 import io.ohmvir.plugins.jenkinscr.api.models.ModelData;
-import io.ohmvir.plugins.jenkinscr.configuration.client.ModelClientConfiguration;
-import io.ohmvir.plugins.jenkinscr.configuration.agents.AgentConfiguration;
 import lombok.Getter;
 
 import javax.annotation.Nullable;

@@ -2,9 +2,7 @@ package io.ohmvir.plugins.jenkinscr;
 
 import hudson.model.Describable;
 import io.ohmvir.plugins.jenkinscr.configuration.AgenticCodeReviewSettings;
-import io.ohmvir.plugins.jenkinscr.configuration.client.ModelClientConfiguration;
-import io.ohmvir.plugins.jenkinscr.configuration.agents.AbstractAgentConfiguration;
-import io.ohmvir.plugins.jenkinscr.configuration.agents.AgentConfiguration;
+import io.ohmvir.plugins.jenkinscr.configuration.client.*;
 import io.ohmvir.plugins.jenkinscr.configuration.models.*;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -20,12 +18,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class DescriptorRegistrationTest {
     // Abstract classes with lists of descriptors
     private static final List<Class<? extends Describable>> DESCRIPTOR_ABSTRACT_CLASSES_TO_TEST = List.of(
-            AbstractAgentConfiguration.class
+            ModelConfiguration.class
     );
 
     // Classes that extend something from DESCRIPTOR_ABSTRACT_CLASSES_TO_TEST
     private static final List<Class<? extends Describable<?>>> CONCRETE_EXTENSION_IMPLEMENTATIONS_TO_TEST = List.of(
-            AgentConfiguration.class,
             GeminiModelConfiguration.class,
             OpenAIModelConfiguration.class,
             AnthropicModelConfiguration.class,
@@ -34,7 +31,11 @@ public class DescriptorRegistrationTest {
 
     // 3. Classes that extend Descriptor directly.
     private static final List<Class<? extends Describable<?>>> STANDALONE_CONCRETE_CLASSES_TO_TEST = List.of(
-            AgenticCodeReviewSettings.class
+            AgenticCodeReviewSettings.class,
+            GeminiClientConfiguration.class,
+            AnthropicClientConfiguration.class,
+            OllamaClientConfiguration.class,
+            OpenAIClientConfiguration.class
     );
 
     @Test
