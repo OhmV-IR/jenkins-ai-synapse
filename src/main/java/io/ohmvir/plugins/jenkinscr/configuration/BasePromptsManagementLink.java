@@ -8,26 +8,44 @@ import hudson.model.ManagementLink;
 import hudson.model.Saveable;
 import hudson.security.Permission;
 import io.ohmvir.plugins.jenkinscr.api.client.ModelRequest;
+import io.ohmvir.plugins.jenkinscr.configuration.prompts.PromptConfiguration;
 import jakarta.servlet.ServletException;
 import jenkins.model.Jenkins;
 import jenkins.model.Loadable;
 import lombok.Getter;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 @Extension
 public class BasePromptsManagementLink extends ManagementLink implements Saveable, Loadable {
-    private @Getter List<ModelRequest> requests = new ArrayList<>();
+    private final HashMap<String, PromptConfiguration> prompts = new HashMap<>();
 
     public BasePromptsManagementLink() throws IOException {
         load();
+    }
+
+    public @Nullable ModelRequest getRequestFromPromptId(String promptId){
+        return prompts.get(promptId).CreateRequest();
+    }
+
+    public @Nullable PromptConfiguration getPromptConfiguration(String promptId){
+        return prompts.get(promptId);
+    }
+
+    public List<PromptConfiguration> getPrompts(){
+        return prompts.values().stream().toList();
+    }
+
+    public List<Descriptor<PromptConfiguration>> getPromptDescriptors(){
+        return Jenkins.get().getDescriptorList(PromptConfiguration.class);
     }
 
     @Override
@@ -66,7 +84,9 @@ public class BasePromptsManagementLink extends ManagementLink implements Saveabl
         Jenkins.get().checkPermission(getRequiredPermission());
         BulkChange change = new BulkChange(this);
         try {
-            this.requests = req.bindJSONToList(ModelRequest.class, req.getSubmittedForm().get("requests"));
+            for(PromptConfiguration config : req.bindJSONToList(PromptConfiguration.class, req.getSubmittedForm().get("prompts"))){
+                prompts.put(config.getPromptId(), config);
+            }
             save();
             change.commit();
         } finally {

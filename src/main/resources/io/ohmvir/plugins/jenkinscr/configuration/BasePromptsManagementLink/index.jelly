@@ -13,12 +13,12 @@
             <f:form action="configSubmit" method="post" name="config">
                 <f:section title="${%Prompts Registry}">
                     <f:entry title="${%Registered Prompts}">
-                        <f:hetero-list name="skillConfigurations" hasHeader="true" descriptors="${it.skillDescriptors}" items="${it.skills}"
-                                       addCaption="Add new Skill" />
+                        <f:hetero-list name="prompts" hasHeader="true" descriptors="${it.promptDescriptors}" items="${it.prompts}"
+                                       addCaption="Add new Prompt" />
                     </f:entry>
                 </f:section>
                 <f:bottomButtonBar>
-                    <f:submit value="Save Skills" />
+                    <f:submit value="Save Prompts" />
                 </f:bottomButtonBar>
             </f:form>
         </l:main-panel>
