@@ -5,9 +5,7 @@ import io.ohmvir.plugins.jenkinscr.api.client.ModelConversation;
 import io.ohmvir.plugins.jenkinscr.api.client.ModelRequest;
 import io.ohmvir.plugins.jenkinscr.api.client.ModelResponse;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelData;
-import io.ohmvir.plugins.jenkinscr.configuration.agents.AgentConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.client.GeminiClientConfiguration;
-import io.ohmvir.plugins.jenkinscr.configuration.client.ModelClientConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.models.GeminiModelConfiguration;
 
 public class GeminiModelClient extends ModelClient<GeminiModelConfiguration, GeminiClientConfiguration> {

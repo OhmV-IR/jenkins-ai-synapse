@@ -9,12 +9,9 @@ import io.ohmvir.plugins.jenkinscr.api.client.ModelResponse;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelData;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelOutputType;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelThinkingLevel;
-import io.ohmvir.plugins.jenkinscr.configuration.agents.AgentConfiguration;
-import io.ohmvir.plugins.jenkinscr.configuration.client.ModelClientConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.client.OllamaClientConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.models.OllamaModelConfiguration;
 import io.ohmvir.plugins.jenkinscr.utils.SecretsUtils;
-import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nullable;
 import java.net.URI;
@@ -47,13 +44,13 @@ public class OllamaModelClient extends ModelClient<OllamaModelConfiguration, Oll
             reqBody.addProperty("model", modelConfiguration.modelName);
             reqBody.addProperty("stream", false);
             reqBody.addProperty("prompt", request.getPromptText());
-            reqBody.addProperty("system", request.getAgentConfiguration().systemPrompt);
-            reqBody.addProperty("think", thinkingLevelToString(request.getAgentConfiguration().thinkingLevel));
+            reqBody.addProperty("system", request.getSystemPrompt());
+            reqBody.addProperty("think", thinkingLevelToString(request.getThinkingLevel()));
             if(clientConfiguration.getKeepAliveSeconds() != 0) {
                 reqBody.addProperty("keep_alive", clientConfiguration.getKeepAliveSeconds() + "s");
             }
             JsonObject options = new JsonObject();
-            options.addProperty("temperature", request.getAgentConfiguration().temperature);
+            options.addProperty("temperature", request.getTemperature());
             reqBody.add("options", options);
             HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(apiBaseUrl + GENERATE_API_SUFFIX))
