@@ -75,7 +75,7 @@ public class BasePromptsManagementLink extends ManagementLink implements Saveabl
 
     @Override
     public @NonNull Category getCategory() {
-        return Category.TOOLS;
+        return Category.CONFIGURATION;
     }
 
     @Override

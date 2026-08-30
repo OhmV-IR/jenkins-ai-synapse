@@ -62,7 +62,7 @@ public class ModelsManagementLink extends ManagementLink implements Saveable, Lo
 
     @Override
     public @NonNull Category getCategory() {
-        return Category.TOOLS;
+        return Category.CONFIGURATION;
     }
 
     @Override

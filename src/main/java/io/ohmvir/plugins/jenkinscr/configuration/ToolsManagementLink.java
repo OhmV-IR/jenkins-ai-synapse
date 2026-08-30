@@ -34,7 +34,7 @@ public class ToolsManagementLink extends ManagementLink {
 
     @Override
     public @NonNull Category getCategory() {
-        return Category.TOOLS;
+        return Category.CONFIGURATION;
     }
 
     @Override

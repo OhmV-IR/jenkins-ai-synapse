@@ -66,7 +66,7 @@ public class SkillsManagementLink extends ManagementLink implements Saveable, Lo
 
     @Override
     public @NonNull Category getCategory() {
-        return Category.TOOLS;
+        return Category.CONFIGURATION;
     }
 
     @Override
