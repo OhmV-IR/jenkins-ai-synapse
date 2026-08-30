@@ -2,6 +2,7 @@ package io.ohmvir.plugins.jenkinscr.configuration;
 
 import hudson.BulkChange;
 import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.XmlFile;
 import hudson.model.Descriptor;
 import hudson.model.ManagementLink;
@@ -30,6 +31,10 @@ public class BasePromptsManagementLink extends ManagementLink implements Saveabl
 
     public BasePromptsManagementLink() throws IOException {
         load();
+    }
+
+    public static BasePromptsManagementLink get(){
+        return ExtensionList.lookupSingleton(BasePromptsManagementLink.class);
     }
 
     public @Nullable ModelRequest getRequestFromPromptId(String promptId){

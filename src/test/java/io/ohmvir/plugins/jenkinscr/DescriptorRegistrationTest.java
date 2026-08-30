@@ -4,6 +4,10 @@ import hudson.model.Describable;
 import io.ohmvir.plugins.jenkinscr.configuration.AgenticCodeReviewSettings;
 import io.ohmvir.plugins.jenkinscr.configuration.client.*;
 import io.ohmvir.plugins.jenkinscr.configuration.models.*;
+import io.ohmvir.plugins.jenkinscr.configuration.prompts.FullPrompt;
+import io.ohmvir.plugins.jenkinscr.configuration.prompts.PromptConfiguration;
+import io.ohmvir.plugins.jenkinscr.configuration.prompts.SimplePrompt;
+import io.ohmvir.plugins.jenkinscr.configuration.skills.*;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
@@ -18,7 +22,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class DescriptorRegistrationTest {
     // Abstract classes with lists of descriptors
     private static final List<Class<? extends Describable>> DESCRIPTOR_ABSTRACT_CLASSES_TO_TEST = List.of(
-            ModelConfiguration.class
+            ModelConfiguration.class,
+            PromptConfiguration.class,
+            SkillConfiguration.class
     );
 
     // Classes that extend something from DESCRIPTOR_ABSTRACT_CLASSES_TO_TEST
@@ -26,7 +32,13 @@ public class DescriptorRegistrationTest {
             GeminiModelConfiguration.class,
             OpenAIModelConfiguration.class,
             AnthropicModelConfiguration.class,
-            OllamaModelConfiguration.class
+            OllamaModelConfiguration.class,
+            SimplePrompt.class,
+            FullPrompt.class,
+            BasicSkillConfiguration.class,
+            BasicSkillFileConfiguration.class,
+            DeclaredSkillConfiguration.class,
+            GithubFolderSkillConfiguration.class
     );
 
     // 3. Classes that extend Descriptor directly.
