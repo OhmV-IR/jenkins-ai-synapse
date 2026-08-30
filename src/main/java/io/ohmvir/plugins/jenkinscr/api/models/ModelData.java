@@ -13,6 +13,7 @@ import io.ohmvir.plugins.jenkinscr.api.models.retrievers.GeminiModelDataRetrieve
 import io.ohmvir.plugins.jenkinscr.api.models.retrievers.OllamaModelDataRetriever;
 import io.ohmvir.plugins.jenkinscr.api.models.retrievers.OpenAIModelDataRetriever;
 import io.ohmvir.plugins.jenkinscr.configuration.AgenticCodeReviewSettings;
+import io.ohmvir.plugins.jenkinscr.configuration.ModelsManagementLink;
 import io.ohmvir.plugins.jenkinscr.configuration.client.ModelClientConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.models.*;
 import lombok.Getter;
@@ -62,7 +63,7 @@ public class ModelData {
     @Initializer(after = InitMilestone.PLUGINS_STARTED)
     public static void initializeModelDataCache() {
         LOGGER.info("Prefetching model data");
-        for (ModelConfiguration config : AgenticCodeReviewSettings.get().getModels()) {
+        for (ModelConfiguration config : ModelsManagementLink.get().getModelConfigurations()) {
             LOGGER.info("Prefetching model data for " + config.getModelId());
             initializeModelDataForConfig(config);
         }

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:l="/lib/layout" xmlns:st="jelly:stapler">
+    <l:layout title="${it.displayName}">
+        <l:side-panel>
+            <l:tasks>
+                <l:task icon="symbol-arrow-back-outline plugin-ionicons-api" href="${rootURL}/manage"
+                        title="${%Back to manage Jenkins}"/>
+            </l:tasks>
+        </l:side-panel>
+        <l:main-panel>
+            <h1>${it.displayName}</h1>
+            <p>Manage all your agent tools here</p>
+            <j:choose>
+                <j:when test="${empty it.tools}">
+                    <p><em>There are no tools installed for agents to use. Look for plugins to add some!</em></p>
+                </j:when>
+                <j:otherwise>
+                    <j:forEach var="item" items="${it.tools}">
+                        <div class="jenkins-card" style="margin-bottom: 1rem; padding: 1rem;">
+                            <f:entry title="${%Tool Name}">
+                                <f:readOnlyTextbox value="${item.name}" />
+                            </f:entry>
+                            <f:entry title="${%Tool Description}">
+                                <f:readOnlyTextbox value="${item.description}" />
+                            </f:entry>
+                            <f:section title="${%Tool Arguments}">
+                                <j:forEach var="arg" items="${item.arguments}">
+                                    <f:entry title="${%Argument Name}">
+                                        <f:readOnlyTextbox value="${arg.name}" />
+                                    </f:entry>
+                                    <f:entry title="${%Argument Description}">
+                                        <f:readOnlyTextbox value="${arg.description}" />
+                                    </f:entry>
+                                    <f:entry title="${%Argument Type}">
+                                        <f:readOnlyTextbox value="${arg.type.name}" />
+                                    </f:entry>
+                                </j:forEach>
+                            </f:section>
+                        </div>
+                    </j:forEach>
+                </j:otherwise>
+            </j:choose>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

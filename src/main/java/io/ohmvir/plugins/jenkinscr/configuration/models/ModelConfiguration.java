@@ -6,6 +6,7 @@ import hudson.model.Descriptor;
 import hudson.util.FormValidation;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelProviderType;
 import io.ohmvir.plugins.jenkinscr.configuration.AgenticCodeReviewSettings;
+import io.ohmvir.plugins.jenkinscr.configuration.ModelsManagementLink;
 import jenkins.model.Jenkins;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
@@ -25,7 +26,7 @@ public abstract class ModelConfiguration implements Describable<ModelConfigurati
     }
 
     public static ModelConfiguration getFromId(String id) {
-        return AgenticCodeReviewSettings.get().getModels()
+        return ModelsManagementLink.get().getModelConfigurations()
                 .stream()
                 .filter(model -> Objects.equals(model.getProviderType().toString(), id.split(":")[0]))
                 .filter(model -> Objects.equals(id.split(":")[1], model.modelName))
