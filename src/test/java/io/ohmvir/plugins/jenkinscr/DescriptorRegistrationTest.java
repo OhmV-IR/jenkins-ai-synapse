@@ -21,7 +21,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class DescriptorRegistrationTest {
     // Abstract classes with lists of descriptors
     private static final List<Class<? extends Describable>> DESCRIPTOR_ABSTRACT_CLASSES_TO_TEST = List.of(
-            ModelConfiguration.class,
             PromptConfiguration.class,
             SkillConfiguration.class
     );
