@@ -28,10 +28,6 @@ public class DescriptorRegistrationTest {
 
     // Classes that extend something from DESCRIPTOR_ABSTRACT_CLASSES_TO_TEST
     private static final List<Class<? extends Describable<?>>> CONCRETE_EXTENSION_IMPLEMENTATIONS_TO_TEST = List.of(
-            GeminiModelConfiguration.class,
-            OpenAIModelConfiguration.class,
-            AnthropicModelConfiguration.class,
-            OllamaModelConfiguration.class,
             SimplePrompt.class,
             FullPrompt.class,
             BasicSkillConfiguration.class,

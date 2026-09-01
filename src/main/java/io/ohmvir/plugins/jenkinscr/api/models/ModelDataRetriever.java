@@ -1,11 +1,12 @@
 package io.ohmvir.plugins.jenkinscr.api.models;
 
+import hudson.ExtensionPoint;
 import io.ohmvir.plugins.jenkinscr.configuration.models.ModelConfiguration;
 
 import java.io.IOException;
 import java.util.logging.Logger;
 
-public abstract class ModelDataRetriever<T extends ModelConfiguration> {
+public abstract class ModelDataRetriever<T extends ModelConfiguration> implements ExtensionPoint {
     private final Class<T> configurationClass;
 
     public ModelDataRetriever(Class<T> configurationClass) {

@@ -6,12 +6,7 @@ import hudson.init.Initializer;
 import io.ohmvir.plugins.jenkinscr.api.client.ModelClient;
 import io.ohmvir.plugins.jenkinscr.api.client.ModelClientFactory;
 import io.ohmvir.plugins.jenkinscr.api.input.ModelRequest;
-import io.ohmvir.plugins.jenkinscr.api.models.retrievers.AnthropicModelDataRetriever;
-import io.ohmvir.plugins.jenkinscr.api.models.retrievers.GeminiModelDataRetriever;
-import io.ohmvir.plugins.jenkinscr.api.models.retrievers.OllamaModelDataRetriever;
-import io.ohmvir.plugins.jenkinscr.api.models.retrievers.OpenAIModelDataRetriever;
 import io.ohmvir.plugins.jenkinscr.configuration.ModelsManagementLink;
-import io.ohmvir.plugins.jenkinscr.configuration.client.ModelClientConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.models.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -26,12 +21,6 @@ import java.util.Optional;
 import java.util.logging.Logger;
 
 public class ModelData {
-    private static final List<ModelDataRetriever<?>> retrievers = List.of(
-            new OllamaModelDataRetriever(),
-            new AnthropicModelDataRetriever(),
-            new GeminiModelDataRetriever(),
-            new OpenAIModelDataRetriever()
-    );
     private static final Logger LOGGER = Logger.getLogger(ModelData.class.getName());
     private static final HashMap<String, ModelData> MODEL_DATA = new HashMap<>();
     private @Getter
@@ -75,7 +64,7 @@ public class ModelData {
         if (MODEL_DATA.containsKey(config.getModelId())) {
             return;
         }
-        MODEL_DATA.put(config.getModelId(), retrievers.stream()
+        MODEL_DATA.put(config.getModelId(), ExtensionList.lookup(ModelDataRetriever.class).stream()
                 .map(retriever -> retriever.retrieveFromConfigurationGen(config))
                 .filter(Objects::nonNull)
                 .findFirst().orElseThrow());
