@@ -3,6 +3,10 @@ package io.ohmvir.plugins.jenkinscr.configuration.prompts;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
+import io.ohmvir.plugins.jenkinscr.api.content.MaxOutputTokensContent;
+import io.ohmvir.plugins.jenkinscr.api.content.SystemPromptContent;
+import io.ohmvir.plugins.jenkinscr.api.content.TemperatureContent;
+import io.ohmvir.plugins.jenkinscr.api.content.ThinkingLevelContent;
 import io.ohmvir.plugins.jenkinscr.api.input.ModelRequest;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelThinkingLevel;
 import lombok.Getter;
@@ -41,10 +45,10 @@ public class FullPrompt extends SimplePrompt {
     @Override
     public ModelRequest CreateRequest() {
         ModelRequest req = super.CreateRequest();
-        req.setSystemPrompt(systemPrompt);
-        req.setTemperature(temperature);
-        req.setMaxOutputTokensCount(maxOutputTokensCount);
-        req.setThinkingLevel(thinkingLevel);
+        req.AddInput(new SystemPromptContent(systemPrompt));
+        req.AddInput(new TemperatureContent(temperature));
+        req.AddInput(new MaxOutputTokensContent(maxOutputTokensCount));
+        req.AddInput(new ThinkingLevelContent(thinkingLevel));
         return req;
     }
 

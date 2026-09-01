@@ -35,6 +35,10 @@ public class ModelRequest implements Cloneable {
         requestedOutputTypes.add(outputType);
     }
 
+    public void AddInput(ModelInput input){
+        modelInputs.add(input);
+    }
+
     public void RemoveOutputTypeRequest(ModelOutputType outputType) {
         requestedOutputTypes.remove(outputType);
     }

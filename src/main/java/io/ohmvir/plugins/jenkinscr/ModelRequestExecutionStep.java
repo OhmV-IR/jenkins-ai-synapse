@@ -8,8 +8,7 @@ import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import io.ohmvir.plugins.jenkinscr.api.client.ModelClient;
-import io.ohmvir.plugins.jenkinscr.api.content.TextContent;
-import io.ohmvir.plugins.jenkinscr.api.content.ThinkingContent;
+import io.ohmvir.plugins.jenkinscr.api.content.*;
 import io.ohmvir.plugins.jenkinscr.api.input.ModelRequest;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelData;
 import io.ohmvir.plugins.jenkinscr.api.output.ModelResponse;
@@ -28,10 +27,12 @@ public class ModelRequestExecutionStep extends Builder implements SimpleBuildSte
     @DataBoundConstructor
     public ModelRequestExecutionStep(String requestText, String systemPrompt, double temperature, @Nullable Long maxOutputTokens) {
         this.request = new ModelRequest();
-        this.request.setPromptText(requestText);
-        this.request.setMaxOutputTokensCount(maxOutputTokens);
-        this.request.setSystemPrompt(systemPrompt);
-        this.request.setTemperature(temperature);
+        this.request.AddInput(new TextContent(requestText));
+        this.request.AddInput(new SystemPromptContent(systemPrompt));
+        if(maxOutputTokens != null) {
+            this.request.AddInput(new MaxOutputTokensContent(maxOutputTokens));
+        }
+        this.request.AddInput(new TemperatureContent(temperature));
     }
 
     @Override

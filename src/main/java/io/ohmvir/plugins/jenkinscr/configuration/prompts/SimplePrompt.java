@@ -3,6 +3,7 @@ package io.ohmvir.plugins.jenkinscr.configuration.prompts;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
+import io.ohmvir.plugins.jenkinscr.api.content.TextContent;
 import io.ohmvir.plugins.jenkinscr.api.input.ModelRequest;
 import lombok.Getter;
 import org.jspecify.annotations.NonNull;
@@ -23,7 +24,7 @@ public class SimplePrompt extends PromptConfiguration {
     @Override
     public ModelRequest CreateRequest() {
         ModelRequest request = new ModelRequest();
-        request.setPromptText(promptText);
+        request.AddInput(new TextContent(promptText));
         return request;
     }
 
