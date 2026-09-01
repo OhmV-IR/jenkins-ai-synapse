@@ -13,50 +13,15 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 public class ModelRequest implements Cloneable {
-    private final HashMap<UUID, byte[]> files = new HashMap<>();
-    private final HashMap<UUID, ModelInputType> fileInputTypes = new HashMap<>();
     private final Set<ModelOutputType> requestedOutputTypes = new HashSet<>();
     private final Set<ModelInputType> inputTypes = new HashSet<>();
-    private @Getter @Setter String promptText = "";
     private @Getter @Setter @Nullable ModelConversation conversationHistory = null;
     private final ArrayList<SkillData> skills = new ArrayList<>();
     private final @Getter List<Tool> tools = new ArrayList<>();
-    private @Getter @Setter String systemPrompt = "";
-    private @Getter @Setter @Nullable Double temperature = null;
-    private @Getter @Setter @Nullable Long maxOutputTokensCount = null;
-    private @Getter @Setter ModelThinkingLevel thinkingLevel = ModelThinkingLevel.OFF;
+    private @Getter final List<ModelInput> modelInputs = new ArrayList<>();
 
     public ModelRequest() {}
 
-    public UUID AttachFile(byte[] fileBytes, ModelInputType fileType) {
-        UUID uuid = UUID.randomUUID();
-        files.put(uuid, fileBytes);
-        inputTypes.add(fileType);
-        fileInputTypes.put(uuid, fileType);
-        return uuid;
-    }
-
-    public boolean RemoveFile(UUID fileId) {
-        if (fileInputTypes.containsKey(fileId) && fileInputTypes.values().stream().filter(i -> i.equals(fileInputTypes.get(fileId))).count() > 1) {
-            inputTypes.remove(fileInputTypes.get(fileId));
-        }
-        fileInputTypes.remove(fileId);
-        return files.remove(fileId) != null;
-    }
-
-    public Set<UUID> GetFileIds() {
-        return files.keySet();
-    }
-
-    /**
-     * Appends text to the prompt.
-     */
-    public void AttachText(String text) {
-        if (!text.isEmpty()) {
-            inputTypes.add(ModelInputType.TEXT);
-        }
-        promptText += text;
-    }
 
     public Set<ModelInputType> getInputTypes() {
         return Collections.unmodifiableSet(inputTypes);
@@ -99,17 +64,11 @@ public class ModelRequest implements Cloneable {
     @Override
     public ModelRequest clone() {
         ModelRequest newRequest = new ModelRequest();
-        newRequest.maxOutputTokensCount = maxOutputTokensCount;
-        newRequest.temperature = temperature;
-        newRequest.systemPrompt = systemPrompt;
-        newRequest.thinkingLevel = thinkingLevel;
-        newRequest.files.putAll(files);
         newRequest.inputTypes.addAll(inputTypes);
-        newRequest.fileInputTypes.putAll(fileInputTypes);
-        newRequest.promptText = promptText;
         newRequest.conversationHistory = conversationHistory;
         newRequest.requestedOutputTypes.addAll(requestedOutputTypes);
         newRequest.skills.addAll(skills);
+        newRequest.modelInputs.addAll(modelInputs);
         return newRequest;
     }
 }
