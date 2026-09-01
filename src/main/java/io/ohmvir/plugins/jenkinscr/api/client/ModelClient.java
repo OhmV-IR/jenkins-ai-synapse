@@ -1,6 +1,10 @@
 package io.ohmvir.plugins.jenkinscr.api.client;
 
+import hudson.ExtensionPoint;
+import io.ohmvir.plugins.jenkinscr.api.input.ModelConversation;
+import io.ohmvir.plugins.jenkinscr.api.input.ModelRequest;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelData;
+import io.ohmvir.plugins.jenkinscr.api.output.ModelResponse;
 import lombok.Getter;
 
 import javax.annotation.Nullable;

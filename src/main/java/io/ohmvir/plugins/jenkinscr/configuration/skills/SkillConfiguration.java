@@ -5,7 +5,6 @@ import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
 import io.ohmvir.plugins.jenkinscr.api.skills.SkillData;
-import io.ohmvir.plugins.jenkinscr.configuration.AgenticCodeReviewSettings;
 import io.ohmvir.plugins.jenkinscr.configuration.SkillsManagementLink;
 import lombok.Getter;
 import org.kohsuke.stapler.QueryParameter;

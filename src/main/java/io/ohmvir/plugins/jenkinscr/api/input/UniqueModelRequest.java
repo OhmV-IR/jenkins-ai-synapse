@@ -1,4 +1,4 @@
-package io.ohmvir.plugins.jenkinscr.api.client;
+package io.ohmvir.plugins.jenkinscr.api.input;
 
 import hudson.ExtensionPoint;
 import hudson.model.Describable;

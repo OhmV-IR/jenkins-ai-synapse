@@ -1,4 +1,4 @@
-package io.ohmvir.plugins.jenkinscr.api.client;
+package io.ohmvir.plugins.jenkinscr.api.input;
 
 import io.ohmvir.plugins.jenkinscr.api.models.ModelInputType;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelOutputType;

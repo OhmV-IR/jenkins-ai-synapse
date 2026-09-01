@@ -5,12 +5,13 @@ import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
 import io.ohmvir.plugins.jenkinscr.api.client.ModelClient;
+import jenkins.model.GlobalConfiguration;
 import lombok.Getter;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
-public abstract class ModelClientConfiguration implements Describable<ModelClientConfiguration>, ExtensionPoint {
+public abstract class ModelClientConfiguration extends GlobalConfiguration implements ExtensionPoint {
     private @Getter Long timeoutSeconds;
 
     public ModelClientConfiguration(Long timeoutSeconds) throws Descriptor.FormException {
@@ -28,7 +29,7 @@ public abstract class ModelClientConfiguration implements Describable<ModelClien
         this.timeoutSeconds = timeoutSeconds;
     }
 
-    public abstract static class DescriptorImpl extends Descriptor<ModelClientConfiguration> {
+    public abstract static class DescriptorImpl extends Descriptor<GlobalConfiguration> {
         public FormValidation doCheckTimeoutSeconds(@QueryParameter Long timeoutSeconds) {
             if (timeoutSeconds == null) {
                 return FormValidation.error("Timeout seconds is required");

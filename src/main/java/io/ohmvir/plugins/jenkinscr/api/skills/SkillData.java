@@ -7,7 +7,6 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.Descriptor;
-import io.ohmvir.plugins.jenkinscr.configuration.AgenticCodeReviewSettings;
 import io.ohmvir.plugins.jenkinscr.configuration.SkillsManagementLink;
 import io.ohmvir.plugins.jenkinscr.configuration.skills.SkillConfiguration;
 import lombok.Getter;

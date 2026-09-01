@@ -5,9 +5,7 @@ import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelProviderType;
-import io.ohmvir.plugins.jenkinscr.configuration.AgenticCodeReviewSettings;
 import io.ohmvir.plugins.jenkinscr.configuration.ModelsManagementLink;
-import jenkins.model.Jenkins;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
 

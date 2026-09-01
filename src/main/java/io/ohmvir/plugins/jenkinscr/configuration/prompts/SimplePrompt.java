@@ -3,7 +3,7 @@ package io.ohmvir.plugins.jenkinscr.configuration.prompts;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
-import io.ohmvir.plugins.jenkinscr.api.client.ModelRequest;
+import io.ohmvir.plugins.jenkinscr.api.input.ModelRequest;
 import lombok.Getter;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;

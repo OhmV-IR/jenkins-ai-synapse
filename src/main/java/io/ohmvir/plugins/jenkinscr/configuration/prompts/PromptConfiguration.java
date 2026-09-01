@@ -4,7 +4,7 @@ import hudson.ExtensionPoint;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
-import io.ohmvir.plugins.jenkinscr.api.client.ModelRequest;
+import io.ohmvir.plugins.jenkinscr.api.input.ModelRequest;
 import io.ohmvir.plugins.jenkinscr.configuration.BasePromptsManagementLink;
 import lombok.Getter;
 import org.kohsuke.stapler.DataBoundSetter;

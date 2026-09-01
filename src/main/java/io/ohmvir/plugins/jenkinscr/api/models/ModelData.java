@@ -1,18 +1,15 @@
 package io.ohmvir.plugins.jenkinscr.api.models;
 
+import hudson.ExtensionList;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import io.ohmvir.plugins.jenkinscr.api.client.ModelClient;
-import io.ohmvir.plugins.jenkinscr.api.client.ModelRequest;
-import io.ohmvir.plugins.jenkinscr.api.client.impl.AnthropicModelClient;
-import io.ohmvir.plugins.jenkinscr.api.client.impl.GeminiModelClient;
-import io.ohmvir.plugins.jenkinscr.api.client.impl.OllamaModelClient;
-import io.ohmvir.plugins.jenkinscr.api.client.impl.OpenAIModelClient;
+import io.ohmvir.plugins.jenkinscr.api.client.ModelClientFactory;
+import io.ohmvir.plugins.jenkinscr.api.input.ModelRequest;
 import io.ohmvir.plugins.jenkinscr.api.models.retrievers.AnthropicModelDataRetriever;
 import io.ohmvir.plugins.jenkinscr.api.models.retrievers.GeminiModelDataRetriever;
 import io.ohmvir.plugins.jenkinscr.api.models.retrievers.OllamaModelDataRetriever;
 import io.ohmvir.plugins.jenkinscr.api.models.retrievers.OpenAIModelDataRetriever;
-import io.ohmvir.plugins.jenkinscr.configuration.AgenticCodeReviewSettings;
 import io.ohmvir.plugins.jenkinscr.configuration.ModelsManagementLink;
 import io.ohmvir.plugins.jenkinscr.configuration.client.ModelClientConfiguration;
 import io.ohmvir.plugins.jenkinscr.configuration.models.*;
@@ -20,9 +17,12 @@ import lombok.Getter;
 import lombok.Setter;
 
 import javax.annotation.Nullable;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 public class ModelData {
@@ -34,6 +34,8 @@ public class ModelData {
     );
     private static final Logger LOGGER = Logger.getLogger(ModelData.class.getName());
     private static final HashMap<String, ModelData> MODEL_DATA = new HashMap<>();
+    private @Getter
+    @Setter String modelId;
     private @Getter
     @Setter List<ModelCapability> capabilities;
     private @Getter
@@ -83,26 +85,39 @@ public class ModelData {
         return ModelData.MODEL_DATA.get(modelId);
     }
 
+    @SuppressWarnings("unchecked")
     public static ModelClient<?, ?> CreateClient(ModelConfiguration config) {
-        return switch (config) {
-            case GeminiModelConfiguration geminiConfig ->
-                    new GeminiModelClient(get(config.getModelId()), geminiConfig, AgenticCodeReviewSettings.get().getGeminiClientConfiguration());
-            case OllamaModelConfiguration ollamaConfig ->
-                    new OllamaModelClient(get(config.getModelId()), ollamaConfig, AgenticCodeReviewSettings.get().getOllamaClientConfiguration());
-            case OpenAIModelConfiguration openAIConfig ->
-                    new OpenAIModelClient(get(config.getModelId()), openAIConfig, AgenticCodeReviewSettings.get().getOpenAIClientConfiguration());
-            case AnthropicModelConfiguration anthropicConfig ->
-                    new AnthropicModelClient(get(config.getModelId()), anthropicConfig, AgenticCodeReviewSettings.get().getAnthropicClientConfiguration());
-            case null, default -> null;
-        };
+        Optional<ModelClientFactory> factory = ExtensionList.lookup(ModelClientFactory.class).stream()
+                .filter(obj -> {
+                    Type genericSuper = obj.getClass().getGenericSuperclass();
+                    if(genericSuper instanceof ParameterizedType parameterizedSuper){
+                        return parameterizedSuper.getActualTypeArguments()[0].equals(config.getClass());
+                    } else {
+                        return false;
+                    }
+                }).findFirst();
+        if(factory.isEmpty()){
+            return null;
+        }
+        Type genericSuper = factory.getClass().getGenericSuperclass();
+        if(genericSuper instanceof ParameterizedType parameterizedSuper){
+            return factory.get().CreateClient(get(config.getModelId()), config, ExtensionList.lookupSingleton(parameterizedSuper.getActualTypeArguments()[1].getClass()));
+        }
+        return null;
+    }
+
+    public ModelClient<?, ?> CreateClient() {
+        ModelConfiguration modelConfiguration = ModelsManagementLink.get().getModelConfigurations().stream().filter(modelCfg -> Objects.equals(modelCfg.getModelId(), modelId)).findFirst().get();
+        return CreateClient(modelConfiguration);
     }
 
     /**
      * Tries to find a model that will accommodate your request.
+     *
      * @param request The model request you want to execute.
      * @return null if no models are capable of fulfilling that request or a model client that can fulfill the request.
      */
-    public static @Nullable ModelClient<?, ?> CreateClientForRequest(ModelRequest request){
+    public static @Nullable ModelClient<?, ?> CreateClientForRequest(ModelRequest request) {
         return null; // TODO
     }
 

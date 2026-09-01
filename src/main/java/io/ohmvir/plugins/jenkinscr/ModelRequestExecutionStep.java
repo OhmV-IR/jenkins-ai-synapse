@@ -6,25 +6,27 @@ import hudson.model.AbstractProject;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
+import hudson.tasks.Builder;
 import io.ohmvir.plugins.jenkinscr.api.client.ModelClient;
-import io.ohmvir.plugins.jenkinscr.api.client.ModelRequest;
-import io.ohmvir.plugins.jenkinscr.api.client.ModelResponse;
+import io.ohmvir.plugins.jenkinscr.api.content.TextContent;
+import io.ohmvir.plugins.jenkinscr.api.content.ThinkingContent;
+import io.ohmvir.plugins.jenkinscr.api.input.ModelRequest;
 import io.ohmvir.plugins.jenkinscr.api.models.ModelData;
+import io.ohmvir.plugins.jenkinscr.api.output.ModelResponse;
 import jenkins.tasks.SimpleBuildStep;
 import org.jenkinsci.Symbol;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.kohsuke.stapler.DataBoundConstructor;
-import hudson.tasks.Builder;
 
 import java.io.IOException;
 import java.io.PrintStream;
 
 public class ModelRequestExecutionStep extends Builder implements SimpleBuildStep {
     private final ModelRequest request;
+
     @DataBoundConstructor
-    public ModelRequestExecutionStep(String requestText, String systemPrompt, double temperature, @Nullable Long maxOutputTokens)
-    {
+    public ModelRequestExecutionStep(String requestText, String systemPrompt, double temperature, @Nullable Long maxOutputTokens) {
         this.request = new ModelRequest();
         this.request.setPromptText(requestText);
         this.request.setMaxOutputTokensCount(maxOutputTokens);
@@ -34,17 +36,23 @@ public class ModelRequestExecutionStep extends Builder implements SimpleBuildSte
 
     @Override
     public void perform(@NonNull Run<?, ?> run, @NonNull EnvVars env, @NonNull TaskListener listener) throws InterruptedException, IOException {
-        ModelClient<?,?> client = ModelData.CreateClientForRequest(request);
-        if(client == null){
+        ModelClient<?, ?> client = ModelData.CreateClientForRequest(request);
+        if (client == null) {
             throw new IOException("Failed to get a client that could respond to the request");
         }
         ModelResponse response = client.generateResponse(request);
-        if(response == null){
+        if (response == null) {
             throw new IOException("Failed to get a response that could respond to the request");
         }
         PrintStream logger = listener.getLogger();
-        logger.println("Model thinking: " + response.getThinkingText());
-        logger.println("Model response: " + response.getResponseText());
+        response.getOutputs().forEach(output -> {
+                    switch (output) {
+                        case TextContent text -> logger.println("Model response: " + text.getText());
+                        case ThinkingContent thinking -> logger.println("Model thinking: " + thinking.getThinking());
+                        default -> logger.println("Unknown output type: " + output.getClass().getName());
+                    }
+                }
+        );
     }
 
     @Symbol("customStep")
