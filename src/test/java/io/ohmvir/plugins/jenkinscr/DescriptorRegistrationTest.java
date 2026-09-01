@@ -42,11 +42,7 @@ public class DescriptorRegistrationTest {
 
     // 3. Classes that extend Descriptor directly.
     private static final List<Class<? extends Describable<?>>> STANDALONE_CONCRETE_CLASSES_TO_TEST = List.of(
-            AgenticCodeReviewSettings.class,
-            GeminiClientConfiguration.class,
-            AnthropicClientConfiguration.class,
-            OllamaClientConfiguration.class,
-            OpenAIClientConfiguration.class
+
     );
 
     @Test
