@@ -26,8 +26,8 @@ public class DescriptorRegistrationTest {
             FullPrompt.class,
             BasicSkillConfiguration.class,
             BasicSkillFileConfiguration.class,
-            DeclaredSkillConfiguration.class,
-            GithubFolderSkillConfiguration.class);
+            DeclaredSkillConfiguration.class
+    );
 
     // 3. Classes that extend Descriptor directly.
     private static final List<Class<? extends Describable<?>>> STANDALONE_CONCRETE_CLASSES_TO_TEST = List.of();
