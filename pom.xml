@@ -10,12 +10,12 @@
   </parent>
 
   <groupId>io.ohmvir.plugins</groupId>
-  <artifactId>jenkinscr</artifactId>
+  <artifactId>jenkinsaisynapse</artifactId>
   <version>${revision}${changelist}</version>
   <packaging>hpi</packaging>
 
-  <name>Jenkins CR plugin</name>
-  <url>https://github.com/OhmV-IR/${project.artifactId}</url>
+  <name>Jenkins AI Synapse base plugin</name>
+  <url>https://github.com/OhmV-IR/jenkins-ai-synapse</url>
   <licenses>
     <license>
       <name>ARR</name>
@@ -44,7 +44,7 @@
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
     <jenkins.baseline>2.555</jenkins.baseline>
     <jenkins.version>${jenkins.baseline}.1</jenkins.version>
-    <gitHubRepo>OhmV-IR/${project.artifactId}</gitHubRepo>
+    <gitHubRepo>OhmV-IR/jenkins-ai-synapse</gitHubRepo>
 
     <spotless.check.skip>false</spotless.check.skip>
     <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
@@ -54,10 +54,6 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>credentials</artifactId>
-    </dependency>
-    <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
     </dependency>
@@ -66,29 +62,15 @@
       <artifactId>jackson-dataformat-yaml</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>plain-credentials</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.anthropic</groupId>
-      <artifactId>anthropic-java</artifactId>
-      <version>2.54.0</version>
-    </dependency>
-    <dependency>
-      <groupId>com.google.genai</groupId>
-      <artifactId>google-genai</artifactId>
-      <version>1.66.0</version>
-    </dependency>
-    <dependency>
-      <groupId>com.openai</groupId>
-      <artifactId>openai-java</artifactId>
-      <version>4.51.0</version>
-    </dependency>
-    <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
       <version>1.18.46</version>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+      <version>2.13.2</version>
     </dependency>
   </dependencies>
 
