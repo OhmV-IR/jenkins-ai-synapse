@@ -25,7 +25,14 @@ public class SkillData {
     private @Getter final String skillText;
     private final HashMap<String, String> skillReferences;
 
+    /**
+     * A map of skill names to SkillData
+     */
     private static final HashMap<String, SkillData> skillDataCache = new HashMap<>();
+    /**
+     * A map of skill configuration ids to skill names
+     */
+    private static final HashMap<String, List<String>> configurationSkillMap = new HashMap<>();
 
     @Initializer(after = InitMilestone.PLUGINS_STARTED)
     public static void initializeSkillDataCache() {
@@ -34,8 +41,8 @@ public class SkillData {
         }
     }
 
-    public static @Nullable SkillData getSkillData(SkillConfiguration config) {
-        return skillDataCache.get(config.getSkillId());
+    public static List<SkillData> getSkillData(SkillConfiguration config) {
+        return configurationSkillMap.get(config.getConfigurationId()).stream().map(skillDataCache::get).toList();
     }
 
     public static List<SkillData> getAllSkills() {
@@ -43,7 +50,7 @@ public class SkillData {
     }
 
     public static void initializeSkillDataForConfig(SkillConfiguration config) {
-        skillDataCache.put(config.getSkillId(), config.getSkillData());
+        config.getSkills().forEach(skillData -> skillDataCache.put(skillData.getSkillName(), skillData));
     }
 
     public Map<String, String> getSkillReferences() {

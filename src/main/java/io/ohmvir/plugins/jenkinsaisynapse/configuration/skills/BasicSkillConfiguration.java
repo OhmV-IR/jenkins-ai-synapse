@@ -3,14 +3,16 @@ package io.ohmvir.plugins.jenkinsaisynapse.configuration.skills;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
+
+import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 public class BasicSkillConfiguration extends SkillConfiguration {
     @Override
-    protected SkillData generateSkill() {
-        return new SkillData(skillName, skillDescription, null, null, null, null, skillText, Map.of());
+    protected List<SkillData> generateSkills() {
+        return List.of(new SkillData(skillName, skillDescription, null, null, null, null, skillText, Map.of()));
     }
 
     @DataBoundConstructor

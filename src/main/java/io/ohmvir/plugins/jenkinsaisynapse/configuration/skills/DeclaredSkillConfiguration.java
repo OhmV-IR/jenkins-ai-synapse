@@ -4,13 +4,15 @@ import hudson.Extension;
 import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import java.util.*;
+
+import lombok.Getter;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 public class DeclaredSkillConfiguration extends SkillConfiguration {
     @Override
-    protected SkillData generateSkill() {
-        return new SkillData(
+    protected List<SkillData> generateSkills() {
+        return List.of(new SkillData(
                 skillName,
                 skillDescription,
                 skillLicense,
@@ -18,7 +20,7 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
                 skillMetadata,
                 allowedTools,
                 skillText,
-                skillReferences);
+                skillReferences));
     }
 
     @DataBoundConstructor
@@ -57,14 +59,14 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
         return new ArrayList<>(skillReferences.entrySet());
     }
 
-    public String skillName;
-    public String skillDescription;
-    public String skillLicense;
-    public String skillCompatibility;
-    public String skillMetadata;
-    public List<String> allowedTools;
-    public String skillText;
-    public HashMap<String, String> skillReferences;
+    private @Getter final String skillName;
+    private @Getter final String skillDescription;
+    private @Getter final String skillLicense;
+    private @Getter final String skillCompatibility;
+    private @Getter final String skillMetadata;
+    private @Getter final List<String> allowedTools;
+    private @Getter final String skillText;
+    private @Getter final HashMap<String, String> skillReferences;
 
     @Extension
     public static class DescriptorImpl extends SkillConfiguration.DescriptorImpl {

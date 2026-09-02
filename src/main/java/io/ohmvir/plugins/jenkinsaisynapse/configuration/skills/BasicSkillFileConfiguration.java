@@ -3,6 +3,8 @@ package io.ohmvir.plugins.jenkinsaisynapse.configuration.skills;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
+
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 import org.jspecify.annotations.NonNull;
@@ -20,9 +22,9 @@ public class BasicSkillFileConfiguration extends SkillConfiguration {
     }
 
     @Override
-    protected SkillData generateSkill() {
+    protected List<SkillData> generateSkills() {
         try {
-            return new SkillData(Map.of("SKILL.md", fileContent));
+            return List.of(new SkillData(Map.of("SKILL.md", fileContent)));
         } catch (Exception e) {
             logger.severe("Failed to generate SkillData for BasicSkillFileConfiguration due to " + e.getMessage());
             return null;
