@@ -38,7 +38,7 @@ public abstract class Tool {
      * @return A list of the arguments to the tool function, their names, types and descriptions.
      */
     public abstract List<ToolArgumentDescription> getArguments();
-    public Optional<String> CallTool(JsonObject toolCallParameters){
+    public Optional<String> callTool(JsonObject toolCallParameters){
         try {
             Object returnValue = toolMethod.invoke(this,
                     getArguments().stream()

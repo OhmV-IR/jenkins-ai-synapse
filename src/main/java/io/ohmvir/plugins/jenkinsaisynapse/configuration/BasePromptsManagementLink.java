@@ -37,7 +37,7 @@ public class BasePromptsManagementLink extends ManagementLink implements Saveabl
     }
 
     public @Nullable ModelRequest getRequestFromPromptId(String promptId){
-        return prompts.get(promptId).CreateRequest();
+        return prompts.get(promptId).createRequest();
     }
 
     public @Nullable PromptConfiguration getPromptConfiguration(String promptId){

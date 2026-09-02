@@ -37,7 +37,7 @@ public class ModelRequestExecutionStep extends Builder implements SimpleBuildSte
 
     @Override
     public void perform(@NonNull Run<?, ?> run, @NonNull EnvVars env, @NonNull TaskListener listener) throws InterruptedException, IOException {
-        ModelClient<?, ?> client = ModelData.CreateClientForRequest(request);
+        ModelClient<?, ?> client = ModelData.createClientForRequest(request);
         if (client == null) {
             throw new IOException("Failed to get a client that could respond to the request");
         }

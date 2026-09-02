@@ -43,8 +43,8 @@ public class FullPrompt extends SimplePrompt {
     }
 
     @Override
-    public ModelRequest CreateRequest() {
-        ModelRequest req = super.CreateRequest();
+    public ModelRequest createRequest() {
+        ModelRequest req = super.createRequest();
         req.AddInput(new SystemPromptContent(systemPrompt));
         req.AddInput(new TemperatureContent(temperature));
         req.AddInput(new MaxOutputTokensContent(maxOutputTokensCount));

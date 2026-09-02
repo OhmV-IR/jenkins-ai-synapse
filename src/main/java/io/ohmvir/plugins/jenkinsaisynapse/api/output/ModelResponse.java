@@ -13,11 +13,11 @@ public class ModelResponse {
 
     }
 
-    public void AddOutput(ModelOutput output) {
+    public void addOutput(ModelOutput output) {
         outputs.add(output);
     }
 
-    public void PushToConversation(ModelConversation conversation) throws IOException {
-        conversation.AddResponse(this);
+    public void pushToConversation(ModelConversation conversation) throws IOException {
+        conversation.addResponse(this);
     }
 }

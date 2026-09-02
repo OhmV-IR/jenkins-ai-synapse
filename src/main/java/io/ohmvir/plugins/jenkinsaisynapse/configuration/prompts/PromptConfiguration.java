@@ -12,7 +12,7 @@ import org.kohsuke.stapler.QueryParameter;
 
 public abstract class PromptConfiguration implements Describable<PromptConfiguration>, ExtensionPoint {
     private @Getter String promptId = "";
-    public abstract ModelRequest CreateRequest();
+    public abstract ModelRequest createRequest();
 
     public PromptConfiguration(String promptId) throws Descriptor.FormException{
         this.promptId = promptId;

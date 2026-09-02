@@ -75,7 +75,7 @@ public class ModelData {
     }
 
     @SuppressWarnings("unchecked")
-    public static ModelClient<?, ?> CreateClient(ModelConfiguration config) {
+    public static ModelClient<?, ?> createClient(ModelConfiguration config) {
         Optional<ModelClientFactory> factory = ExtensionList.lookup(ModelClientFactory.class).stream()
                 .filter(obj -> {
                     Type genericSuper = obj.getClass().getGenericSuperclass();
@@ -90,14 +90,14 @@ public class ModelData {
         }
         Type genericSuper = factory.getClass().getGenericSuperclass();
         if(genericSuper instanceof ParameterizedType parameterizedSuper){
-            return factory.get().CreateClient(get(config.getModelId()), config, ExtensionList.lookupSingleton(parameterizedSuper.getActualTypeArguments()[1].getClass()));
+            return factory.get().createClient(get(config.getModelId()), config, ExtensionList.lookupSingleton(parameterizedSuper.getActualTypeArguments()[1].getClass()));
         }
         return null;
     }
 
-    public ModelClient<?, ?> CreateClient() {
+    public ModelClient<?, ?> createClient() {
         ModelConfiguration modelConfiguration = ModelsManagementLink.get().getModelConfigurations().stream().filter(modelCfg -> Objects.equals(modelCfg.getModelId(), modelId)).findFirst().get();
-        return CreateClient(modelConfiguration);
+        return createClient(modelConfiguration);
     }
 
     /**
@@ -106,7 +106,7 @@ public class ModelData {
      * @param request The model request you want to execute.
      * @return null if no models are capable of fulfilling that request or a model client that can fulfill the request.
      */
-    public static @Nullable ModelClient<?, ?> CreateClientForRequest(ModelRequest request) {
+    public static @Nullable ModelClient<?, ?> createClientForRequest(ModelRequest request) {
         return null; // TODO
     }
 

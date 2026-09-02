@@ -4,6 +4,7 @@ import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
+import lombok.Getter;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -32,9 +33,10 @@ public class GithubFolderSkillConfiguration extends SkillConfiguration {
         if(isValidUrl(folderPath)){
             throw new Descriptor.FormException("Invalid folder path", "folderPath");
         }
+        this.folderPath = folderPath;
     }
 
-    public String folderPath;
+    private @Getter final String folderPath;
 
     @Override
     protected SkillData generateSkill() {

@@ -22,7 +22,7 @@ public class SimplePrompt extends PromptConfiguration {
     }
 
     @Override
-    public ModelRequest CreateRequest() {
+    public ModelRequest createRequest() {
         ModelRequest request = new ModelRequest();
         request.AddInput(new TextContent(promptText));
         return request;

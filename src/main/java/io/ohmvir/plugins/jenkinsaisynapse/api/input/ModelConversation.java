@@ -26,12 +26,12 @@ public class ModelConversation implements Saveable, Loadable {
         conversationId = UUID.randomUUID();
     }
 
-    public void AddRequest(ModelRequest request) throws IOException {
+    public void addRequest(ModelRequest request) throws IOException {
         requests.add(request);
         save();
     }
 
-    public void AddResponse(ModelResponse response) throws IOException {
+    public void addResponse(ModelResponse response) throws IOException {
         responses.add(response);
         save();
     }
