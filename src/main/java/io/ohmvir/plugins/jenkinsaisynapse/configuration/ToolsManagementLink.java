@@ -5,10 +5,9 @@ import hudson.model.ManagementLink;
 import hudson.security.Permission;
 import io.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
 import io.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolRegistry;
+import java.util.List;
 import jenkins.model.Jenkins;
 import org.jspecify.annotations.NonNull;
-
-import java.util.List;
 
 @Extension
 public class ToolsManagementLink extends ManagementLink {
@@ -42,7 +41,7 @@ public class ToolsManagementLink extends ManagementLink {
         return Jenkins.ADMINISTER;
     }
 
-    public List<Tool> getTools(){
+    public List<Tool> getTools() {
         return ToolRegistry.getTools().values().stream().toList();
     }
 }

@@ -12,11 +12,12 @@ import org.kohsuke.stapler.QueryParameter;
 
 public class SimplePrompt extends PromptConfiguration {
     private @Getter String promptText;
+
     @DataBoundConstructor
     public SimplePrompt(String promptId, String promptText) throws Descriptor.FormException {
         super(promptId);
         this.promptText = promptText;
-        if(promptText.trim().isEmpty()){
+        if (promptText.trim().isEmpty()) {
             throw new Descriptor.FormException("Prompt text cannot be empty", "promptText");
         }
     }
@@ -36,7 +37,7 @@ public class SimplePrompt extends PromptConfiguration {
         }
 
         public FormValidation doCheckPromptText(@QueryParameter String value) {
-            if(value.trim().isEmpty()){
+            if (value.trim().isEmpty()) {
                 return FormValidation.error("Please enter a prompt text");
             }
             return FormValidation.ok();

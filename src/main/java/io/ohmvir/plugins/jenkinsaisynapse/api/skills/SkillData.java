@@ -9,11 +9,11 @@ import hudson.init.Initializer;
 import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsManagementLink;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.skills.SkillConfiguration;
-import lombok.Getter;
-import org.jspecify.annotations.Nullable;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 
 public class SkillData {
     private @Getter final String skillName;
@@ -28,31 +28,37 @@ public class SkillData {
     private static final HashMap<String, SkillData> skillDataCache = new HashMap<>();
 
     @Initializer(after = InitMilestone.PLUGINS_STARTED)
-    public static void initializeSkillDataCache(){
-        for(SkillConfiguration skillConfig : SkillsManagementLink.get().getSkills()){
+    public static void initializeSkillDataCache() {
+        for (SkillConfiguration skillConfig : SkillsManagementLink.get().getSkills()) {
             initializeSkillDataForConfig(skillConfig);
         }
     }
 
-    public static @Nullable SkillData getSkillData(SkillConfiguration config){
+    public static @Nullable SkillData getSkillData(SkillConfiguration config) {
         return skillDataCache.get(config.getSkillId());
     }
 
-    public static List<SkillData> getAllSkills(){
+    public static List<SkillData> getAllSkills() {
         return skillDataCache.values().stream().toList();
     }
 
-    public static void initializeSkillDataForConfig(SkillConfiguration config){
+    public static void initializeSkillDataForConfig(SkillConfiguration config) {
         skillDataCache.put(config.getSkillId(), config.getSkillData());
     }
 
-    public Map<String, String> getSkillReferences(){
+    public Map<String, String> getSkillReferences() {
         return Collections.unmodifiableMap(skillReferences);
     }
 
-    public SkillData(String skillName, String skillDescription, @Nullable String skillLicense,
-                     @Nullable String skillCompatibility, @Nullable String skillMetadata, @Nullable List<String> allowedTools,
-                     String skillText, Map<String, String> skillReferences){
+    public SkillData(
+            String skillName,
+            String skillDescription,
+            @Nullable String skillLicense,
+            @Nullable String skillCompatibility,
+            @Nullable String skillMetadata,
+            @Nullable List<String> allowedTools,
+            String skillText,
+            Map<String, String> skillReferences) {
         this.skillName = skillName;
         this.skillDescription = skillDescription;
         this.skillLicense = skillLicense;
@@ -74,11 +80,11 @@ public class SkillData {
      */
     public SkillData(Map<String, String> skillDirectory) throws JsonProcessingException, Descriptor.FormException {
         String skillMdFileData = skillDirectory.get("SKILL.md");
-        if(skillMdFileData == null){
+        if (skillMdFileData == null) {
             throw new Descriptor.FormException("skillMd file is null", "skillMd");
         }
         Matcher matcher = YAML_DATA_PATTERN.matcher(skillMdFileData);
-        if(!matcher.find()){
+        if (!matcher.find()) {
             throw new Descriptor.FormException("skillMd file is invalid", "skillMd");
         }
         String yamlFileData = matcher.group(1);
@@ -89,7 +95,8 @@ public class SkillData {
         this.skillLicense = root.path("license").asText();
         this.skillCompatibility = root.path("compatibility").asText();
         this.skillMetadata = root.path("metadata").toString();
-        this.allowedTools = Arrays.stream(root.path("allowed-tools").asText().split(" ")).toList();
+        this.allowedTools =
+                Arrays.stream(root.path("allowed-tools").asText().split(" ")).toList();
         skillDirectory.remove("SKILL.md");
         this.skillReferences = new HashMap<>();
         this.skillReferences.putAll(skillDirectory);

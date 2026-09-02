@@ -12,11 +12,12 @@ import org.kohsuke.stapler.QueryParameter;
 
 public abstract class PromptConfiguration implements Describable<PromptConfiguration>, ExtensionPoint {
     private @Getter String promptId = "";
+
     public abstract ModelRequest createRequest();
 
-    public PromptConfiguration(String promptId) throws Descriptor.FormException{
+    public PromptConfiguration(String promptId) throws Descriptor.FormException {
         this.promptId = promptId;
-        if(promptId.trim().isEmpty()){
+        if (promptId.trim().isEmpty()) {
             throw new Descriptor.FormException("Prompt id cannot be empty", "promptId");
         }
     }
@@ -28,10 +29,11 @@ public abstract class PromptConfiguration implements Describable<PromptConfigura
 
     public static class DescriptorImpl extends Descriptor<PromptConfiguration> {
         public FormValidation doCheckPromptId(@QueryParameter String value) {
-            if(value.trim().isEmpty()){
+            if (value.trim().isEmpty()) {
                 return FormValidation.error("Prompt id cannot be empty");
             }
-            if(BasePromptsManagementLink.get().getPrompts().stream().anyMatch(config -> config.getPromptId().equals(value))){
+            if (BasePromptsManagementLink.get().getPrompts().stream()
+                    .anyMatch(config -> config.getPromptId().equals(value))) {
                 return FormValidation.error("Prompt id is the same as another saved value");
             }
             return FormValidation.ok();

@@ -6,7 +6,8 @@ import lombok.Getter;
 
 public class TextContent implements ModelInput, ModelOutput {
     private @Getter final String text;
-    public TextContent(String text){
+
+    public TextContent(String text) {
         this.text = text;
     }
 }

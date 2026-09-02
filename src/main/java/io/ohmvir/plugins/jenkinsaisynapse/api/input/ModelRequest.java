@@ -5,26 +5,20 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import io.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
 import io.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolRegistry;
+import java.util.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.jspecify.annotations.Nullable;
 
-import java.util.*;
-
 public class ModelRequest implements Cloneable {
     private final Set<ModelOutputType> requestedOutputTypes = new HashSet<>();
     private final Set<ModelInputType> inputTypes = new HashSet<>();
-    private @Getter
-    @Setter
-    @Nullable ModelConversation conversationHistory = null;
+    private @Getter @Setter @Nullable ModelConversation conversationHistory = null;
     private final ArrayList<SkillData> skills = new ArrayList<>();
     private final @Getter List<Tool> tools = new ArrayList<>();
-    private @Getter
-    final List<ModelInput> modelInputs = new ArrayList<>();
+    private @Getter final List<ModelInput> modelInputs = new ArrayList<>();
 
-    public ModelRequest() {
-    }
-
+    public ModelRequest() {}
 
     public Set<ModelInputType> getInputTypes() {
         return Collections.unmodifiableSet(inputTypes);

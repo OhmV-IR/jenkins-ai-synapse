@@ -3,10 +3,9 @@ package io.ohmvir.plugins.jenkinsaisynapse.configuration.skills;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
+import java.util.Map;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
-
-import java.util.Map;
 
 public class BasicSkillConfiguration extends SkillConfiguration {
     @Override
@@ -15,7 +14,8 @@ public class BasicSkillConfiguration extends SkillConfiguration {
     }
 
     @DataBoundConstructor
-    public BasicSkillConfiguration(String skillId, String skillText, String skillName, String skillDescription) throws Descriptor.FormException {
+    public BasicSkillConfiguration(String skillId, String skillText, String skillName, String skillDescription)
+            throws Descriptor.FormException {
         super(skillId);
         this.skillName = skillName;
         this.skillDescription = skillDescription;

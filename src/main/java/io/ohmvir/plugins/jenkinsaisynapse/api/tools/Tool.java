@@ -1,7 +1,6 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.tools;
 
 import com.google.gson.JsonObject;
-
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Optional;
@@ -19,7 +18,13 @@ public abstract class Tool {
 
     public Tool() throws NoSuchMethodException {
         logger = Logger.getLogger(getClass().getName());
-        toolMethod = getClass().getMethod(getName(), getArguments().stream().map(ToolArgumentDescription::type).toList().toArray(new Class<?>[0]));
+        toolMethod = getClass()
+                .getMethod(
+                        getName(),
+                        getArguments().stream()
+                                .map(ToolArgumentDescription::type)
+                                .toList()
+                                .toArray(new Class<?>[0]));
         ToolRegistry.register(this);
     }
 
@@ -38,40 +43,43 @@ public abstract class Tool {
      * @return A list of the arguments to the tool function, their names, types and descriptions.
      */
     public abstract List<ToolArgumentDescription> getArguments();
-    public Optional<String> callTool(JsonObject toolCallParameters){
+
+    public Optional<String> callTool(JsonObject toolCallParameters) {
         try {
-            Object returnValue = toolMethod.invoke(this,
+            Object returnValue = toolMethod.invoke(
+                    this,
                     getArguments().stream()
                             .map(argument -> {
                                 var jsonArg = toolCallParameters.get(argument.name());
                                 Class<?> tt = argument.type();
-                                if(tt.equals(double.class)){
+                                if (tt.equals(double.class)) {
                                     return jsonArg.getAsDouble();
-                                } else if (tt.equals(int.class)){
+                                } else if (tt.equals(int.class)) {
                                     return jsonArg.getAsInt();
-                                } else if (tt.equals(boolean.class)){
+                                } else if (tt.equals(boolean.class)) {
                                     return jsonArg.getAsBoolean();
-                                } else if (tt.equals(String.class)){
+                                } else if (tt.equals(String.class)) {
                                     return jsonArg.getAsString();
-                                } else if (tt.equals(long.class)){
+                                } else if (tt.equals(long.class)) {
                                     return jsonArg.getAsLong();
-                                } else if (tt.equals(float.class)){
+                                } else if (tt.equals(float.class)) {
                                     return jsonArg.getAsFloat();
                                 } else {
-                                    logger.severe("Tool " + getClass().getName() + " had an argument of type " + tt.getName() + " which was not supported. Please use one of the supported types.");
+                                    logger.severe(
+                                            "Tool " + getClass().getName() + " had an argument of type " + tt.getName()
+                                                    + " which was not supported. Please use one of the supported types.");
                                     return null;
                                 }
                             })
-                            .toArray()
-                    );
-            if (returnValue instanceof String returnValueStr){
+                            .toArray());
+            if (returnValue instanceof String returnValueStr) {
                 return returnValueStr.describeConstable();
-            } else if (returnValue != null){
+            } else if (returnValue != null) {
                 logger.severe("Tool call returned unsupported return type, only String is supported.");
                 return "<tool-call-failure>".describeConstable();
             }
             return Optional.empty();
-        } catch (Exception e){
+        } catch (Exception e) {
             logger.severe("Failed to call tool with exception: " + e.getMessage());
             return "<tool-call-failure>".describeConstable();
         }
