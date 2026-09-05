@@ -68,17 +68,17 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
             throw new Descriptor.FormException("Skill metadata is not a valid YAML object", "skillMetadata");
         }
         this.skillMetadata = skillMetadata;
-        if(allowedTools.stream().anyMatch(toolName -> toolName.toolName.trim().isEmpty())){
+        if(allowedTools != null && allowedTools.stream().anyMatch(toolName -> toolName.toolName.trim().isEmpty())){
             throw new Descriptor.FormException("Allowed tool tool name cannot be blank", "allowedTools");
         }
-        this.allowedTools = allowedTools;
+        this.allowedTools = allowedTools == null ? new ArrayList<>() : allowedTools;
         this.skillText = skillText;
-        if(skillReferences.stream().anyMatch(
+        if(skillReferences != null && skillReferences.stream().anyMatch(
                 ref -> ref.fileContent.trim().isEmpty() || ref.relativeFilePath.trim().isEmpty()
         )){
             throw new Descriptor.FormException("Skill Reference cannot have blank file content or relative path", "skillReferences");
         }
-        this.skillReferences = skillReferences;
+        this.skillReferences = skillReferences == null ? new ArrayList<>() : skillReferences;
     }
 
     private @Getter final String skillName;
