@@ -10,5 +10,7 @@ public abstract class SkillConfiguration implements Describable<SkillConfigurati
 
     public abstract List<SkillData> generateSkills();
 
-    public abstract static class DescriptorImpl extends Descriptor<SkillConfiguration> {}
+    public abstract static class DescriptorImpl extends Descriptor<SkillConfiguration> {
+
+    }
 }

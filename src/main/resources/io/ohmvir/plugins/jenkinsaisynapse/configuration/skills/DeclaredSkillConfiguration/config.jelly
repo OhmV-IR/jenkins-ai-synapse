@@ -14,49 +14,24 @@
         <f:textbox />
     </f:entry>
 
-    <f:entry title="${%Skill Compatability}" field="skillCompatability" description="${%The system requirements that the skills needs to function}">
+    <f:entry title="${%Skill Compatibility}" field="skillCompatibility" description="${%The system requirements that the skills needs to function}">
         <f:textbox />
     </f:entry>
 
     <f:entry title="${%Skill Metadata}" field="skillMetadata" description="${%Metadata related to the skill for indexing and organization}">
-        <f:textbox />
+        <f:textarea />
     </f:entry>
 
     <f:entry title="${%Allowed Tools}" field="allowedTools" description="${%The external tools the agent is permitted to use while executing the skill}">
-        <f:repeatable field="allowedTools" minimum="0" add="Add Allowed Tool">
-            <table width="100%">
-                <f:entry title="Tool Name">
-                    <f:textbox name="tools" value="${it}" />
-                </f:entry>
-                <f:entry title="">
-                    <div align="right">
-                        <f:repeatableDeleteButton value="Delete Allowed Tool" />
-                    </div>
-                </f:entry>
-            </table>
-        </f:repeatable>
+        <f:repeatableProperty add="${%Add Allowed Tool}" field="allowedTools" />
     </f:entry>
 
     <f:entry title="${%Skill Text}" field="skillText" description="${%The main body of the skill that informs the agent on how to behave and specializes them}">
-        <f:textbox />
+        <f:textarea />
     </f:entry>
 
-    <f:entry title="${%Skill References}" description="${%Supporting media and templates the skill can use}">
-        <f:repeatable var="item" items="${instance.entriesAsList}" add="Add Skill Reference File Contents">
-            <table width="100%">
-                <f:entry title="Relative file path (eg references/my-reference.md)">
-                    <f:textbox name="referencePaths" value="${item.key}" />
-                </f:entry>
-                <f:entry title="File content">
-                    <f:textbox name="fileContents" value="${item.value}" />
-                </f:entry>
-                <f:entry title="">
-                    <div align="right">
-                        <f:repeatableDeleteButton />
-                    </div>
-                </f:entry>
-            </table>
-        </f:repeatable>
+    <f:entry title="${%Skill References}" description="${%Supporting media and templates the skill can use}" field="skillReferences">
+        <f:repeatableProperty add="${%Add Skill Reference File}" field="skillReferences" />
     </f:entry>
 
 </j:jelly>

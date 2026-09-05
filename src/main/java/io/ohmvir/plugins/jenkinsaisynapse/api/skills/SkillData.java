@@ -12,6 +12,8 @@ import io.ohmvir.plugins.jenkinsaisynapse.configuration.skills.SkillConfiguratio
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
@@ -20,7 +22,7 @@ public class SkillData {
     private @Getter final String skillDescription;
     private @Getter @Nullable final String skillLicense;
     private @Getter @Nullable final String skillCompatibility;
-    private @Getter @Nullable final String skillMetadata;
+    private @Getter final JsonNode skillMetadata;
     private @Getter @Nullable final List<String> allowedTools;
     private @Getter final String skillText;
     private final HashMap<String, String> skillReferences;
@@ -58,7 +60,7 @@ public class SkillData {
             String skillDescription,
             @Nullable String skillLicense,
             @Nullable String skillCompatibility,
-            @Nullable String skillMetadata,
+            JsonNode skillMetadata,
             @Nullable List<String> allowedTools,
             String skillText,
             Map<String, String> skillReferences) {
@@ -73,7 +75,7 @@ public class SkillData {
         this.skillReferences.putAll(skillReferences);
     }
 
-    private static final Pattern YAML_DATA_PATTERN = Pattern.compile("---(\\w+)---(\\w+)");
+    private static final Pattern YAML_DATA_PATTERN = Pattern.compile("---\\s*(.*?)\\s*---\\s*(.*)\\s*", Pattern.DOTALL | Pattern.MULTILINE);
     private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
 
     /**
@@ -97,11 +99,11 @@ public class SkillData {
         this.skillDescription = root.path("description").asText();
         this.skillLicense = root.path("license").asText();
         this.skillCompatibility = root.path("compatibility").asText();
-        this.skillMetadata = root.path("metadata").toString();
+        this.skillMetadata = root.path("metadata");
         this.allowedTools =
                 Arrays.stream(root.path("allowed-tools").asText().split(" ")).toList();
-        skillDirectory.remove("SKILL.md");
         this.skillReferences = new HashMap<>();
         this.skillReferences.putAll(skillDirectory);
+        this.skillReferences.remove("SKILL.md");
     }
 }

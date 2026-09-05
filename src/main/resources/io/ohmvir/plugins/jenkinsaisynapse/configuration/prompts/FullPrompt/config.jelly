@@ -18,7 +18,9 @@
             <f:number min="0" />
         </f:entry>
         <f:entry title="${%Thinking Level}" field="thinkingLevel">
-            <f:enum field="thinkingLevel" />
+            <f:enum field="thinkingLevel">
+                ${it.name()}
+            </f:enum>
         </f:entry>
     </f:section>
 </j:jelly>

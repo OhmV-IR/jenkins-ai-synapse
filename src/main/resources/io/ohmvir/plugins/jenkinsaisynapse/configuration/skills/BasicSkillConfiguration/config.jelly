@@ -8,6 +8,6 @@
         <f:textbox />
     </f:entry>
     <f:entry title="${%Skill Text}" field="skillText" description="${%The main body of the skill that informs the agent on how to behave and specializes them}">
-        <f:textbox />
+        <f:textarea />
     </f:entry>
 </j:jelly>

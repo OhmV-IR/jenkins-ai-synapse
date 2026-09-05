@@ -8,7 +8,7 @@ work
 *.iws
 *.ipr
 .idea
-
+!.idea/misc.xml
 # Eclipse project files
 .settings
 .classpath

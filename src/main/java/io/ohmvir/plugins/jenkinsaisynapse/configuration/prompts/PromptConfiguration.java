@@ -33,7 +33,7 @@ public abstract class PromptConfiguration implements Describable<PromptConfigura
                 return FormValidation.error("Prompt id cannot be empty");
             }
             if (BasePromptsManagementLink.get().getPrompts().stream()
-                    .anyMatch(config -> config.getPromptId().equals(value))) {
+                    .filter(config -> config.getPromptId().equals(value)).count() > 1) {
                 return FormValidation.error("Prompt id is the same as another saved value");
             }
             return FormValidation.ok();
