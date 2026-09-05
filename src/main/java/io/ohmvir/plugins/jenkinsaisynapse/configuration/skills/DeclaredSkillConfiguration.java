@@ -9,18 +9,14 @@ import hudson.model.Descriptor;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
+import io.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolRegistry;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-
-import io.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolRegistry;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.ToolsManagementLink;
-import jenkins.model.Jenkins;
 import lombok.Getter;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.interceptor.RequirePOST;
 
 public class DeclaredSkillConfiguration extends SkillConfiguration {
     private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
@@ -37,11 +33,10 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
                     YAML_MAPPER.readTree(skillMetadata),
                     allowedTools.stream().map(AllowedTool::toolName).toList(),
                     skillText,
-                    skillReferences.stream().collect(Collectors.toMap(
-                            SkillReferenceEntry::relativeFilePath,
-                            SkillReferenceEntry::fileContent
-                    ))));
-        } catch (Exception e){
+                    skillReferences.stream()
+                            .collect(Collectors.toMap(
+                                    SkillReferenceEntry::relativeFilePath, SkillReferenceEntry::fileContent))));
+        } catch (Exception e) {
             LOGGER.severe("Failed to generate SkillData for DeclaredSkillConfiguration due to " + e.getMessage());
             return List.of();
         }
@@ -62,21 +57,25 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
         this.skillDescription = skillDescription;
         this.skillLicense = skillLicense;
         this.skillCompatibility = skillCompatibility;
-        try{
+        try {
             YAML_MAPPER.readTree(skillMetadata);
-        } catch(Exception e){
+        } catch (Exception e) {
             throw new Descriptor.FormException("Skill metadata is not a valid YAML object", "skillMetadata");
         }
         this.skillMetadata = skillMetadata;
-        if(allowedTools != null && allowedTools.stream().anyMatch(toolName -> toolName.toolName.trim().isEmpty())){
+        if (allowedTools != null
+                && allowedTools.stream()
+                        .anyMatch(toolName -> toolName.toolName.trim().isEmpty())) {
             throw new Descriptor.FormException("Allowed tool tool name cannot be blank", "allowedTools");
         }
         this.allowedTools = allowedTools == null ? new ArrayList<>() : allowedTools;
         this.skillText = skillText;
-        if(skillReferences != null && skillReferences.stream().anyMatch(
-                ref -> ref.fileContent.trim().isEmpty() || ref.relativeFilePath.trim().isEmpty()
-        )){
-            throw new Descriptor.FormException("Skill Reference cannot have blank file content or relative path", "skillReferences");
+        if (skillReferences != null
+                && skillReferences.stream()
+                        .anyMatch(ref -> ref.fileContent.trim().isEmpty()
+                                || ref.relativeFilePath.trim().isEmpty())) {
+            throw new Descriptor.FormException(
+                    "Skill Reference cannot have blank file content or relative path", "skillReferences");
         }
         this.skillReferences = skillReferences == null ? new ArrayList<>() : skillReferences;
     }
@@ -90,10 +89,11 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
     private @Getter final String skillText;
     private @Getter final List<SkillReferenceEntry> skillReferences;
 
-    public record SkillReferenceEntry(@Getter String relativeFilePath, @Getter String fileContent) implements Describable<SkillReferenceEntry>, ExtensionPoint {
+    public record SkillReferenceEntry(
+            @Getter String relativeFilePath, @Getter String fileContent)
+            implements Describable<SkillReferenceEntry>, ExtensionPoint {
         @DataBoundConstructor
-        public SkillReferenceEntry {
-        }
+        public SkillReferenceEntry {}
 
         @Extension
         public static class DescriptorImpl extends Descriptor<SkillReferenceEntry> {
@@ -103,14 +103,14 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
             }
 
             public FormValidation doCheckRelativeFilePath(@QueryParameter String value) {
-                if(value.trim().isEmpty()){
+                if (value.trim().isEmpty()) {
                     return FormValidation.error("Relative file path cannot be empty");
                 }
                 return FormValidation.ok();
             }
 
             public FormValidation doCheckFileContent(@QueryParameter String value) {
-                if(value.trim().isEmpty()){
+                if (value.trim().isEmpty()) {
                     return FormValidation.error("File content cannot be empty");
                 }
                 return FormValidation.ok();
@@ -120,9 +120,7 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
 
     public record AllowedTool(@Getter String toolName) implements Describable<AllowedTool>, ExtensionPoint {
         @DataBoundConstructor
-        public AllowedTool {
-
-        }
+        public AllowedTool {}
 
         @Extension
         public static class DescriptorImpl extends Descriptor<AllowedTool> {
@@ -133,14 +131,12 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
 
             public ListBoxModel doFillToolNameItems() {
                 ListBoxModel items = new ListBoxModel();
-                ToolRegistry.getAllTools().forEach(
-                        tool -> items.add(tool.getName())
-                );
+                ToolRegistry.getAllTools().forEach(tool -> items.add(tool.getName()));
                 return items;
             }
 
             public FormValidation doCheckToolName(@QueryParameter String value) {
-                if(value.trim().isEmpty()){
+                if (value.trim().isEmpty()) {
                     return FormValidation.error("Tool name cannot be empty");
                 }
                 return FormValidation.ok();
@@ -155,11 +151,11 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
             return "Declared Skill";
         }
 
-        public FormValidation doCheckSkillMetadata(@QueryParameter String value){
-            try{
+        public FormValidation doCheckSkillMetadata(@QueryParameter String value) {
+            try {
                 YAML_MAPPER.readTree(value);
                 return FormValidation.ok();
-            } catch(Exception e){
+            } catch (Exception e) {
                 return FormValidation.error("skillMetadata must be a valid YAML object: " + e.getMessage());
             }
         }

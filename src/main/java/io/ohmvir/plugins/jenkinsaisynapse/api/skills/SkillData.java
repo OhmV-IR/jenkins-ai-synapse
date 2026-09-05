@@ -12,8 +12,6 @@ import io.ohmvir.plugins.jenkinsaisynapse.configuration.skills.SkillConfiguratio
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
@@ -75,7 +73,8 @@ public class SkillData {
         this.skillReferences.putAll(skillReferences);
     }
 
-    private static final Pattern YAML_DATA_PATTERN = Pattern.compile("---\\s*(.*?)\\s*---\\s*(.*)\\s*", Pattern.DOTALL | Pattern.MULTILINE);
+    private static final Pattern YAML_DATA_PATTERN =
+            Pattern.compile("---\\s*(.*?)\\s*---\\s*(.*)\\s*", Pattern.DOTALL | Pattern.MULTILINE);
     private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
 
     /**
