@@ -9,6 +9,19 @@
     <relativePath />
   </parent>
 
+  <distributionManagement>
+    <repository>
+      <id>nexus-releases</id>
+      <name>Nexus Releases repository</name>
+      <url>https://nexus.ohmvir.dev/repository/maven-releases/</url>
+    </repository>
+    <snapshotRepository>
+      <id>nexus-snapshots</id>
+      <name>Nexus Snapshots repository</name>
+      <url>https://nexus.ohmvir.dev/repository/maven-snapshots/</url>
+    </snapshotRepository>
+  </distributionManagement>
+
   <groupId>io.ohmvir.plugins</groupId>
   <artifactId>jenkinsaisynapse</artifactId>
   <version>${revision}${changelist}</version>
