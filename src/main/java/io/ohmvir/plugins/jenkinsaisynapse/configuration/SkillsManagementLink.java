@@ -10,18 +10,17 @@ import hudson.model.Saveable;
 import hudson.security.Permission;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.skills.SkillConfiguration;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import jenkins.model.Jenkins;
 import jenkins.model.Loadable;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 @Extension
 public class SkillsManagementLink extends ManagementLink implements Saveable, Loadable {
@@ -31,15 +30,15 @@ public class SkillsManagementLink extends ManagementLink implements Saveable, Lo
         load();
     }
 
-    public static SkillsManagementLink get(){
+    public static SkillsManagementLink get() {
         return ExtensionList.lookupSingleton(SkillsManagementLink.class);
     }
 
-    public List<SkillConfiguration> getSkills(){
+    public List<SkillConfiguration> getSkills() {
         return Collections.unmodifiableList(skillConfigurations);
     }
 
-    public List<Descriptor<SkillConfiguration>> getSkillDescriptors(){
+    public List<Descriptor<SkillConfiguration>> getSkillDescriptors() {
         return Jenkins.get().getDescriptorList(SkillConfiguration.class);
     }
 
@@ -74,12 +73,13 @@ public class SkillsManagementLink extends ManagementLink implements Saveable, Lo
     }
 
     @RequirePOST
-    public void doConfigSubmit(StaplerRequest2 req, StaplerResponse2 res) throws
-            IOException, Descriptor.FormException, jakarta.servlet.ServletException {
+    public void doConfigSubmit(StaplerRequest2 req, StaplerResponse2 res)
+            throws IOException, Descriptor.FormException, jakarta.servlet.ServletException {
         Jenkins.get().checkPermission(getRequiredPermission());
         BulkChange change = new BulkChange(this);
         try {
-            this.skillConfigurations = req.bindJSONToList(SkillConfiguration.class, req.getSubmittedForm().get("skillConfigurations"));
+            this.skillConfigurations = req.bindJSONToList(
+                    SkillConfiguration.class, req.getSubmittedForm().get("skillConfigurations"));
             save();
             change.commit();
         } finally {
@@ -89,14 +89,14 @@ public class SkillsManagementLink extends ManagementLink implements Saveable, Lo
         res.sendRedirect2(req.getContextPath() + "/" + getUrlName());
     }
 
-    protected XmlFile getConfigFile(){
+    protected XmlFile getConfigFile() {
         return new XmlFile(Jenkins.XSTREAM, new File(Jenkins.get().getRootDir(), getUrlName() + ".xml"));
     }
 
     @Override
     public void load() throws IOException {
         XmlFile file = getConfigFile();
-        if(file.exists()){
+        if (file.exists()) {
             file.unmarshal(this);
         }
     }

@@ -9,50 +9,59 @@ import hudson.init.Initializer;
 import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsManagementLink;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.skills.SkillConfiguration;
-import lombok.Getter;
-import org.jspecify.annotations.Nullable;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 
 public class SkillData {
     private @Getter final String skillName;
     private @Getter final String skillDescription;
     private @Getter @Nullable final String skillLicense;
     private @Getter @Nullable final String skillCompatibility;
-    private @Getter @Nullable final String skillMetadata;
+    private @Getter final JsonNode skillMetadata;
     private @Getter @Nullable final List<String> allowedTools;
     private @Getter final String skillText;
     private final HashMap<String, String> skillReferences;
 
+    /**
+     * A map of skill names to SkillData
+     */
     private static final HashMap<String, SkillData> skillDataCache = new HashMap<>();
 
     @Initializer(after = InitMilestone.PLUGINS_STARTED)
-    public static void initializeSkillDataCache(){
-        for(SkillConfiguration skillConfig : SkillsManagementLink.get().getSkills()){
+    public static void initializeSkillDataCache() {
+        for (SkillConfiguration skillConfig : SkillsManagementLink.get().getSkills()) {
             initializeSkillDataForConfig(skillConfig);
         }
     }
 
-    public static @Nullable SkillData getSkillData(SkillConfiguration config){
-        return skillDataCache.get(config.getSkillId());
+    public static SkillData getSkillData(String skillName) {
+        return skillDataCache.get(skillName);
     }
 
-    public static List<SkillData> getAllSkills(){
+    public static List<SkillData> getAllSkills() {
         return skillDataCache.values().stream().toList();
     }
 
-    public static void initializeSkillDataForConfig(SkillConfiguration config){
-        skillDataCache.put(config.getSkillId(), config.getSkillData());
+    public static void initializeSkillDataForConfig(SkillConfiguration config) {
+        config.generateSkills().forEach(skillData -> skillDataCache.put(skillData.getSkillName(), skillData));
     }
 
-    public Map<String, String> getSkillReferences(){
+    public Map<String, String> getSkillReferences() {
         return Collections.unmodifiableMap(skillReferences);
     }
 
-    public SkillData(String skillName, String skillDescription, @Nullable String skillLicense,
-                     @Nullable String skillCompatibility, @Nullable String skillMetadata, @Nullable List<String> allowedTools,
-                     String skillText, Map<String, String> skillReferences){
+    public SkillData(
+            String skillName,
+            String skillDescription,
+            @Nullable String skillLicense,
+            @Nullable String skillCompatibility,
+            JsonNode skillMetadata,
+            @Nullable List<String> allowedTools,
+            String skillText,
+            Map<String, String> skillReferences) {
         this.skillName = skillName;
         this.skillDescription = skillDescription;
         this.skillLicense = skillLicense;
@@ -64,7 +73,8 @@ public class SkillData {
         this.skillReferences.putAll(skillReferences);
     }
 
-    private static final Pattern YAML_DATA_PATTERN = Pattern.compile("---(\\w+)---(\\w+)");
+    private static final Pattern YAML_DATA_PATTERN =
+            Pattern.compile("---\\s*(.*?)\\s*---\\s*(.*)\\s*", Pattern.DOTALL | Pattern.MULTILINE);
     private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
 
     /**
@@ -74,11 +84,11 @@ public class SkillData {
      */
     public SkillData(Map<String, String> skillDirectory) throws JsonProcessingException, Descriptor.FormException {
         String skillMdFileData = skillDirectory.get("SKILL.md");
-        if(skillMdFileData == null){
+        if (skillMdFileData == null) {
             throw new Descriptor.FormException("skillMd file is null", "skillMd");
         }
         Matcher matcher = YAML_DATA_PATTERN.matcher(skillMdFileData);
-        if(!matcher.find()){
+        if (!matcher.find()) {
             throw new Descriptor.FormException("skillMd file is invalid", "skillMd");
         }
         String yamlFileData = matcher.group(1);
@@ -88,10 +98,11 @@ public class SkillData {
         this.skillDescription = root.path("description").asText();
         this.skillLicense = root.path("license").asText();
         this.skillCompatibility = root.path("compatibility").asText();
-        this.skillMetadata = root.path("metadata").toString();
-        this.allowedTools = Arrays.stream(root.path("allowed-tools").asText().split(" ")).toList();
-        skillDirectory.remove("SKILL.md");
+        this.skillMetadata = root.path("metadata");
+        this.allowedTools =
+                Arrays.stream(root.path("allowed-tools").asText().split(" ")).toList();
         this.skillReferences = new HashMap<>();
         this.skillReferences.putAll(skillDirectory);
+        this.skillReferences.remove("SKILL.md");
     }
 }

@@ -3,28 +3,27 @@ package io.ohmvir.plugins.jenkinsaisynapse.configuration.skills;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
-import org.jspecify.annotations.NonNull;
-import org.kohsuke.stapler.DataBoundConstructor;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+import org.jspecify.annotations.NonNull;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public class BasicSkillFileConfiguration extends SkillConfiguration {
     public String fileContent;
-    private transient final Logger logger;
+    private static final Logger LOGGER = Logger.getLogger(BasicSkillFileConfiguration.class.getName());
 
     @DataBoundConstructor
-    public BasicSkillFileConfiguration(String skillId, String fileContent) throws Descriptor.FormException {
-        super(skillId);
+    public BasicSkillFileConfiguration(String fileContent) throws Descriptor.FormException {
         this.fileContent = fileContent;
-        this.logger = Logger.getLogger(BasicSkillFileConfiguration.class.getName());
     }
 
     @Override
-    protected SkillData generateSkill() {
+    public List<SkillData> generateSkills() {
         try {
-            return new SkillData(Map.of("SKILL.md", fileContent));
-        } catch(Exception e){
-            logger.severe("Failed to generate SkillData for BasicSkillFileConfiguration due to " + e.getMessage());
+            return List.of(new SkillData(Map.of("SKILL.md", fileContent)));
+        } catch (Exception e) {
+            LOGGER.severe("Failed to generate SkillData for BasicSkillFileConfiguration due to " + e.getMessage());
             return null;
         }
     }

@@ -12,32 +12,33 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.content.*;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
 import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelResponse;
+import java.io.IOException;
+import java.io.PrintStream;
 import jenkins.tasks.SimpleBuildStep;
 import org.jenkinsci.Symbol;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import java.io.IOException;
-import java.io.PrintStream;
-
 public class ModelRequestExecutionStep extends Builder implements SimpleBuildStep {
     private final ModelRequest request;
 
     @DataBoundConstructor
-    public ModelRequestExecutionStep(String requestText, String systemPrompt, double temperature, @Nullable Long maxOutputTokens) {
+    public ModelRequestExecutionStep(
+            String requestText, String systemPrompt, double temperature, @Nullable Long maxOutputTokens) {
         this.request = new ModelRequest();
         this.request.AddInput(new TextContent(requestText));
         this.request.AddInput(new SystemPromptContent(systemPrompt));
-        if(maxOutputTokens != null) {
+        if (maxOutputTokens != null) {
             this.request.AddInput(new MaxOutputTokensContent(maxOutputTokens));
         }
         this.request.AddInput(new TemperatureContent(temperature));
     }
 
     @Override
-    public void perform(@NonNull Run<?, ?> run, @NonNull EnvVars env, @NonNull TaskListener listener) throws InterruptedException, IOException {
-        ModelClient<?, ?> client = ModelData.CreateClientForRequest(request);
+    public void perform(@NonNull Run<?, ?> run, @NonNull EnvVars env, @NonNull TaskListener listener)
+            throws InterruptedException, IOException {
+        ModelClient<?, ?> client = ModelData.createClientForRequest(request);
         if (client == null) {
             throw new IOException("Failed to get a client that could respond to the request");
         }
@@ -47,13 +48,13 @@ public class ModelRequestExecutionStep extends Builder implements SimpleBuildSte
         }
         PrintStream logger = listener.getLogger();
         response.getOutputs().forEach(output -> {
-                    switch (output) {
-                        case TextContent text -> logger.println("Model response: " + text.getText());
-                        case ThinkingContent thinking -> logger.println("Model thinking: " + thinking.getThinking());
-                        default -> logger.println("Unknown output type: " + output.getClass().getName());
-                    }
-                }
-        );
+            switch (output) {
+                case TextContent text -> logger.println("Model response: " + text.getText());
+                case ThinkingContent thinking -> logger.println("Model thinking: " + thinking.getThinking());
+                default ->
+                    logger.println("Unknown output type: " + output.getClass().getName());
+            }
+        });
     }
 
     @Symbol("customStep")

@@ -5,7 +5,8 @@ import lombok.Getter;
 
 public class ThinkingContent implements ModelOutput {
     private @Getter final String thinking;
-    public ThinkingContent(String thinking){
+
+    public ThinkingContent(String thinking) {
         this.thinking = thinking;
     }
 }

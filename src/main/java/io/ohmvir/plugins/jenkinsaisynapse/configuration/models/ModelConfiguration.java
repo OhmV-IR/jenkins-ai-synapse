@@ -6,10 +6,9 @@ import hudson.model.Descriptor;
 import hudson.util.FormValidation;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelProviderType;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsManagementLink;
+import java.util.Objects;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
-
-import java.util.Objects;
 
 public abstract class ModelConfiguration implements Describable<ModelConfiguration>, ExtensionPoint {
 
@@ -24,11 +23,11 @@ public abstract class ModelConfiguration implements Describable<ModelConfigurati
     }
 
     public static ModelConfiguration getFromId(String id) {
-        return ModelsManagementLink.get().getModelConfigurations()
-                .stream()
+        return ModelsManagementLink.get().getModelConfigurations().stream()
                 .filter(model -> Objects.equals(model.getProviderType().toString(), id.split(":")[0]))
                 .filter(model -> Objects.equals(id.split(":")[1], model.modelName))
-                .findFirst().orElse(null);
+                .findFirst()
+                .orElse(null);
     }
 
     public abstract ModelProviderType getProviderType();

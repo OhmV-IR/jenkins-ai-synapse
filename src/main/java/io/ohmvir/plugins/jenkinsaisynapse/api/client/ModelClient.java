@@ -5,7 +5,6 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
 import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelResponse;
 import lombok.Getter;
-
 import org.jspecify.annotations.Nullable;
 
 public abstract class ModelClient<ConfigurationType, ClientConfigurationType> {
@@ -13,7 +12,8 @@ public abstract class ModelClient<ConfigurationType, ClientConfigurationType> {
     protected @Getter final ConfigurationType modelConfiguration;
     protected @Getter final ModelData modelData;
 
-    public ModelClient(ModelData modelData, ConfigurationType configuration, ClientConfigurationType clientConfiguration) {
+    public ModelClient(
+            ModelData modelData, ConfigurationType configuration, ClientConfigurationType clientConfiguration) {
         this.modelConfiguration = configuration;
         this.clientConfiguration = clientConfiguration;
         this.modelData = modelData;
@@ -26,7 +26,7 @@ public abstract class ModelClient<ConfigurationType, ClientConfigurationType> {
      */
     public abstract @Nullable ModelResponse generateResponse(ModelRequest request);
 
-    public @Nullable ModelResponse generateConversationResponse(ModelRequest request, ModelConversation conversation){
+    public @Nullable ModelResponse generateConversationResponse(ModelRequest request, ModelConversation conversation) {
         request.setConversationHistory(conversation);
         return generateResponse(request);
     }

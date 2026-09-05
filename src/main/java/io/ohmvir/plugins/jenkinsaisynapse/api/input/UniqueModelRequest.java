@@ -9,9 +9,8 @@ import org.jspecify.annotations.NonNull;
 
 public class UniqueModelRequest extends ModelRequest implements Describable<UniqueModelRequest>, ExtensionPoint {
     private @Getter @Setter String requestId = "";
-    public UniqueModelRequest(){
 
-    }
+    public UniqueModelRequest() {}
 
     public static class DescriptorImpl extends Descriptor<UniqueModelRequest> {
         @Override

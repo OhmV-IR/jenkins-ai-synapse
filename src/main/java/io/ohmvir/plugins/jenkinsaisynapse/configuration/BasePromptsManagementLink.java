@@ -11,6 +11,10 @@ import hudson.security.Permission;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.PromptConfiguration;
 import jakarta.servlet.ServletException;
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
 import jenkins.model.Jenkins;
 import jenkins.model.Loadable;
 import org.jspecify.annotations.NonNull;
@@ -18,11 +22,6 @@ import org.jspecify.annotations.Nullable;
 import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
 
 @Extension
 public class BasePromptsManagementLink extends ManagementLink implements Saveable, Loadable {
@@ -32,23 +31,23 @@ public class BasePromptsManagementLink extends ManagementLink implements Saveabl
         load();
     }
 
-    public static BasePromptsManagementLink get(){
+    public static BasePromptsManagementLink get() {
         return ExtensionList.lookupSingleton(BasePromptsManagementLink.class);
     }
 
-    public @Nullable ModelRequest getRequestFromPromptId(String promptId){
-        return prompts.get(promptId).CreateRequest();
+    public @Nullable ModelRequest getRequestFromPromptId(String promptId) {
+        return prompts.get(promptId).createRequest();
     }
 
-    public @Nullable PromptConfiguration getPromptConfiguration(String promptId){
+    public @Nullable PromptConfiguration getPromptConfiguration(String promptId) {
         return prompts.get(promptId);
     }
 
-    public List<PromptConfiguration> getPrompts(){
+    public List<PromptConfiguration> getPrompts() {
         return prompts.values().stream().toList();
     }
 
-    public List<Descriptor<PromptConfiguration>> getPromptDescriptors(){
+    public List<Descriptor<PromptConfiguration>> getPromptDescriptors() {
         return Jenkins.get().getDescriptorList(PromptConfiguration.class);
     }
 
@@ -84,11 +83,12 @@ public class BasePromptsManagementLink extends ManagementLink implements Saveabl
 
     @RequirePOST
     public void doConfigSubmit(StaplerRequest2 req, StaplerResponse2 res)
-        throws IOException, Descriptor.FormException, ServletException {
+            throws IOException, Descriptor.FormException, ServletException {
         Jenkins.get().checkPermission(getRequiredPermission());
         BulkChange change = new BulkChange(this);
         try {
-            for(PromptConfiguration config : req.bindJSONToList(PromptConfiguration.class, req.getSubmittedForm().get("prompts"))){
+            for (PromptConfiguration config : req.bindJSONToList(
+                    PromptConfiguration.class, req.getSubmittedForm().get("prompts"))) {
                 prompts.put(config.getPromptId(), config);
             }
             save();
@@ -99,7 +99,7 @@ public class BasePromptsManagementLink extends ManagementLink implements Saveabl
         res.sendRedirect2(req.getContextPath() + "/" + getUrlName());
     }
 
-    protected XmlFile getConfigFile(){
+    protected XmlFile getConfigFile() {
         return new XmlFile(Jenkins.XSTREAM, new File(Jenkins.get().getRootDir(), getUrlName() + ".xml"));
     }
 
@@ -111,7 +111,7 @@ public class BasePromptsManagementLink extends ManagementLink implements Saveabl
     @Override
     public void load() throws IOException {
         XmlFile file = getConfigFile();
-        if(file.exists()){
+        if (file.exists()) {
             file.unmarshal(this);
         }
     }
