@@ -44,13 +44,7 @@
 
   <dependencyManagement>
     <dependencies>
-      <dependency>
-        <groupId>com.fasterxml.jackson</groupId>
-        <artifactId>jackson-bom</artifactId>
-        <version>2.19.4</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
+      <!-- Jenkins BOM imported FIRST -->
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
@@ -59,39 +53,21 @@
         <scope>import</scope>
       </dependency>
 
+      <!-- Explicitly align error_prone_annotations to meet upper bound requirement -->
       <dependency>
         <groupId>com.google.errorprone</groupId>
         <artifactId>error_prone_annotations</artifactId>
-        <version>2.50.0</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jetbrains.kotlin</groupId>
-        <artifactId>kotlin-reflect</artifactId>
-        <version>1.9.25</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jetbrains.kotlin</groupId>
-        <artifactId>kotlin-stdlib-common</artifactId>
-        <version>1.9.25</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.jetbrains.kotlin</groupId>
-        <artifactId>kotlin-stdlib-jdk8</artifactId>
-        <version>1.9.25</version>
+        <version>2.41.0</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
 
   <dependencies>
     <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>jackson2-api</artifactId>
     </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.dataformat</groupId>
-      <artifactId>jackson-dataformat-yaml</artifactId>
-    </dependency>
+
     <dependency>
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
@@ -100,23 +76,20 @@
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
-      <version>1.18.46</version>
       <scope>provided</scope>
+      <version>1.18.46</version>
     </dependency>
-      <dependency>
-          <groupId>org.jenkins-ci.plugins</groupId>
-          <artifactId>credentials</artifactId>
-          <version>1499.va_f0e811253a_6</version>
-      </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>credentials</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>plain-credentials</artifactId>
-      <version>199.v9f8e1f741799</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>github-api</artifactId>
-      <version>1.330-492.v3941a_032db_2a_</version>
     </dependency>
   </dependencies>
 
@@ -138,7 +111,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-
       </plugin>
     </plugins>
   </build>

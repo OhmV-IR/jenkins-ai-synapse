@@ -15,14 +15,13 @@ public class BasicSkillFileConfiguration extends SkillConfiguration {
     private final transient Logger logger;
 
     @DataBoundConstructor
-    public BasicSkillFileConfiguration(String skillId, String fileContent) throws Descriptor.FormException {
-        super(skillId);
+    public BasicSkillFileConfiguration(String fileContent) throws Descriptor.FormException {
         this.fileContent = fileContent;
         this.logger = Logger.getLogger(BasicSkillFileConfiguration.class.getName());
     }
 
     @Override
-    protected List<SkillData> generateSkills() {
+    public List<SkillData> generateSkills() {
         try {
             return List.of(new SkillData(Map.of("SKILL.md", fileContent)));
         } catch (Exception e) {

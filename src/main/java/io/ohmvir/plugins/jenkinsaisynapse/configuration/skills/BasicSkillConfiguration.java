@@ -11,14 +11,13 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 public class BasicSkillConfiguration extends SkillConfiguration {
     @Override
-    protected List<SkillData> generateSkills() {
+    public List<SkillData> generateSkills() {
         return List.of(new SkillData(skillName, skillDescription, null, null, null, null, skillText, Map.of()));
     }
 
     @DataBoundConstructor
-    public BasicSkillConfiguration(String skillId, String skillText, String skillName, String skillDescription)
+    public BasicSkillConfiguration(String skillText, String skillName, String skillDescription)
             throws Descriptor.FormException {
-        super(skillId);
         this.skillName = skillName;
         this.skillDescription = skillDescription;
         this.skillText = skillText;

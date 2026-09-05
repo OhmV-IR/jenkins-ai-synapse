@@ -11,7 +11,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 public class DeclaredSkillConfiguration extends SkillConfiguration {
     @Override
-    protected List<SkillData> generateSkills() {
+    public List<SkillData> generateSkills() {
         return List.of(new SkillData(
                 skillName,
                 skillDescription,
@@ -25,7 +25,6 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
 
     @DataBoundConstructor
     public DeclaredSkillConfiguration(
-            String skillId,
             String skillName,
             String skillDescription,
             String skillLicense,
@@ -36,7 +35,6 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
             Object referencePaths,
             Object fileContents)
             throws Descriptor.FormException {
-        super(skillId);
         this.skillName = skillName;
         this.skillDescription = skillDescription;
         this.skillLicense = skillLicense;

@@ -25,15 +25,14 @@ public class GithubFolderSkillConfiguration extends SkillConfiguration {
     private @Getter final String authenticationTokenCredentialsId;
     private static final Logger LOGGER = Logger.getLogger(GithubFolderSkillConfiguration.class.getName());
 
-    public GithubFolderSkillConfiguration(String configurationId, String folderPath, String repositoryUrl, String authenticationTokenCredentialsId) throws Descriptor.FormException {
-        super(configurationId);
+    public GithubFolderSkillConfiguration(String folderPath, String repositoryUrl, String authenticationTokenCredentialsId) throws Descriptor.FormException {
         this.folderPath = folderPath;
         this.repositoryUrl = repositoryUrl;
         this.authenticationTokenCredentialsId = authenticationTokenCredentialsId;
     }
 
     @Override
-    protected List<SkillData> generateSkills() {
+    public List<SkillData> generateSkills() {
         List<SkillData> discoveredSkills = new ArrayList<>();
 
         try {
