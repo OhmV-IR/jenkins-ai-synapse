@@ -3,12 +3,6 @@ package io.ohmvir.plugins.jenkinsaisynapse.configuration.skills;
 import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import io.ohmvir.plugins.jenkinsaisynapse.utils.SecretsUtils;
-import lombok.Getter;
-import org.jspecify.annotations.NonNull;
-import org.kohsuke.github.GHContent;
-import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GitHub;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -18,6 +12,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import lombok.Getter;
+import org.jspecify.annotations.NonNull;
+import org.kohsuke.github.GHContent;
+import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GitHub;
 
 public class GithubFolderSkillConfiguration extends SkillConfiguration {
     private @Getter final String folderPath;
@@ -25,7 +24,9 @@ public class GithubFolderSkillConfiguration extends SkillConfiguration {
     private @Getter final String authenticationTokenCredentialsId;
     private static final Logger LOGGER = Logger.getLogger(GithubFolderSkillConfiguration.class.getName());
 
-    public GithubFolderSkillConfiguration(String folderPath, String repositoryUrl, String authenticationTokenCredentialsId) throws Descriptor.FormException {
+    public GithubFolderSkillConfiguration(
+            String folderPath, String repositoryUrl, String authenticationTokenCredentialsId)
+            throws Descriptor.FormException {
         this.folderPath = folderPath;
         this.repositoryUrl = repositoryUrl;
         this.authenticationTokenCredentialsId = authenticationTokenCredentialsId;
@@ -67,8 +68,8 @@ public class GithubFolderSkillConfiguration extends SkillConfiguration {
      * @param basePath Base directory path used to strip absolute prefix for relative keys
      * @param filesMap Output accumulator for relative-path -> file-content
      */
-    private void readDirectoryRecursively(GHRepository repo, String currentPath, String basePath, Map<String, String> filesMap)
-            throws IOException {
+    private void readDirectoryRecursively(
+            GHRepository repo, String currentPath, String basePath, Map<String, String> filesMap) throws IOException {
 
         List<GHContent> contents = repo.getDirectoryContent(currentPath);
 

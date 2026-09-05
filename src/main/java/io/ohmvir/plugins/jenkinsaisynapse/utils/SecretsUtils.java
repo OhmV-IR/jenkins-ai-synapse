@@ -2,13 +2,11 @@ package io.ohmvir.plugins.jenkinsaisynapse.utils;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.common.UsernameCredentials;
 import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import hudson.model.Item;
 import hudson.security.ACL;
-import org.jenkinsci.plugins.plaincredentials.StringCredentials;
-
 import java.util.Map;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 
 public class SecretsUtils {
     /**
@@ -23,13 +21,8 @@ public class SecretsUtils {
         }
 
         StringCredentials credential = CredentialsMatchers.firstOrNull(
-                CredentialsProvider.lookupCredentialsInItem(
-                        StringCredentials.class,
-                        context,
-                        ACL.SYSTEM2
-                ),
-                CredentialsMatchers.withId(credentialsId)
-        );
+                CredentialsProvider.lookupCredentialsInItem(StringCredentials.class, context, ACL.SYSTEM2),
+                CredentialsMatchers.withId(credentialsId));
         if (credential == null) {
             return null;
         }
@@ -43,19 +36,14 @@ public class SecretsUtils {
      * @return Null if credential not found.
      */
     public static Map.Entry<String, String> getSecretUsernamePassword(String credentialsId, Item context) {
-        if(credentialsId == null || credentialsId.isBlank()) {
+        if (credentialsId == null || credentialsId.isBlank()) {
             return null;
         }
 
         UsernamePasswordCredentials credential = CredentialsMatchers.firstOrNull(
-                CredentialsProvider.lookupCredentialsInItem(
-                        UsernamePasswordCredentials.class,
-                        context,
-                        ACL.SYSTEM2
-                ),
-                CredentialsMatchers.withId(credentialsId)
-        );
-        if(credential == null) {
+                CredentialsProvider.lookupCredentialsInItem(UsernamePasswordCredentials.class, context, ACL.SYSTEM2),
+                CredentialsMatchers.withId(credentialsId));
+        if (credential == null) {
             return null;
         }
         return Map.entry(credential.getUsername(), credential.getPassword().getPlainText());

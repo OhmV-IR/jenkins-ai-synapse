@@ -3,7 +3,6 @@ package io.ohmvir.plugins.jenkinsaisynapse.configuration.skills;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
-
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
