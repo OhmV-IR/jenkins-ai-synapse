@@ -6,5 +6,6 @@ public enum ModelOutputType {
     IMAGE,
     VIDEO,
     AUDIO,
-    EMBEDDINGS
+    EMBEDDINGS,
+    FILE
 }

@@ -1,3 +1,9 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.input;
 
-public interface ModelInput {}
+import hudson.ExtensionPoint;
+import hudson.model.Describable;
+
+public abstract class ModelInput implements Describable<ModelInput>, ExtensionPoint {
+
+}
+

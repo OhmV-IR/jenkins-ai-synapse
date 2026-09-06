@@ -5,7 +5,9 @@ import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
 import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClientFactory;
+import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
+import io.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsManagementLink;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.models.*;
 import java.lang.reflect.ParameterizedType;
@@ -102,7 +104,30 @@ public class ModelData {
      * @return null if no models are capable of fulfilling that request or a model client that can fulfill the request.
      */
     public static @Nullable ModelClient<?, ?> createClientForRequest(ModelRequest request) {
-        return null; // TODO
+        Optional<ModelData> supportedModel = MODEL_DATA.values().stream().filter(
+                modelData -> modelData.supportsRequest(request)
+        ).findFirst();
+        if(supportedModel.isEmpty()){
+            return null;
+        }
+        return supportedModel.get().createClient();
+    }
+
+    public boolean supportsRequest(ModelRequest request){
+        Optional<ModelInput> thinkingLevel = request.getModelInputs().stream().filter(modelInput -> modelInput instanceof ThinkingLevelContent).findFirst();
+        if(thinkingLevel.isPresent() && thinkingLevel.get() instanceof ThinkingLevelContent thinkingLevelContent && !supportsThinkingLevel(thinkingLevelContent.getThinkingLevel())){
+            return false;
+        }
+        if(request.getInputTypes().stream().anyMatch(inputType -> !supportsInput(inputType))){
+            return false;
+        }
+        if(request.getOutputTypes().stream().anyMatch(outputType -> !supportsOutput(outputType))){
+            return false;
+        }
+        if(request.getRequiredCapabilities().stream().anyMatch(capability -> !hasCapability(capability))){
+            return false;
+        }
+        return true;
     }
 
     public boolean hasCapability(ModelCapability capability) {

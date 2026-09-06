@@ -3,7 +3,18 @@ package io.ohmvir.plugins.jenkinsaisynapse.api.models;
 public enum ModelCapability {
     STREAMING,
     TOOLS,
+    SKILLS,
     WEB_SEARCH,
     CODE_EXECUTION,
-    CITATIONS
+    CITATIONS,
+    ADJUSTABLE_SYSTEM_PROMPT,
+    THINKING,
+    CONVERSATIONS,
+    OUTPUT_TOKEN_LIMITING,
+    CUSTOM_TEMPERATURE,
+    PREMATURE_STOP,
+    CUSTOM_TOP_P,
+    CUSTOM_TOP_K,
+    CUSTOM_STOP_SEQUENCES,
+    TOKEN_USAGE_METRICS
 }

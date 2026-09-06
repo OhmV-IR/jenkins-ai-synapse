@@ -8,12 +8,14 @@ import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
-import io.ohmvir.plugins.jenkinsaisynapse.api.content.*;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
+import io.ohmvir.plugins.jenkinsaisynapse.api.input.*;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
 import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelResponse;
 import java.io.IOException;
 import java.io.PrintStream;
+
+import io.ohmvir.plugins.jenkinsaisynapse.api.output.OutputTextContent;
+import io.ohmvir.plugins.jenkinsaisynapse.api.output.ThinkingContent;
 import jenkins.tasks.SimpleBuildStep;
 import org.jenkinsci.Symbol;
 import org.jspecify.annotations.NonNull;
@@ -27,12 +29,12 @@ public class ModelRequestExecutionStep extends Builder implements SimpleBuildSte
     public ModelRequestExecutionStep(
             String requestText, String systemPrompt, double temperature, @Nullable Long maxOutputTokens) {
         this.request = new ModelRequest();
-        this.request.AddInput(new TextContent(requestText));
-        this.request.AddInput(new SystemPromptContent(systemPrompt));
+        this.request.addInput(new InputTextContent(requestText));
+        this.request.addInput(new SystemPromptContent(systemPrompt));
         if (maxOutputTokens != null) {
-            this.request.AddInput(new MaxOutputTokensContent(maxOutputTokens));
+            this.request.addInput(new MaxOutputTokensContent(maxOutputTokens));
         }
-        this.request.AddInput(new TemperatureContent(temperature));
+        this.request.addInput(new TemperatureContent(temperature));
     }
 
     @Override
@@ -49,7 +51,7 @@ public class ModelRequestExecutionStep extends Builder implements SimpleBuildSte
         PrintStream logger = listener.getLogger();
         response.getOutputs().forEach(output -> {
             switch (output) {
-                case TextContent text -> logger.println("Model response: " + text.getText());
+                case OutputTextContent text -> logger.println("Model response: " + text.getText());
                 case ThinkingContent thinking -> logger.println("Model thinking: " + thinking.getThinking());
                 default ->
                     logger.println("Unknown output type: " + output.getClass().getName());
