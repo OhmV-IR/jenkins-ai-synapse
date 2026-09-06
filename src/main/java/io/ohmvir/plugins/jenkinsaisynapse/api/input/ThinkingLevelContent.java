@@ -1,8 +1,6 @@
-package io.ohmvir.plugins.jenkinsaisynapse.api.content;
+package io.ohmvir.plugins.jenkinsaisynapse.api.input;
 
 import hudson.Extension;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInputDescriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;

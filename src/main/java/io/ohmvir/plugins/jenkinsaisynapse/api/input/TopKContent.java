@@ -1,27 +1,24 @@
-package io.ohmvir.plugins.jenkinsaisynapse.api.content;
+package io.ohmvir.plugins.jenkinsaisynapse.api.input;
 
 import hudson.Extension;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInputDescriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
-import io.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
 import lombok.Getter;
 
 import java.util.Set;
 
-public class InputToolContent extends ModelInput {
-    private @Getter final Tool tool;
+public class TopKContent extends ModelInput {
+    private @Getter final double topK;
 
-    public InputToolContent(Tool tool) {
-        this.tool = tool;
+    public TopKContent(double topK) {
+        this.topK = topK;
     }
 
     @Extension
     public static class DescriptorImpl extends ModelInputDescriptor {
         @Override
         public Set<ModelCapability> getRequiredCapabilities() {
-            return Set.of(ModelCapability.TOOLS);
+            return Set.of(ModelCapability.CUSTOM_TOP_K);
         }
 
         @Override

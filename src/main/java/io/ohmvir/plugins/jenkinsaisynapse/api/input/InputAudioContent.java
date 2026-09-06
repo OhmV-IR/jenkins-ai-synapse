@@ -1,20 +1,17 @@
-package io.ohmvir.plugins.jenkinsaisynapse.api.content;
+package io.ohmvir.plugins.jenkinsaisynapse.api.input;
 
 import hudson.Extension;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInputDescriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
 import lombok.Getter;
 
 import java.util.Set;
 
-public class InputTextContent extends ModelInput {
-    private @Getter final String text;
+public class InputAudioContent extends ModelInput {
+    private @Getter final byte[] audioData;
 
-    public InputTextContent(String text) {
-        this.text = text;
+    public InputAudioContent(byte[] audioData) {
+        this.audioData = audioData;
     }
 
     @Extension
@@ -26,7 +23,7 @@ public class InputTextContent extends ModelInput {
 
         @Override
         public Set<ModelInputType> getRequiredInputTypes() {
-            return Set.of(ModelInputType.TEXT);
+            return Set.of(ModelInputType.AUDIO);
         }
     }
 }

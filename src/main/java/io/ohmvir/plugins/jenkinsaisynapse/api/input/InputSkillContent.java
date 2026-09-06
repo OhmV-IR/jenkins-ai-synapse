@@ -1,27 +1,25 @@
-package io.ohmvir.plugins.jenkinsaisynapse.api.content;
+package io.ohmvir.plugins.jenkinsaisynapse.api.input;
 
 import hudson.Extension;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInputDescriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
+import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import lombok.Getter;
 
-import java.util.List;
 import java.util.Set;
 
-public class StopSequencesContent extends ModelInput {
-    private @Getter final List<String> stopPhrases;
+public class InputSkillContent extends ModelInput {
+    private @Getter final SkillData skill;
 
-    public StopSequencesContent(List<String> stopPhrases) {
-        this.stopPhrases = stopPhrases;
+    public InputSkillContent(SkillData skill) {
+        this.skill = skill;
     }
 
     @Extension
     public static class DescriptorImpl extends ModelInputDescriptor {
         @Override
         public Set<ModelCapability> getRequiredCapabilities() {
-            return Set.of(ModelCapability.CUSTOM_STOP_SEQUENCES);
+            return Set.of(ModelCapability.SKILLS);
         }
 
         @Override

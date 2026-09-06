@@ -1,27 +1,24 @@
-package io.ohmvir.plugins.jenkinsaisynapse.api.content;
+package io.ohmvir.plugins.jenkinsaisynapse.api.input;
 
 import hudson.Extension;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInputDescriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
-import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import lombok.Getter;
 
 import java.util.Set;
 
-public class InputSkillContent extends ModelInput {
-    private @Getter final SkillData skill;
+public class TopPContent extends ModelInput {
+    private @Getter final double topP;
 
-    public InputSkillContent(SkillData skill) {
-        this.skill = skill;
+    public TopPContent(double topP) {
+        this.topP = topP;
     }
 
     @Extension
     public static class DescriptorImpl extends ModelInputDescriptor {
         @Override
         public Set<ModelCapability> getRequiredCapabilities() {
-            return Set.of(ModelCapability.SKILLS);
+            return Set.of(ModelCapability.CUSTOM_TOP_P);
         }
 
         @Override

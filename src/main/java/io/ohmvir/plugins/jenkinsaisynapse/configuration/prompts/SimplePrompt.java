@@ -3,7 +3,7 @@ package io.ohmvir.plugins.jenkinsaisynapse.configuration.prompts;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
-import io.ohmvir.plugins.jenkinsaisynapse.api.content.InputTextContent;
+import io.ohmvir.plugins.jenkinsaisynapse.api.input.InputTextContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import lombok.Getter;
 import org.jspecify.annotations.NonNull;

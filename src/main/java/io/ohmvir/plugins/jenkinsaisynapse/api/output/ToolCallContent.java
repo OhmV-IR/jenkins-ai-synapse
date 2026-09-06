@@ -1,13 +1,12 @@
-package io.ohmvir.plugins.jenkinsaisynapse.api.content;
+package io.ohmvir.plugins.jenkinsaisynapse.api.output;
 
 import hudson.Extension;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
+
 import java.util.Map;
 import java.util.Set;
 
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutputDescriptor;
 import lombok.Getter;
 
 public class ToolCallContent extends ModelOutput {

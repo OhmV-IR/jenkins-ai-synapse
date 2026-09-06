@@ -1,6 +1,6 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.client;
 
-import io.ohmvir.plugins.jenkinsaisynapse.api.content.InputConversationContent;
+import io.ohmvir.plugins.jenkinsaisynapse.api.input.InputConversationContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelConversation;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;

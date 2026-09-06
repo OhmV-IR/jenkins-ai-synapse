@@ -1,6 +1,5 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.input;
 
-import io.ohmvir.plugins.jenkinsaisynapse.api.content.*;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;

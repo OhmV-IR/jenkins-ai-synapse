@@ -1,26 +1,24 @@
-package io.ohmvir.plugins.jenkinsaisynapse.api.content;
+package io.ohmvir.plugins.jenkinsaisynapse.api.input;
 
 import hudson.Extension;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInputDescriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import lombok.Getter;
 
 import java.util.Set;
 
-public class SystemPromptContent extends ModelInput {
-    private @Getter final String systemPrompt;
+public class TemperatureContent extends ModelInput {
+    private @Getter final double temperature;
 
-    public SystemPromptContent(String systemPrompt) {
-        this.systemPrompt = systemPrompt;
+    public TemperatureContent(double temperature) {
+        this.temperature = temperature;
     }
 
     @Extension
     public static class DescriptorImpl extends ModelInputDescriptor {
         @Override
         public Set<ModelCapability> getRequiredCapabilities() {
-            return Set.of(ModelCapability.ADJUSTABLE_SYSTEM_PROMPT);
+            return Set.of(ModelCapability.CUSTOM_TEMPERATURE);
         }
 
         @Override
