@@ -1,11 +1,9 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.input;
 
-import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.content.*;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
 import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
 import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutputDescriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
@@ -16,16 +14,11 @@ import java.util.stream.Collectors;
 
 import jenkins.model.Jenkins;
 import lombok.Getter;
-import lombok.Setter;
 import org.jspecify.annotations.Nullable;
 
 public class ModelRequest implements Cloneable {
     private final Set<Class<ModelOutput>> requestedOutputTypes = new HashSet<>();
-    private final Set<Class<ModelInput>> inputTypes = new HashSet<>();
     private @Getter final List<ModelInput> modelInputs = new ArrayList<>();
-    private @Getter @Setter @Nullable ModelThinkingLevel thinkingLevel = null;
-    private @Getter @Setter @Nullable Long maxOutputTokens = null;
-    private @Getter @Setter @Nullable Double temperature = null;
 
     public static Set<ModelInputType> getInputTypesFromClass(Class<? extends ModelInput> inputType){
         ModelInputDescriptor desc = (ModelInputDescriptor) Jenkins.get().getDescriptor(inputType);
@@ -62,36 +55,38 @@ public class ModelRequest implements Cloneable {
     public ModelRequest() {}
 
     public Set<ModelInputType> getInputTypes() {
-        return inputTypes.stream().map(ModelRequest::getInputTypesFromClass).flatMap(Set::stream).collect(Collectors.toSet());
+        return getInputClasses().stream().map(ModelRequest::getInputTypesFromClass).flatMap(Set::stream).collect(Collectors.toSet());
+    }
+
+    private Set<Class<? extends ModelInput>> getInputClasses(){
+        return modelInputs.stream().map(ModelInput::getClass).collect(Collectors.toSet());
     }
 
     public Set<ModelOutputType> getOutputTypes() {
         return requestedOutputTypes.stream().map(ModelRequest::getOutputTypesFromClass).flatMap(Set::stream).collect(Collectors.toSet());
     }
 
-    public void RequestOutputType(Class<ModelOutput> outputType) {
+    public void requestOutputType(Class<ModelOutput> outputType) {
         requestedOutputTypes.add(outputType);
     }
 
-    @SuppressWarnings("unchecked")
-    public void AddInput(ModelInput input) {
+    public void addInput(ModelInput input) {
         modelInputs.add(input);
-        inputTypes.add((Class<ModelInput>) input.getClass());
     }
 
-    public void RemoveOutputTypeRequest(Class<ModelOutput> outputType) {
+    public void removeOutputTypeRequest(Class<ModelOutput> outputType) {
         requestedOutputTypes.remove(outputType);
     }
 
-    public void RemoveOutputTypeRequest(ModelOutputType outputType){
+    public void removeOutputTypeRequest(ModelOutputType outputType){
         requestedOutputTypes.removeIf(requestedOutputType -> getOutputTypesFromClass(requestedOutputType).contains(outputType));
     }
 
-    public void AttachTool(Tool tool) {
+    public void attachTool(Tool tool) {
         if (tool == null) {
             throw new IllegalArgumentException("tool parameter should not be null");
         }
-        AddInput(new InputToolContent(tool));
+        addInput(new InputToolContent(tool));
     }
 
     public boolean hasInputType(Class<?> clazz){
@@ -103,12 +98,12 @@ public class ModelRequest implements Cloneable {
         return (T) modelInputs.stream().filter(clazz::isInstance).findFirst().get();
     }
 
-    public void AttachTool(String toolName) {
-        AttachTool(ToolRegistry.getTool(toolName));
+    public void attachTool(String toolName) {
+        attachTool(ToolRegistry.getTool(toolName));
     }
 
-    public void AttachSkill(SkillData skill) {
-        AddInput(new InputSkillContent(skill));
+    public void attachSkill(SkillData skill) {
+        addInput(new InputSkillContent(skill));
     }
 
     /**

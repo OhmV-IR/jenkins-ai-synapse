@@ -27,12 +27,12 @@ public class ModelRequestExecutionStep extends Builder implements SimpleBuildSte
     public ModelRequestExecutionStep(
             String requestText, String systemPrompt, double temperature, @Nullable Long maxOutputTokens) {
         this.request = new ModelRequest();
-        this.request.AddInput(new InputTextContent(requestText));
-        this.request.AddInput(new SystemPromptContent(systemPrompt));
+        this.request.addInput(new InputTextContent(requestText));
+        this.request.addInput(new SystemPromptContent(systemPrompt));
         if (maxOutputTokens != null) {
-            this.request.setMaxOutputTokens(maxOutputTokens);
+            this.request.addInput(new MaxOutputTokensContent(maxOutputTokens));
         }
-        this.request.setTemperature(temperature);
+        this.request.addInput(new TemperatureContent(temperature));
     }
 
     @Override

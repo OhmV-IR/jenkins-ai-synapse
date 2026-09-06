@@ -28,7 +28,7 @@ public abstract class ModelClient<ConfigurationType, ClientConfigurationType> {
     public abstract @Nullable ModelResponse generateResponse(ModelRequest request);
 
     public @Nullable ModelResponse generateConversationResponse(ModelRequest request, ModelConversation conversation) {
-        request.AddInput(new InputConversationContent(conversation));
+        request.addInput(new InputConversationContent(conversation));
         return generateResponse(request);
     }
 
