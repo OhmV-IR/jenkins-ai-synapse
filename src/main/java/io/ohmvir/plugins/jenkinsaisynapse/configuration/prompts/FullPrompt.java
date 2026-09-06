@@ -3,10 +3,7 @@ package io.ohmvir.plugins.jenkinsaisynapse.configuration.prompts;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
-import io.ohmvir.plugins.jenkinsaisynapse.api.content.MaxOutputTokensContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.content.SystemPromptContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.content.TemperatureContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.content.ThinkingLevelContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
 import lombok.Getter;
@@ -52,9 +49,9 @@ public class FullPrompt extends SimplePrompt {
     public ModelRequest createRequest() {
         ModelRequest req = super.createRequest();
         req.AddInput(new SystemPromptContent(systemPrompt));
-        req.AddInput(new TemperatureContent(temperature));
-        req.AddInput(new MaxOutputTokensContent(maxOutputTokensCount));
-        req.AddInput(new ThinkingLevelContent(thinkingLevel));
+        req.setTemperature(temperature);
+        req.setMaxOutputTokens(maxOutputTokensCount);
+        req.setThinkingLevel(thinkingLevel);
         return req;
     }
 

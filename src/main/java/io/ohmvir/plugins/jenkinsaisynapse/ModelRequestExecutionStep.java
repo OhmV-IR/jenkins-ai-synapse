@@ -27,12 +27,12 @@ public class ModelRequestExecutionStep extends Builder implements SimpleBuildSte
     public ModelRequestExecutionStep(
             String requestText, String systemPrompt, double temperature, @Nullable Long maxOutputTokens) {
         this.request = new ModelRequest();
-        this.request.AddInput(new TextContent(requestText));
+        this.request.AddInput(new InputTextContent(requestText));
         this.request.AddInput(new SystemPromptContent(systemPrompt));
         if (maxOutputTokens != null) {
-            this.request.AddInput(new MaxOutputTokensContent(maxOutputTokens));
+            this.request.setMaxOutputTokens(maxOutputTokens);
         }
-        this.request.AddInput(new TemperatureContent(temperature));
+        this.request.setTemperature(temperature);
     }
 
     @Override
@@ -49,7 +49,7 @@ public class ModelRequestExecutionStep extends Builder implements SimpleBuildSte
         PrintStream logger = listener.getLogger();
         response.getOutputs().forEach(output -> {
             switch (output) {
-                case TextContent text -> logger.println("Model response: " + text.getText());
+                case OutputTextContent text -> logger.println("Model response: " + text.getText());
                 case ThinkingContent thinking -> logger.println("Model thinking: " + thinking.getThinking());
                 default ->
                     logger.println("Unknown output type: " + output.getClass().getName());

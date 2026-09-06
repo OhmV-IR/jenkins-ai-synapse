@@ -1,10 +1,16 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.content;
 
+import hudson.Extension;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
 import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
+import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutputDescriptor;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
-public class CitationContent implements ModelOutput {
+import java.util.Set;
+
+public class CitationContent extends ModelOutput {
     private @Getter final String citedText;
     private @Getter final int documentIndex;
     private @Getter final @Nullable String documentTitle;
@@ -25,5 +31,18 @@ public class CitationContent implements ModelOutput {
         this.endCharIndex = endCharIndex;
         this.fileId = fileId;
         this.startCharIndex = startCharIndex;
+    }
+
+    @Extension
+    public static class DescriptorImpl extends ModelOutputDescriptor {
+        @Override
+        public Set<ModelCapability> getRequiredCapabilities() {
+            return Set.of(ModelCapability.CITATIONS);
+        }
+
+        @Override
+        public Set<ModelOutputType> getRequiredOutputTypes() {
+            return Set.of();
+        }
     }
 }

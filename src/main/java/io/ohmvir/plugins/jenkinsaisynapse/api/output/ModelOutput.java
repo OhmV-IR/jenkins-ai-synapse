@@ -1,3 +1,8 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.output;
 
-public interface ModelOutput {}
+import hudson.ExtensionPoint;
+import hudson.model.Describable;
+
+public abstract class ModelOutput implements Describable<ModelOutput>, ExtensionPoint {
+}
+

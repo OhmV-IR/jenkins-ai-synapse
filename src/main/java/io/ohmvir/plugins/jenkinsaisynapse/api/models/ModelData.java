@@ -102,7 +102,18 @@ public class ModelData {
      * @return null if no models are capable of fulfilling that request or a model client that can fulfill the request.
      */
     public static @Nullable ModelClient<?, ?> createClientForRequest(ModelRequest request) {
-        return null; // TODO
+        Optional<ModelData> supportedModel = MODEL_DATA.values().stream().filter(
+                modelData -> modelData.supportsRequest(request)
+        ).findFirst();
+        if(supportedModel.isEmpty()){
+            return null;
+        }
+        return supportedModel.get().createClient();
+    }
+
+    public boolean supportsRequest(ModelRequest request){
+        // TODO gather all capabilities for input / output types and check if this model fills that.
+        return false;
     }
 
     public boolean hasCapability(ModelCapability capability) {

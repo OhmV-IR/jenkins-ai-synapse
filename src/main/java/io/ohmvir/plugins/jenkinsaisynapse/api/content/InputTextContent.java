@@ -5,27 +5,28 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInputDescriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
+import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
 import lombok.Getter;
 
 import java.util.Set;
 
-public class SystemPromptContent extends ModelInput {
-    private @Getter final String systemPrompt;
+public class InputTextContent extends ModelInput {
+    private @Getter final String text;
 
-    public SystemPromptContent(String systemPrompt) {
-        this.systemPrompt = systemPrompt;
+    public InputTextContent(String text) {
+        this.text = text;
     }
 
     @Extension
     public static class DescriptorImpl extends ModelInputDescriptor {
         @Override
         public Set<ModelCapability> getRequiredCapabilities() {
-            return Set.of(ModelCapability.ADJUSTABLE_SYSTEM_PROMPT);
+            return Set.of();
         }
 
         @Override
         public Set<ModelInputType> getRequiredInputTypes() {
-            return Set.of();
+            return Set.of(ModelInputType.TEXT);
         }
     }
 }

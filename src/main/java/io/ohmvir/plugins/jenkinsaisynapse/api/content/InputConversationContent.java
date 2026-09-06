@@ -1,6 +1,7 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.content;
 
 import hudson.Extension;
+import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelConversation;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInputDescriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
@@ -9,18 +10,18 @@ import lombok.Getter;
 
 import java.util.Set;
 
-public class SystemPromptContent extends ModelInput {
-    private @Getter final String systemPrompt;
+public class InputConversationContent extends ModelInput {
+    private @Getter final ModelConversation conversation;
 
-    public SystemPromptContent(String systemPrompt) {
-        this.systemPrompt = systemPrompt;
+    public InputConversationContent(ModelConversation conversation) {
+        this.conversation = conversation;
     }
 
     @Extension
     public static class DescriptorImpl extends ModelInputDescriptor {
         @Override
         public Set<ModelCapability> getRequiredCapabilities() {
-            return Set.of(ModelCapability.ADJUSTABLE_SYSTEM_PROMPT);
+            return Set.of(ModelCapability.CONVERSATIONS);
         }
 
         @Override

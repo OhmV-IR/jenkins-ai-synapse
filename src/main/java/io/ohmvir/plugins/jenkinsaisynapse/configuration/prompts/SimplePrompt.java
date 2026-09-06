@@ -3,7 +3,7 @@ package io.ohmvir.plugins.jenkinsaisynapse.configuration.prompts;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
-import io.ohmvir.plugins.jenkinsaisynapse.api.content.TextContent;
+import io.ohmvir.plugins.jenkinsaisynapse.api.content.InputTextContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import lombok.Getter;
 import org.jspecify.annotations.NonNull;
@@ -11,7 +11,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
 public class SimplePrompt extends PromptConfiguration {
-    private @Getter String promptText;
+    private @Getter final String promptText;
 
     @DataBoundConstructor
     public SimplePrompt(String promptId, String promptText) throws Descriptor.FormException {
@@ -25,7 +25,7 @@ public class SimplePrompt extends PromptConfiguration {
     @Override
     public ModelRequest createRequest() {
         ModelRequest request = new ModelRequest();
-        request.AddInput(new TextContent(promptText));
+        request.AddInput(new InputTextContent(promptText));
         return request;
     }
 
