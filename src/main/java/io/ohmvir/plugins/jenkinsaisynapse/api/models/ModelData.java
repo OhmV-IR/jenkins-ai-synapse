@@ -5,7 +5,9 @@ import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
 import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClientFactory;
+import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
+import io.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsManagementLink;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.models.*;
 import java.lang.reflect.ParameterizedType;
@@ -112,8 +114,20 @@ public class ModelData {
     }
 
     public boolean supportsRequest(ModelRequest request){
-        // TODO gather all capabilities for input / output types and check if this model fills that.
-        return false;
+        Optional<ModelInput> thinkingLevel = request.getModelInputs().stream().filter(modelInput -> modelInput instanceof ThinkingLevelContent).findFirst();
+        if(thinkingLevel.isPresent() && thinkingLevel.get() instanceof ThinkingLevelContent thinkingLevelContent && !supportsThinkingLevel(thinkingLevelContent.getThinkingLevel())){
+            return false;
+        }
+        if(request.getInputTypes().stream().anyMatch(inputType -> !supportsInput(inputType))){
+            return false;
+        }
+        if(request.getOutputTypes().stream().anyMatch(outputType -> !supportsOutput(outputType))){
+            return false;
+        }
+        if(request.getRequiredCapabilities().stream().anyMatch(capability -> !hasCapability(capability))){
+            return false;
+        }
+        return true;
     }
 
     public boolean hasCapability(ModelCapability capability) {

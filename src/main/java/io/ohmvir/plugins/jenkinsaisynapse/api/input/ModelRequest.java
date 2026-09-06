@@ -65,6 +65,14 @@ public class ModelRequest implements Cloneable {
         return requestedOutputTypes.stream().map(ModelRequest::getOutputTypesFromClass).flatMap(Set::stream).collect(Collectors.toSet());
     }
 
+    public Set<ModelCapability> getRequiredCapabilities(){
+        Set<ModelCapability> capabilities = modelInputs.stream().map(ModelInput::getClass).map(ModelRequest::getRequiredInputCapabilities).flatMap(Set::stream).collect(Collectors.toSet());
+        capabilities.addAll(
+                requestedOutputTypes.stream().map(ModelRequest::getRequiredOutputCapabilities).flatMap(Set::stream).toList()
+        );
+        return capabilities;
+    }
+
     public void requestOutputType(Class<ModelOutput> outputType) {
         requestedOutputTypes.add(outputType);
     }
