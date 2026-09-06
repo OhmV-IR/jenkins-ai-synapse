@@ -4,28 +4,27 @@ import hudson.Extension;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
 import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
-import java.util.Map;
-import java.util.Set;
-
 import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutputDescriptor;
 import lombok.Getter;
 
-public class ToolCallContent extends ModelOutput {
-    private @Getter final String toolUseId;
-    private @Getter final Map<String, String> toolArguments;
-    private @Getter final String name;
+import java.util.Set;
 
-    public ToolCallContent(String toolUseId, Map<String, String> toolArguments, String name) {
-        this.toolUseId = toolUseId;
-        this.toolArguments = toolArguments;
-        this.name = name;
+public class TokenUtilizationContent extends ModelOutput {
+    private @Getter final long inputTokensUsed;
+    private @Getter final long outputTokensUsed;
+    private @Getter final long cachedTokensUsed;
+
+    public TokenUtilizationContent(long inputTokensUsed, long outputTokensUsed, long cachedTokensUsed) {
+        this.inputTokensUsed = inputTokensUsed;
+        this.outputTokensUsed = outputTokensUsed;
+        this.cachedTokensUsed = cachedTokensUsed;
     }
 
     @Extension
     public static class DescriptorImpl extends ModelOutputDescriptor {
         @Override
         public Set<ModelCapability> getRequiredCapabilities() {
-            return Set.of(ModelCapability.TOOLS);
+            return Set.of(ModelCapability.TOKEN_USAGE_METRICS);
         }
 
         @Override
