@@ -3,10 +3,9 @@ package io.ohmvir.plugins.jenkinsaisynapse.api.output;
 import hudson.Extension;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
+import java.util.Set;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
-
-import java.util.Set;
 
 public class CitationContent extends ModelOutput {
     private @Getter final String citedText;

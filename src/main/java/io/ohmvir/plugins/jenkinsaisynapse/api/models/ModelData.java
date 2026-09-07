@@ -104,27 +104,31 @@ public class ModelData {
      * @return null if no models are capable of fulfilling that request or a model client that can fulfill the request.
      */
     public static @Nullable ModelClient<?, ?> createClientForRequest(ModelRequest request) {
-        Optional<ModelData> supportedModel = MODEL_DATA.values().stream().filter(
-                modelData -> modelData.supportsRequest(request)
-        ).findFirst();
-        if(supportedModel.isEmpty()){
+        Optional<ModelData> supportedModel = MODEL_DATA.values().stream()
+                .filter(modelData -> modelData.supportsRequest(request))
+                .findFirst();
+        if (supportedModel.isEmpty()) {
             return null;
         }
         return supportedModel.get().createClient();
     }
 
-    public boolean supportsRequest(ModelRequest request){
-        Optional<ModelInput> thinkingLevel = request.getModelInputs().stream().filter(modelInput -> modelInput instanceof ThinkingLevelContent).findFirst();
-        if(thinkingLevel.isPresent() && thinkingLevel.get() instanceof ThinkingLevelContent thinkingLevelContent && !supportsThinkingLevel(thinkingLevelContent.getThinkingLevel())){
+    public boolean supportsRequest(ModelRequest request) {
+        Optional<ModelInput> thinkingLevel = request.getModelInputs().stream()
+                .filter(modelInput -> modelInput instanceof ThinkingLevelContent)
+                .findFirst();
+        if (thinkingLevel.isPresent()
+                && thinkingLevel.get() instanceof ThinkingLevelContent thinkingLevelContent
+                && !supportsThinkingLevel(thinkingLevelContent.getThinkingLevel())) {
             return false;
         }
-        if(request.getInputTypes().stream().anyMatch(inputType -> !supportsInput(inputType))){
+        if (request.getInputTypes().stream().anyMatch(inputType -> !supportsInput(inputType))) {
             return false;
         }
-        if(request.getOutputTypes().stream().anyMatch(outputType -> !supportsOutput(outputType))){
+        if (request.getOutputTypes().stream().anyMatch(outputType -> !supportsOutput(outputType))) {
             return false;
         }
-        if(request.getRequiredCapabilities().stream().anyMatch(capability -> !hasCapability(capability))){
+        if (request.getRequiredCapabilities().stream().anyMatch(capability -> !hasCapability(capability))) {
             return false;
         }
         return true;

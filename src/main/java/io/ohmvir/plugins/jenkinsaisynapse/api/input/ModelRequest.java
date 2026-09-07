@@ -10,7 +10,6 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
 import io.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolRegistry;
 import java.util.*;
 import java.util.stream.Collectors;
-
 import jenkins.model.Jenkins;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
@@ -19,33 +18,33 @@ public class ModelRequest implements Cloneable {
     private final Set<Class<ModelOutput>> requestedOutputTypes = new HashSet<>();
     private @Getter final List<ModelInput> modelInputs = new ArrayList<>();
 
-    public static Set<ModelInputType> getInputTypesFromClass(Class<? extends ModelInput> inputType){
+    public static Set<ModelInputType> getInputTypesFromClass(Class<? extends ModelInput> inputType) {
         ModelInputDescriptor desc = (ModelInputDescriptor) Jenkins.get().getDescriptor(inputType);
-        if(desc == null){
+        if (desc == null) {
             throw new IllegalArgumentException(inputType.getName() + " is not a valid input type.");
         }
         return desc.getRequiredInputTypes();
     }
 
-    public static Set<ModelOutputType> getOutputTypesFromClass(Class<? extends ModelOutput> outputType){
+    public static Set<ModelOutputType> getOutputTypesFromClass(Class<? extends ModelOutput> outputType) {
         ModelOutputDescriptor desc = (ModelOutputDescriptor) Jenkins.get().getDescriptor(outputType);
-        if(desc == null){
+        if (desc == null) {
             throw new IllegalArgumentException(outputType.getName() + " is not a valid output type.");
         }
         return desc.getRequiredOutputTypes();
     }
 
-    public static Set<ModelCapability> getRequiredInputCapabilities(Class<? extends ModelInput> inputType){
+    public static Set<ModelCapability> getRequiredInputCapabilities(Class<? extends ModelInput> inputType) {
         ModelInputDescriptor desc = (ModelInputDescriptor) Jenkins.get().getDescriptor(inputType);
-        if(desc == null){
+        if (desc == null) {
             throw new IllegalArgumentException(inputType.getName() + " is not a valid input type.");
         }
         return desc.getRequiredCapabilities();
     }
 
-    public static Set<ModelCapability> getRequiredOutputCapabilities(Class<? extends ModelOutput> outputType){
+    public static Set<ModelCapability> getRequiredOutputCapabilities(Class<? extends ModelOutput> outputType) {
         ModelOutputDescriptor desc = (ModelOutputDescriptor) Jenkins.get().getDescriptor(outputType);
-        if(desc == null){
+        if (desc == null) {
             throw new IllegalArgumentException(outputType.getName() + " is not a valid output type.");
         }
         return desc.getRequiredCapabilities();
@@ -54,22 +53,33 @@ public class ModelRequest implements Cloneable {
     public ModelRequest() {}
 
     public Set<ModelInputType> getInputTypes() {
-        return getInputClasses().stream().map(ModelRequest::getInputTypesFromClass).flatMap(Set::stream).collect(Collectors.toSet());
+        return getInputClasses().stream()
+                .map(ModelRequest::getInputTypesFromClass)
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
     }
 
-    private Set<Class<? extends ModelInput>> getInputClasses(){
+    private Set<Class<? extends ModelInput>> getInputClasses() {
         return modelInputs.stream().map(ModelInput::getClass).collect(Collectors.toSet());
     }
 
     public Set<ModelOutputType> getOutputTypes() {
-        return requestedOutputTypes.stream().map(ModelRequest::getOutputTypesFromClass).flatMap(Set::stream).collect(Collectors.toSet());
+        return requestedOutputTypes.stream()
+                .map(ModelRequest::getOutputTypesFromClass)
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
     }
 
-    public Set<ModelCapability> getRequiredCapabilities(){
-        Set<ModelCapability> capabilities = modelInputs.stream().map(ModelInput::getClass).map(ModelRequest::getRequiredInputCapabilities).flatMap(Set::stream).collect(Collectors.toSet());
-        capabilities.addAll(
-                requestedOutputTypes.stream().map(ModelRequest::getRequiredOutputCapabilities).flatMap(Set::stream).toList()
-        );
+    public Set<ModelCapability> getRequiredCapabilities() {
+        Set<ModelCapability> capabilities = modelInputs.stream()
+                .map(ModelInput::getClass)
+                .map(ModelRequest::getRequiredInputCapabilities)
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
+        capabilities.addAll(requestedOutputTypes.stream()
+                .map(ModelRequest::getRequiredOutputCapabilities)
+                .flatMap(Set::stream)
+                .toList());
         return capabilities;
     }
 
@@ -85,8 +95,9 @@ public class ModelRequest implements Cloneable {
         requestedOutputTypes.remove(outputType);
     }
 
-    public void removeOutputTypeRequest(ModelOutputType outputType){
-        requestedOutputTypes.removeIf(requestedOutputType -> getOutputTypesFromClass(requestedOutputType).contains(outputType));
+    public void removeOutputTypeRequest(ModelOutputType outputType) {
+        requestedOutputTypes.removeIf(requestedOutputType ->
+                getOutputTypesFromClass(requestedOutputType).contains(outputType));
     }
 
     public void attachTool(Tool tool) {
@@ -96,12 +107,12 @@ public class ModelRequest implements Cloneable {
         addInput(new InputToolContent(tool));
     }
 
-    public boolean hasInputType(Class<?> clazz){
+    public boolean hasInputType(Class<?> clazz) {
         return modelInputs.stream().anyMatch(clazz::isInstance);
     }
 
     @SuppressWarnings("unchecked")
-    public <T> @Nullable T getInput(Class<T> clazz){
+    public <T> @Nullable T getInput(Class<T> clazz) {
         return (T) modelInputs.stream().filter(clazz::isInstance).findFirst().get();
     }
 

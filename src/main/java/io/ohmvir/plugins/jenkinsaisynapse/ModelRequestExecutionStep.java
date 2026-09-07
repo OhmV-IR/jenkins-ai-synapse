@@ -11,11 +11,10 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.*;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
 import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelResponse;
-import java.io.IOException;
-import java.io.PrintStream;
-
 import io.ohmvir.plugins.jenkinsaisynapse.api.output.OutputTextContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.output.ThinkingContent;
+import java.io.IOException;
+import java.io.PrintStream;
 import jenkins.tasks.SimpleBuildStep;
 import org.jenkinsci.Symbol;
 import org.jspecify.annotations.NonNull;

@@ -4,9 +4,8 @@ import hudson.Extension;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
-import lombok.Getter;
-
 import java.util.Set;
+import lombok.Getter;
 
 public class InputSkillContent extends ModelInput {
     private @Getter final SkillData skill;

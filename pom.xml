@@ -9,19 +9,6 @@
     <relativePath />
   </parent>
 
-  <distributionManagement>
-    <repository>
-      <id>nexus-releases</id>
-      <name>Nexus Releases repository</name>
-      <url>https://nexus.ohmvir.dev/repository/maven-releases/</url>
-    </repository>
-    <snapshotRepository>
-      <id>nexus-snapshots</id>
-      <name>Nexus Snapshots repository</name>
-      <url>https://nexus.ohmvir.dev/repository/maven-snapshots/</url>
-    </snapshotRepository>
-  </distributionManagement>
-
   <groupId>io.ohmvir.plugins</groupId>
   <artifactId>jenkinsaisynapse</artifactId>
   <version>${revision}${changelist}</version>
@@ -40,6 +27,19 @@
     <tag>${scmTag}</tag>
     <url>https://github.com/${gitHubRepo}</url>
   </scm>
+
+  <distributionManagement>
+    <repository>
+      <id>nexus-releases</id>
+      <name>Nexus Releases repository</name>
+      <url>https://nexus.ohmvir.dev/repository/maven-releases/</url>
+    </repository>
+    <snapshotRepository>
+      <id>nexus-snapshots</id>
+      <name>Nexus Snapshots repository</name>
+      <url>https://nexus.ohmvir.dev/repository/maven-snapshots/</url>
+    </snapshotRepository>
+  </distributionManagement>
 
   <properties>
     <revision>1.0</revision>
@@ -83,6 +83,11 @@
       <version>2.13.2</version>
     </dependency>
     <dependency>
+      <groupId>io.github.classgraph</groupId>
+      <artifactId>classgraph</artifactId>
+      <version>4.8.194</version>
+    </dependency>
+    <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>credentials</artifactId>
     </dependency>
@@ -103,11 +108,6 @@
       <artifactId>lombok</artifactId>
       <version>1.18.46</version>
       <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.github.classgraph</groupId>
-      <artifactId>classgraph</artifactId>
-      <version>4.8.194</version>
     </dependency>
   </dependencies>
 

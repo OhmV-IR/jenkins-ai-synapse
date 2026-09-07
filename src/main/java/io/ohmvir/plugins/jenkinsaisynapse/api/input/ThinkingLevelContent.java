@@ -4,9 +4,8 @@ import hudson.Extension;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
-import lombok.Getter;
-
 import java.util.Set;
+import lombok.Getter;
 
 public class ThinkingLevelContent extends ModelInput {
     private @Getter final ModelThinkingLevel thinkingLevel;

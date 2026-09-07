@@ -3,10 +3,9 @@ package io.ohmvir.plugins.jenkinsaisynapse.api.input;
 import hudson.Extension;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
-import lombok.Getter;
-
 import java.util.List;
 import java.util.Set;
+import lombok.Getter;
 
 public class StopSequencesContent extends ModelInput {
     private @Getter final List<String> stopPhrases;

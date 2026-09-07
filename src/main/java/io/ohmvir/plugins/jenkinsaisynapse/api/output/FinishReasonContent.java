@@ -4,14 +4,13 @@ import hudson.Extension;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelFinishReason;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
-import lombok.Getter;
-
 import java.util.Set;
+import lombok.Getter;
 
 public class FinishReasonContent extends ModelOutput {
     private @Getter final ModelFinishReason reason;
 
-    public FinishReasonContent(ModelFinishReason reason){
+    public FinishReasonContent(ModelFinishReason reason) {
         this.reason = reason;
     }
 

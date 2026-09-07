@@ -3,14 +3,13 @@ package io.ohmvir.plugins.jenkinsaisynapse.api.input;
 import hudson.Extension;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
-import lombok.Getter;
-
 import java.util.Set;
+import lombok.Getter;
 
 public class InputVideoContent extends ModelInput {
     private @Getter final byte[] videoData;
 
-    public InputVideoContent(byte[] videoData){
+    public InputVideoContent(byte[] videoData) {
         this.videoData = videoData;
     }
 
