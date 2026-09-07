@@ -60,7 +60,7 @@ pipeline {
                          when {
                               allOf {
                                    branch 'master'
-                                   buildingTag false
+                                   not { buildingTag() }
                               }
                          }
                          steps {
@@ -74,7 +74,7 @@ pipeline {
 
                     stage("Deploy tagged release"){
                         when {
-                            buildingTag true
+                            buildingTag()
                         }
                         steps {
                             script {
