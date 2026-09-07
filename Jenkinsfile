@@ -61,6 +61,7 @@ pipeline {
                               allOf {
                                    branch 'master'
                                    not { buildingTag() }
+                                   environment name: 'JDK_VERSION', value: '25'
                               }
                          }
                          steps {
@@ -74,7 +75,10 @@ pipeline {
 
                     stage("Deploy tagged release"){
                         when {
-                            buildingTag()
+                            allOf {
+                                buildingTag()
+                                environment name: 'JDK_VERSION', value: '25'
+                            }
                         }
                         steps {
                             script {
