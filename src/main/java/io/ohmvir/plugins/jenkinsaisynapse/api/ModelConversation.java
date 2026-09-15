@@ -30,6 +30,11 @@ public class ModelConversation implements Saveable, Loadable {
         save();
     }
 
+    public void addAllContent(Collection<ModelContent> content) throws IOException {
+        conversation.addAll(content);
+        save();
+    }
+
     public List<ModelContent> getConversation(){
         return Collections.unmodifiableList(conversation);
     }
