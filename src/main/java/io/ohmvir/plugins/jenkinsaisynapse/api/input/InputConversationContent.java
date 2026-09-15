@@ -1,6 +1,7 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.input;
 
 import hudson.Extension;
+import io.ohmvir.plugins.jenkinsaisynapse.api.ModelConversation;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import java.util.Set;

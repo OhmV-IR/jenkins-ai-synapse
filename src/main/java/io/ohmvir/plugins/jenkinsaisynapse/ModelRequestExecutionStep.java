@@ -43,7 +43,7 @@ public class ModelRequestExecutionStep extends Builder implements SimpleBuildSte
         if (client == null) {
             throw new IOException("Failed to get a client that could respond to the request");
         }
-        ModelResponse response = client.generateResponse(request);
+        ModelResponse response = request.execute();
         if (response == null) {
             throw new IOException("Failed to get a response that could respond to the request");
         }

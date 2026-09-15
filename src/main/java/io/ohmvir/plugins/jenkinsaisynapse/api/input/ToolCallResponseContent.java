@@ -5,13 +5,14 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import java.util.Set;
 import lombok.Getter;
+import org.jspecify.annotations.Nullable;
 
 public class ToolCallResponseContent extends ModelInput {
     private @Getter final String toolUseId;
     private @Getter final boolean successful;
-    private @Getter final String responseContent;
+    private @Getter final @Nullable String responseContent;
 
-    public ToolCallResponseContent(String toolUseId, boolean successful, String responseContent) {
+    public ToolCallResponseContent(String toolUseId, boolean successful, @Nullable String responseContent) {
         this.toolUseId = toolUseId;
         this.successful = successful;
         this.responseContent = responseContent;

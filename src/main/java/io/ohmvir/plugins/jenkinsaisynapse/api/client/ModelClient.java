@@ -1,12 +1,11 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.client;
 
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.InputConversationContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelConversation;
+import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelResponse;
+import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
 import lombok.Getter;
-import org.jspecify.annotations.Nullable;
+import java.util.List;
 
 public abstract class ModelClient<ConfigurationType, ClientConfigurationType> {
     protected @Getter final ClientConfigurationType clientConfiguration;
@@ -22,15 +21,9 @@ public abstract class ModelClient<ConfigurationType, ClientConfigurationType> {
 
     /**
      * Generate a response for the given request. This function can assume that the request is able to be handled by the model.
-     * @param request The model request to execute
-     * @return A valid ModelResponse if the request was executed successfully and null otherwise.
+     * @param request The associated model request
+     * @param turnInputs The inputs to attach for the model to respond. This will include all context and relevant conversation history, as well as things like tool responses
+     * @return A list of all the model outputs that were produced on this exchange (ie API roundtrip)
      */
-    public abstract @Nullable ModelResponse generateResponse(ModelRequest request);
-
-    public @Nullable ModelResponse generateConversationResponse(ModelRequest request, ModelConversation conversation) {
-        request.addInput(new InputConversationContent(conversation));
-        return generateResponse(request);
-    }
-
-    public abstract ModelConversation beginConversation();
+    public abstract List<ModelOutput> takeStep(ModelRequest request, List<ModelInput> turnInputs);
 }

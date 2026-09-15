@@ -1,22 +1,31 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.input;
 
+import io.ohmvir.plugins.jenkinsaisynapse.api.ModelConversation;
+import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
 import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
 import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutputDescriptor;
+import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelResponse;
+import io.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import io.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
 import io.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolRegistry;
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import lombok.Getter;
+import lombok.Setter;
 import org.jspecify.annotations.Nullable;
 
 public class ModelRequest implements Cloneable {
     private final Set<Class<ModelOutput>> requestedOutputTypes = new HashSet<>();
-    private @Getter final List<ModelInput> modelInputs = new ArrayList<>();
+    private final @Getter List<ModelInput> modelInputs = new ArrayList<>();
+    @Setter
+    private ModelConversation associatedConversation = null;
 
     public static Set<ModelInputType> getInputTypesFromClass(Class<? extends ModelInput> inputType) {
         ModelInputDescriptor desc = (ModelInputDescriptor) Jenkins.get().getDescriptor(inputType);
@@ -122,6 +131,60 @@ public class ModelRequest implements Cloneable {
 
     public void attachSkill(SkillData skill) {
         addInput(new InputSkillContent(skill));
+    }
+
+    public @Nullable ModelResponse execute(){
+        return execute(ModelData.createClientForRequest(this));
+    }
+
+    public @Nullable ModelResponse execute(ModelClient<?, ?> client){ // TODO save to associated conversation when set
+        if(client == null){
+            return null;
+        }
+        List<ModelOutput> currentOutputs = new ArrayList<>();
+        while(true){
+            List<ModelOutput> stepOutputs = client.takeStep(this, modelInputs);
+            if(stepOutputs.isEmpty()){
+                break;
+            }
+            currentOutputs.addAll(stepOutputs);
+            generateNewInputsForOutputs(stepOutputs);
+        }
+        if(requestedOutputTypes.stream()
+                .allMatch(requestedType ->
+                        currentOutputs.stream().anyMatch(requestedType::isInstance)
+                )){
+            return null;
+        }
+        return new ModelResponse(currentOutputs);
+    }
+
+    /**
+     * Used within request execution to generate all necessary inputs from anything the model outputs. Namely, executing tool calls.
+     * @param stepOutputs The outputs to generate inputs for
+     * Appends the inputs to the internal model inputs list
+     */
+    private void generateNewInputsForOutputs(List<ModelOutput> stepOutputs) {
+        stepOutputs.forEach(modelOutput -> {
+            switch(modelOutput){
+                case ToolCallContent toolCallOutput -> {
+                    Tool tool = ToolRegistry.getTool(toolCallOutput.getName());
+                    if(tool == null){
+                        Logger.getLogger(ModelResponse.class.getName()).severe("Failed to find tool model tried to call with name " + toolCallOutput.getName());
+                        modelInputs.add(new ToolCallResponseContent(toolCallOutput.getToolUseId(), false, null));
+                        return;
+                    }
+                    Optional<String> toolCallResponseStr = tool.callTool(toolCallOutput.getToolArguments());
+                    if(toolCallResponseStr.isEmpty()){
+                        Logger.getLogger(ModelResponse.class.getName()).severe("Failed to call model tool with name " + toolCallOutput.getName());
+                        modelInputs.add(new ToolCallResponseContent(toolCallOutput.getToolUseId(), false, null));
+                        return;
+                    }
+                    modelInputs.add(new ToolCallResponseContent(toolCallOutput.getToolUseId(), true, toolCallResponseStr.get()));
+                }
+                default -> {}
+            }
+        });
     }
 
     /**
