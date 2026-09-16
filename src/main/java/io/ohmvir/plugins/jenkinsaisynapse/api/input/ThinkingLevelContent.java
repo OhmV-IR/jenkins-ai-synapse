@@ -6,6 +6,7 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
 import java.util.Set;
 import lombok.Getter;
+import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 public class ThinkingLevelContent extends ModelInput {
@@ -26,6 +27,11 @@ public class ThinkingLevelContent extends ModelInput {
         @Override
         public Set<ModelInputType> getRequiredInputTypes() {
             return Set.of();
+        }
+
+        @Override
+        public @NonNull String getDisplayName() {
+            return "Thinking Level Content";
         }
     }
 }
