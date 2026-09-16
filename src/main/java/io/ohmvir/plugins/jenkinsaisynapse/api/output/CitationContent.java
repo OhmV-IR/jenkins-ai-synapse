@@ -6,6 +6,7 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
 import java.util.Set;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public class CitationContent extends ModelOutput {
     private @Getter final String citedText;
@@ -15,6 +16,7 @@ public class CitationContent extends ModelOutput {
     private @Getter final @Nullable String fileId;
     private @Getter final int startCharIndex;
 
+    @DataBoundConstructor
     public CitationContent(
             String citedText,
             int documentIndex,

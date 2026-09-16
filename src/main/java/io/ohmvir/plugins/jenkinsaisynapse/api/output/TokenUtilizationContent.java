@@ -5,12 +5,14 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
 import java.util.Set;
 import lombok.Getter;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public class TokenUtilizationContent extends ModelOutput {
     private @Getter final long inputTokensUsed;
     private @Getter final long outputTokensUsed;
     private @Getter final long cachedTokensUsed;
 
+    @DataBoundConstructor
     public TokenUtilizationContent(long inputTokensUsed, long outputTokensUsed, long cachedTokensUsed) {
         this.inputTokensUsed = inputTokensUsed;
         this.outputTokensUsed = outputTokensUsed;

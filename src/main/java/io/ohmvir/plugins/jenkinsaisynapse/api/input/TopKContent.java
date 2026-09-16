@@ -5,10 +5,12 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import java.util.Set;
 import lombok.Getter;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public class TopKContent extends ModelInput {
     private @Getter final double topK;
 
+    @DataBoundConstructor
     public TopKContent(double topK) {
         this.topK = topK;
     }

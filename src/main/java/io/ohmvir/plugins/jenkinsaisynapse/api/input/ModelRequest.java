@@ -1,5 +1,9 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.input;
 
+import hudson.Extension;
+import hudson.ExtensionPoint;
+import hudson.model.Describable;
+import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.ModelContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.ModelConversation;
 import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
@@ -21,9 +25,10 @@ import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import lombok.Getter;
 import lombok.Setter;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-public class ModelRequest implements Cloneable {
+public class ModelRequest implements Cloneable, Describable<ModelRequest>, ExtensionPoint {
     private final Set<Class<ModelOutput>> requestedOutputTypes = new HashSet<>();
     private final @Getter List<ModelInput> modelInputs = new ArrayList<>();
     @Setter
@@ -212,5 +217,13 @@ public class ModelRequest implements Cloneable {
     @Override
     public ModelRequest clone() throws CloneNotSupportedException {
         return (ModelRequest) super.clone();
+    }
+
+    @Extension
+    public static class DescriptorImpl extends Descriptor<ModelRequest> {
+        @Override
+        public @NonNull String getDisplayName() {
+            return "Model Request";
+        }
     }
 }

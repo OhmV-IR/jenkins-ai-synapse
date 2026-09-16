@@ -5,10 +5,12 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import java.util.Set;
 import lombok.Getter;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public class InputAudioContent extends ModelInput {
     private @Getter final byte[] audioData;
 
+    @DataBoundConstructor
     public InputAudioContent(byte[] audioData) {
         this.audioData = audioData;
     }

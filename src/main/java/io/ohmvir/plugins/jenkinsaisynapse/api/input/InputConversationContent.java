@@ -6,10 +6,12 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import java.util.Set;
 import lombok.Getter;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public class InputConversationContent extends ModelInput {
     private @Getter final ModelConversation conversation;
 
+    @DataBoundConstructor
     public InputConversationContent(ModelConversation conversation) {
         this.conversation = conversation;
     }

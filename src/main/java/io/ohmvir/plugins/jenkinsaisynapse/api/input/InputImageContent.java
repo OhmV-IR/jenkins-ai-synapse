@@ -6,10 +6,12 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import java.awt.image.BufferedImage;
 import java.util.Set;
 import lombok.Getter;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public class InputImageContent extends ModelInput {
     private @Getter final BufferedImage image;
 
+    @DataBoundConstructor
     public InputImageContent(BufferedImage image) {
         this.image = image;
     }

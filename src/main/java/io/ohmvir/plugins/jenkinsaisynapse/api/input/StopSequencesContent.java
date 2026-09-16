@@ -6,10 +6,12 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import java.util.List;
 import java.util.Set;
 import lombok.Getter;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public class StopSequencesContent extends ModelInput {
     private @Getter final List<String> stopPhrases;
 
+    @DataBoundConstructor
     public StopSequencesContent(List<String> stopPhrases) {
         this.stopPhrases = stopPhrases;
     }

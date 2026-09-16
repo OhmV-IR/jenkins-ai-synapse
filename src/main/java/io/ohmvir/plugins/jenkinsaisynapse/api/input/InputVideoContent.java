@@ -5,10 +5,12 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import java.util.Set;
 import lombok.Getter;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public class InputVideoContent extends ModelInput {
     private @Getter final byte[] videoData;
 
+    @DataBoundConstructor
     public InputVideoContent(byte[] videoData) {
         this.videoData = videoData;
     }

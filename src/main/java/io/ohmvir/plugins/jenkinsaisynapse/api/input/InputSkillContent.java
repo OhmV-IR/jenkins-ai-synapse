@@ -6,10 +6,12 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import java.util.Set;
 import lombok.Getter;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public class InputSkillContent extends ModelInput {
     private @Getter final SkillData skill;
 
+    @DataBoundConstructor
     public InputSkillContent(SkillData skill) {
         this.skill = skill;
     }

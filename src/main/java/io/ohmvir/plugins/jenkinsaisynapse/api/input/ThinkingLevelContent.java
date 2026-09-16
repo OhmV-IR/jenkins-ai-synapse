@@ -6,10 +6,12 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
 import java.util.Set;
 import lombok.Getter;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public class ThinkingLevelContent extends ModelInput {
     private @Getter final ModelThinkingLevel thinkingLevel;
 
+    @DataBoundConstructor
     public ThinkingLevelContent(ModelThinkingLevel thinkingLevel) {
         this.thinkingLevel = thinkingLevel;
     }

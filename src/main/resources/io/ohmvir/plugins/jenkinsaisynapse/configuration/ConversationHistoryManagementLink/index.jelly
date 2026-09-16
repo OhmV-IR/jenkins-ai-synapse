@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:l="/lib/layout">
+    <l:layout title="${it.displayName}">
+        <l:side-panel>
+            <l:tasks>
+                <l:task icon="symbol-arrow-back-outline plugin-ionicons-api" href="${rootURL}/manage" title="${%Back to manage Jenkins}" />
+            </l:tasks>
+        </l:side-panel>
+        <l:main-panel>
+            <h1>${it.displayName}</h1>
+            <p>View all your conversation history here</p>
+                <f:section title="${%Conversation History}">
+                    <f:entry title="${%Conversations}">
+                        <f:repeatableProperty field="conversations" noAddButton="true" />
+                    </f:entry>
+                </f:section>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

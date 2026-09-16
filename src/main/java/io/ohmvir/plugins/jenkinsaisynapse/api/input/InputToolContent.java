@@ -6,10 +6,12 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import io.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
 import java.util.Set;
 import lombok.Getter;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public class InputToolContent extends ModelInput {
     private @Getter final Tool tool;
 
+    @DataBoundConstructor
     public InputToolContent(Tool tool) {
         this.tool = tool;
     }

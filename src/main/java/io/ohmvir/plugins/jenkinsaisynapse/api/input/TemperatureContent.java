@@ -5,10 +5,12 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import java.util.Set;
 import lombok.Getter;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public class TemperatureContent extends ModelInput {
     private @Getter final double temperature;
 
+    @DataBoundConstructor
     public TemperatureContent(double temperature) {
         this.temperature = temperature;
     }

@@ -5,11 +5,13 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import java.util.Set;
 import lombok.Getter;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public class InputFileContent extends ModelInput {
     private @Getter final String fileId;
     private @Getter final byte[] fileData;
 
+    @DataBoundConstructor
     public InputFileContent(String fileId, byte[] fileData) {
         this.fileId = fileId;
         this.fileData = fileData;

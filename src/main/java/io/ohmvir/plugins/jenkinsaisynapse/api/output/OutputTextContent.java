@@ -5,10 +5,12 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
 import java.util.Set;
 import lombok.Getter;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 public class OutputTextContent extends ModelOutput {
     private @Getter final String text;
 
+    @DataBoundConstructor
     public OutputTextContent(String text) {
         this.text = text;
     }
