@@ -29,7 +29,7 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
     private @Getter final String skillText;
     private final HashMap<String, String> skillReferences;
 
-    public Set<Map.Entry<String, String>> getSkillReferencesEntries(){
+    public Set<Map.Entry<String, String>> getSkillReferencesEntries() {
         return skillReferences.entrySet();
     }
 
@@ -38,8 +38,8 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
      */
     private static final HashMap<String, SkillData> skillDataCache = new HashMap<>();
 
-    public String getSkillMetadataPrettyYaml(){
-        if(skillMetadata == null){
+    public String getSkillMetadataPrettyYaml() {
+        if (skillMetadata == null) {
             return null;
         }
         return skillMetadata.toPrettyString();

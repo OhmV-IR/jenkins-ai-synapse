@@ -8,11 +8,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.Set;
+import javax.imageio.ImageIO;
 import lombok.Getter;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
-
-import javax.imageio.ImageIO;
 
 public class InputImageContent extends ModelInput {
     private @Getter final BufferedImage image;
@@ -22,8 +21,8 @@ public class InputImageContent extends ModelInput {
         this.image = image;
     }
 
-    public String getImageBase64(){
-        if(image == null){
+    public String getImageBase64() {
+        if (image == null) {
             return null;
         }
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {

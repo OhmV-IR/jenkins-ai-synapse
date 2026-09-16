@@ -24,8 +24,8 @@ public class ToolCallContent extends ModelOutput {
         this.name = name;
     }
 
-    public String getArgumentsPrettyJson(){
-        if(toolArguments == null){
+    public String getArgumentsPrettyJson() {
+        if (toolArguments == null) {
             return "{}";
         }
         return GSON.toJson(toolArguments);

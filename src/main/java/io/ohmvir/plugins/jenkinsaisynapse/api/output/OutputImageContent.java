@@ -8,11 +8,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.Set;
+import javax.imageio.ImageIO;
 import lombok.Getter;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
-
-import javax.imageio.ImageIO;
 
 public class OutputImageContent extends ModelOutput {
     private @Getter final BufferedImage image;

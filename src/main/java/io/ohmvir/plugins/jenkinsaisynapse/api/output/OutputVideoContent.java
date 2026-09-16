@@ -3,11 +3,9 @@ package io.ohmvir.plugins.jenkinsaisynapse.api.output;
 import hudson.Extension;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
-
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Set;
-
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.Getter;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -23,7 +21,7 @@ public class OutputVideoContent extends ModelOutput {
     }
 
     public void doVideo(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException {
-        if(videoData == null || videoData.length == 0){
+        if (videoData == null || videoData.length == 0) {
             rsp.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
