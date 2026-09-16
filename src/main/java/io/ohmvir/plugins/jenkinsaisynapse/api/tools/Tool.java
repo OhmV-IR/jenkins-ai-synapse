@@ -1,10 +1,15 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.tools;
 
 import com.google.gson.JsonObject;
+import hudson.Extension;
+import hudson.ExtensionPoint;
+import hudson.model.Describable;
+import hudson.model.Descriptor;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
+import org.jspecify.annotations.NonNull;
 
 /**
  * Create a method in your class with the tool arguments that returns a String or void.
@@ -12,7 +17,7 @@ import java.util.logging.Logger;
  * getName() should then match this method name
  * and getArguments() should match your arguments (in order).
  */
-public abstract class Tool {
+public abstract class Tool implements Describable<Tool>, ExtensionPoint {
     private final Method toolMethod;
     private final Logger logger;
 
@@ -22,7 +27,7 @@ public abstract class Tool {
                 .getMethod(
                         getName(),
                         getArguments().stream()
-                                .map(ToolArgumentDescription::type)
+                                .map(ToolArgumentDescription::getType)
                                 .toList()
                                 .toArray(new Class<?>[0]));
         ToolRegistry.register(this);
@@ -50,8 +55,8 @@ public abstract class Tool {
                     this,
                     getArguments().stream()
                             .map(argument -> {
-                                var jsonArg = toolCallParameters.get(argument.name());
-                                Class<?> tt = argument.type();
+                                var jsonArg = toolCallParameters.get(argument.getName());
+                                Class<?> tt = argument.getType();
                                 if (tt.equals(double.class)) {
                                     return jsonArg.getAsDouble();
                                 } else if (tt.equals(int.class)) {
@@ -82,6 +87,14 @@ public abstract class Tool {
         } catch (Exception e) {
             logger.severe("Failed to call tool with exception: " + e.getMessage());
             return "<tool-call-failure>".describeConstable();
+        }
+    }
+
+    @Extension
+    public static class DescriptorImpl extends Descriptor<Tool> {
+        @Override
+        public @NonNull String getDisplayName() {
+            return "Tool";
         }
     }
 }
