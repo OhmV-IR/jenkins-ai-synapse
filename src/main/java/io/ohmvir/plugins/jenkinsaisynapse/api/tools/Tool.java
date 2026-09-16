@@ -5,12 +5,11 @@ import hudson.Extension;
 import hudson.ExtensionPoint;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
-import org.jspecify.annotations.NonNull;
-
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
+import org.jspecify.annotations.NonNull;
 
 /**
  * Create a method in your class with the tool arguments that returns a String or void.

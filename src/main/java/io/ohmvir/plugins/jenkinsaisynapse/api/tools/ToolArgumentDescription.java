@@ -20,7 +20,7 @@ public class ToolArgumentDescription implements Describable<ToolArgumentDescript
         this.description = description;
     }
 
-    public String getTypeName(){
+    public String getTypeName() {
         return type.getName();
     }
 
