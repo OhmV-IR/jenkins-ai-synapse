@@ -1,6 +1,12 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.tools;
 
 import com.google.gson.JsonObject;
+import hudson.Extension;
+import hudson.ExtensionPoint;
+import hudson.model.Describable;
+import hudson.model.Descriptor;
+import org.jspecify.annotations.NonNull;
+
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Optional;
@@ -12,7 +18,7 @@ import java.util.logging.Logger;
  * getName() should then match this method name
  * and getArguments() should match your arguments (in order).
  */
-public abstract class Tool {
+public abstract class Tool implements Describable<Tool>, ExtensionPoint {
     private final Method toolMethod;
     private final Logger logger;
 
@@ -82,6 +88,14 @@ public abstract class Tool {
         } catch (Exception e) {
             logger.severe("Failed to call tool with exception: " + e.getMessage());
             return "<tool-call-failure>".describeConstable();
+        }
+    }
+
+    @Extension
+    public static class DescriptorImpl extends Descriptor<Tool> {
+        @Override
+        public @NonNull String getDisplayName() {
+            return "Tool";
         }
     }
 }

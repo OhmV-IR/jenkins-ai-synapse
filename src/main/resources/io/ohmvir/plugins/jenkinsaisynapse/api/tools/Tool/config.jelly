@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:section title="${%Tool}">
+        <f:entry title="${%Tool Name}" field="name">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="${%Tool Description}" field="description">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="${%Tool Arguments}" field="arguments">
+            <f:repeatableProperty noAddButton="true" field="arguments" />
+        </f:entry>
+    </f:section>
+</j:jelly>
