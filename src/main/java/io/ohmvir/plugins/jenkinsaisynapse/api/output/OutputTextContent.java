@@ -5,6 +5,7 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
 import java.util.Set;
 import lombok.Getter;
+import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 public class OutputTextContent extends ModelOutput {
@@ -25,6 +26,11 @@ public class OutputTextContent extends ModelOutput {
         @Override
         public Set<ModelOutputType> getRequiredOutputTypes() {
             return Set.of(ModelOutputType.UNSTRUCTURED_TEXT);
+        }
+
+        @Override
+        public @NonNull String getDisplayName() {
+            return "Output Text Content";
         }
     }
 }
