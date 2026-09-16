@@ -22,7 +22,7 @@ public abstract class Tool {
                 .getMethod(
                         getName(),
                         getArguments().stream()
-                                .map(ToolArgumentDescription::type)
+                                .map(ToolArgumentDescription::getType)
                                 .toList()
                                 .toArray(new Class<?>[0]));
         ToolRegistry.register(this);
@@ -50,8 +50,8 @@ public abstract class Tool {
                     this,
                     getArguments().stream()
                             .map(argument -> {
-                                var jsonArg = toolCallParameters.get(argument.name());
-                                Class<?> tt = argument.type();
+                                var jsonArg = toolCallParameters.get(argument.getName());
+                                Class<?> tt = argument.getType();
                                 if (tt.equals(double.class)) {
                                     return jsonArg.getAsDouble();
                                 } else if (tt.equals(int.class)) {
