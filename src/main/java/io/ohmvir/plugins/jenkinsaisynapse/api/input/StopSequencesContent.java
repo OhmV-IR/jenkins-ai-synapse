@@ -6,6 +6,7 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import java.util.List;
 import java.util.Set;
 import lombok.Getter;
+import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 public class StopSequencesContent extends ModelInput {
@@ -26,6 +27,11 @@ public class StopSequencesContent extends ModelInput {
         @Override
         public Set<ModelInputType> getRequiredInputTypes() {
             return Set.of();
+        }
+
+        @Override
+        public @NonNull String getDisplayName() {
+            return "Stop Sequences Content";
         }
     }
 }
