@@ -5,6 +5,7 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
 import java.util.Set;
 import lombok.Getter;
+import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 public class TokenUtilizationContent extends ModelOutput {
@@ -29,6 +30,11 @@ public class TokenUtilizationContent extends ModelOutput {
         @Override
         public Set<ModelOutputType> getRequiredOutputTypes() {
             return Set.of();
+        }
+
+        @Override
+        public @NonNull String getDisplayName() {
+            return "Token Utilization Content";
         }
     }
 }
