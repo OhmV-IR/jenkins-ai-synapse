@@ -4,7 +4,6 @@ import com.google.gson.JsonObject;
 import hudson.Extension;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
-import java.util.Map;
 import java.util.Set;
 import lombok.Getter;
 import org.kohsuke.stapler.DataBoundConstructor;

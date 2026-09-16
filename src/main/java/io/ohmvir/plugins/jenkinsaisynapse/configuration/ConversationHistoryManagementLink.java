@@ -5,9 +5,6 @@ import hudson.model.ManagementLink;
 import hudson.security.Permission;
 import io.ohmvir.plugins.jenkinsaisynapse.api.ModelConversation;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.PromptConfiguration;
-import jenkins.model.Jenkins;
-import org.jspecify.annotations.NonNull;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,11 +14,14 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import jenkins.model.Jenkins;
+import org.jspecify.annotations.NonNull;
 
 public class ConversationHistoryManagementLink extends ManagementLink {
-    public List<ModelConversation> getConversations(){
+    public List<ModelConversation> getConversations() {
         try {
-            Path startPath = Paths.get(Jenkins.get().getRootPath().child("conversations").getRemote());
+            Path startPath =
+                    Paths.get(Jenkins.get().getRootPath().child("conversations").getRemote());
             try (Stream<Path> stream = Files.walk(startPath)) {
                 return stream.filter(Files::isRegularFile)
                         .map(Path::getFileName)
@@ -47,9 +47,9 @@ public class ConversationHistoryManagementLink extends ManagementLink {
         return Jenkins.get().getDescriptorList(PromptConfiguration.class);
     }
 
-    private static String removeExtension(String fileName){
+    private static String removeExtension(String fileName) {
         int lastDotIdx = fileName.lastIndexOf('.');
-        if(lastDotIdx > 0){
+        if (lastDotIdx > 0) {
             return fileName.substring(0, lastDotIdx);
         }
         return fileName;

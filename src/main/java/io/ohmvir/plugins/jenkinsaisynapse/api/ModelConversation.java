@@ -2,12 +2,9 @@ package io.ohmvir.plugins.jenkinsaisynapse.api;
 
 import hudson.XmlFile;
 import hudson.model.Saveable;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelResponse;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-
 import jenkins.model.Jenkins;
 import jenkins.model.Loadable;
 import lombok.Getter;
@@ -35,7 +32,7 @@ public class ModelConversation implements Saveable, Loadable {
         save();
     }
 
-    public List<ModelContent> getConversation(){
+    public List<ModelContent> getConversation() {
         return Collections.unmodifiableList(conversation);
     }
 

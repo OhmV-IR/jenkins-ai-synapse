@@ -1,4 +1,3 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api;
 
-public interface ModelContent {
-}
+public interface ModelContent {}

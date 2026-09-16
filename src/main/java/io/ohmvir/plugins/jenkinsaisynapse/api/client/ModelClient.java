@@ -4,8 +4,8 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
 import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
-import lombok.Getter;
 import java.util.List;
+import lombok.Getter;
 
 public abstract class ModelClient<ConfigurationType, ClientConfigurationType> {
     protected @Getter final ClientConfigurationType clientConfiguration;

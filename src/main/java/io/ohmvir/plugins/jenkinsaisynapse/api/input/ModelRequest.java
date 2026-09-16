@@ -31,6 +31,7 @@ import org.jspecify.annotations.Nullable;
 public class ModelRequest implements Cloneable, Describable<ModelRequest>, ExtensionPoint {
     private final Set<Class<ModelOutput>> requestedOutputTypes = new HashSet<>();
     private final @Getter List<ModelInput> modelInputs = new ArrayList<>();
+
     @Setter
     private ModelConversation associatedConversation = null;
 
@@ -140,11 +141,11 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
         addInput(new InputSkillContent(skill));
     }
 
-    public @Nullable ModelResponse execute(){
+    public @Nullable ModelResponse execute() {
         return execute(ModelData.createClientForRequest(this));
     }
 
-    public @Nullable ModelResponse execute(ModelClient<?, ?> client){
+    public @Nullable ModelResponse execute(ModelClient<?, ?> client) {
         try {
             if (client == null) {
                 return null;
@@ -163,16 +164,14 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
                 modelInputs.addAll(newInputs);
             }
             if (requestedOutputTypes.stream()
-                    .allMatch(requestedType ->
-                            currentOutputs.stream().anyMatch(requestedType::isInstance)
-                    )) {
+                    .allMatch(requestedType -> currentOutputs.stream().anyMatch(requestedType::isInstance))) {
                 return null;
             }
             if (associatedConversation != null) {
                 associatedConversation.addAllContent(finalContent);
             }
             return new ModelResponse(currentOutputs);
-        } catch(Exception e) {
+        } catch (Exception e) {
             Logger.getLogger(ModelRequest.class.getName()).log(Level.WARNING, "Failed to execute ModelRequest", e);
             return null;
         }
@@ -186,21 +185,25 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
     private static List<ModelInput> generateNewInputsForOutputs(List<ModelOutput> stepOutputs) {
         List<ModelInput> newInputs = new ArrayList<>();
         stepOutputs.forEach(modelOutput -> {
-            switch(modelOutput){
+            switch (modelOutput) {
                 case ToolCallContent toolCallOutput -> {
                     Tool tool = ToolRegistry.getTool(toolCallOutput.getName());
-                    if(tool == null){
-                        Logger.getLogger(ModelResponse.class.getName()).severe("Failed to find tool model tried to call with name " + toolCallOutput.getName());
+                    if (tool == null) {
+                        Logger.getLogger(ModelResponse.class.getName())
+                                .severe("Failed to find tool model tried to call with name "
+                                        + toolCallOutput.getName());
                         newInputs.add(new ToolCallResponseContent(toolCallOutput.getToolUseId(), false, null));
                         return;
                     }
                     Optional<String> toolCallResponseStr = tool.callTool(toolCallOutput.getToolArguments());
-                    if(toolCallResponseStr.isEmpty()){
-                        Logger.getLogger(ModelResponse.class.getName()).severe("Failed to call model tool with name " + toolCallOutput.getName());
+                    if (toolCallResponseStr.isEmpty()) {
+                        Logger.getLogger(ModelResponse.class.getName())
+                                .severe("Failed to call model tool with name " + toolCallOutput.getName());
                         newInputs.add(new ToolCallResponseContent(toolCallOutput.getToolUseId(), false, null));
                         return;
                     }
-                    newInputs.add(new ToolCallResponseContent(toolCallOutput.getToolUseId(), true, toolCallResponseStr.get()));
+                    newInputs.add(new ToolCallResponseContent(
+                            toolCallOutput.getToolUseId(), true, toolCallResponseStr.get()));
                 }
                 default -> {}
             }
