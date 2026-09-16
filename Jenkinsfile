@@ -66,32 +66,49 @@ pipeline {
                          }
                          steps {
                              script {
-                                    def snapshotVersion = "1.0.0-BUILD-${BUILD_NUMBER}-SNAPSHOT"
-                                    sh "mvn versions:set -DnewVersion=${snapshotVersion} -DgenerateBackupPoms=false"
-                                    sh 'mvn clean deploy -s "$MAVEN_SETTINGS" -DskipTests'
+                                 def snapshotVersion = "1.0.0-BUILD-${BUILD_NUMBER}-SNAPSHOT"
+                                 sh "mvn versions:set -DnewVersion=${snapshotVersion} -DgenerateBackupPoms=false"
+                                 sh 'mvn clean deploy -s "$MAVEN_SETTINGS" -DskipTests'
                              }
-                        }
-                    }
-
-                    stage("Deploy tagged release"){
-                        when {
-                            allOf {
-                                buildingTag()
-                                environment name: 'JDK_VERSION', value: '25'
-                            }
-                        }
-                        steps {
-                            script {
-                                def releaseVersion = TAG_NAME.replaceAll(/^[a-zA-Z_-]+/, '')
-                                echo "Setting release version to ${releaseVersion} from tag ${TAG_NAME}..."
-                                sh "mvn versions:set -DnewVersion=${releaseVersion} -DgenerateBackupPoms=false"
-                                sh 'mvn clean deploy -s "$MAVEN_SETTINGS" -DskipTests'
-                            }
                         }
                     }
                 }
             }
         }
+
+        stage('Execute Maven Release') {
+            // Runs only on master when a release is triggered (e.g., via parameter or manually)
+            when {
+                allOf {
+                    branch 'master'
+                    not { buildingTag() }
+                    changelog '.*\\[release\\].*'
+                }
+            }
+            agent { label 'linux' }
+            tools {
+                jdk '25'
+                maven '3.9.14'
+            }
+            environment {
+                MAVEN_SETTINGS = credentials('nexus-maven-settings-file')
+                GIT_CREDS      = credentials('ghpat_personal')
+            }
+            steps {
+                checkout scm
+                sh '''
+                    git config user.name "Jenkins CI"
+                    git config user.email "jenkins-ci@ohmvir.dev"
+                '''
+
+                sshagent(credentials: ['ghpat_personal']) {
+                    sh '''
+                        mvn --batch-mode release:prepare release:perform \
+                            -s "$MAVEN_SETTINGS" \
+                            -Darguments="-DskipTests"
+                    '''
+                }
+            }
+        }
     }
 }
-
