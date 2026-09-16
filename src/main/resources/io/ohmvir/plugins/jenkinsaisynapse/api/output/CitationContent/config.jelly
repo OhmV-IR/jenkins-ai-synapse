@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:section title="${%Citation Content}" description="${%A model citation referring to a document showing where it got some information}">
+        <f:entry title="${%Cited Text}" field="citedText">
+            <f:textarea />
+        </f:entry>
+        <f:entry title="${%Document Index}" field="documentIndex">
+            <f:number />
+        </f:entry>
+        <f:entry title="${%Document Title}" field="documentTitle">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="${%End Char Index}" field="endCharIndex">
+            <f:number />
+        </f:entry>
+        <f:entry title="${%File Id}" field="fileId">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="${%Start Char Index}" field="startCharIndex">
+            <f:number />
+        </f:entry>
+    </f:section>
+</j:jelly>
