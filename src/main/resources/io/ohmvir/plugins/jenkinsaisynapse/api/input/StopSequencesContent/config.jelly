@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:section title="${%Stop Sequences Content}" description="${%Token sequences that the model will stop responding if it generates}">
+        <f:entry field="stopPhrases">
+            <ul>
+                <j:forEach var="item" items="stopPhrases">
+                    <li>${item}</li>
+                </j:forEach>
+            </ul>
+        </f:entry>
+    </f:section>
+</j:jelly>
