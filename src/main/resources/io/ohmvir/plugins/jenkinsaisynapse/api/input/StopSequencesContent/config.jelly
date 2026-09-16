@@ -3,13 +3,11 @@
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
     <f:section title="${%Stop Sequences Content}" description="${%Token sequences that the model will stop responding if it generates}">
         <f:entry field="stopPhrases">
-            <f:repeatable>
-                <table width="100%">
-                    <f:entry>
-                        <f:textbox value="${loop.current}" />
-                    </f:entry>
-                </table>
-            </f:repeatable>
+            <ul>
+                <j:forEach var="item" items="stopPhrases">
+                    <li>${item}</li>
+                </j:forEach>
+            </ul>
         </f:entry>
     </f:section>
 </j:jelly>
