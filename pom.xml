@@ -11,7 +11,7 @@
 
   <groupId>io.ohmvir.plugins</groupId>
   <artifactId>jenkinsaisynapse</artifactId>
-  <version>${revision}${changelist}</version>
+  <version>1.1</version>
   <packaging>hpi</packaging>
 
   <name>Jenkins AI Synapse base plugin</name>
@@ -24,7 +24,7 @@
   <scm child.scm.connection.inherit.append.path="false" child.scm.developerConnection.inherit.append.path="false" child.scm.url.inherit.append.path="false">
     <connection>scm:git:https://github.com/${gitHubRepo}</connection>
     <developerConnection>scm:git:https://github.com/${gitHubRepo}</developerConnection>
-    <tag>${scmTag}</tag>
+    <tag>jenkinscr-1.1</tag>
     <url>https://github.com/${gitHubRepo}</url>
   </scm>
 
@@ -135,7 +135,7 @@
         <artifactId>maven-release-plugin</artifactId>
         <version>3.1.1</version>
         <configuration>
-          <tagNameFormat>v@{project.version}</tagNameFormat>
+          <tagNameFormat>jenkinscr-@{project.version}</tagNameFormat>
         </configuration>
       </plugin>
     </plugins>
