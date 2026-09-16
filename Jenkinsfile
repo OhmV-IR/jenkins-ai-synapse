@@ -94,7 +94,13 @@ pipeline {
                 MAVEN_SETTINGS = credentials('nexus-maven-settings-file')
             }
             steps {
-                checkout scm
+                checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: 'master']],
+                            userRemoteConfigs: scm.userRemoteConfigs,
+                            extensions: [[$class: 'LocalBranch', localBranch: 'master']]
+                ])
+
                 sh '''
                     git config user.name "Jenkins CI"
                     git config user.email "jenkins-ci@ohmvir.dev"
