@@ -101,13 +101,11 @@ pipeline {
                             extensions: [[$class: 'LocalBranch', localBranch: 'master']]
                 ])
 
-                sh '''
-                    git config user.name "Jenkins CI"
-                    git config user.email "jenkins-ci@ohmvir.dev"
-                '''
-
                 withCredentials([usernamePassword(credentialsId: 'ghpat_personal', usernameVariable: 'GH_USER', passwordVariable: 'GH_TOKEN')]) {
                     sh '''
+                        git config user.name "Jenkins CI"
+                        git config user.email "jenkins-ci@ohmvir.dev"
+                        git remote set-url origin "https://${GH_USER}:${GH_TOKEN}@github.com/OhmV-IR/jenkins-ai-synapse.git"
                         mvn --batch-mode release:prepare release:perform \
                             -s "$MAVEN_SETTINGS" \
                             -Darguments="-DskipTests" \
