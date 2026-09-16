@@ -14,3 +14,5 @@ work
 .classpath
 .project
 *~
+release.properties
+pom.xml.releaseBackup
