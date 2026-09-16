@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:section title="${%Output Video Content}">
+        <j:if test="${instance.videoData != null}">
+            <video width="640" height="360" controls="controls">
+                <source src="${descriptor.descriptorUrl}/${instance.url}/video" type="video/mp4" />
+                Your browser does not support the video tag.
+            </video>
+        </j:if>
+        <j:if test="${instance.videoData == null}">
+            <p><em>No video data available.</em></p>
+        </j:if>
+    </f:section>
+</j:jelly>
