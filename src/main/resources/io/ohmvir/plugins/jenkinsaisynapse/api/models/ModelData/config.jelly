@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:section title="${%Model Data}">
+        <f:entry title="${%Model Id}" field="modelId">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="${%Capabilities}" field="capabilities">
+            <ul>
+                <j:forEach var="item" items="${instance.capabilities}">
+                    <li>$[item.displayName}</li>
+                </j:forEach>
+            </ul>
+        </f:entry>
+        <f:entry title="${%Supported Inputs}" field="inputs">
+            <ul>
+                <j:forEach var="item" items="${instance.inputs}">
+                    <li>$[item.displayName}</li>
+                </j:forEach>
+            </ul>
+        </f:entry>
+        <f:entry title="${%Supported Outputs}" field="outputs">
+            <ul>
+                <j:forEach var="item" items="${instance.outputs}">
+                    <li>$[item.displayName}</li>
+                </j:forEach>
+            </ul>
+        </f:entry>
+        <f:entry title="${%Supported Thinking Levels}" field="supportedThinkingLevels">
+            <ul>
+                <j:forEach var="item" items="${instance.supportedThinkingLevels}">
+                    <li>$[item.displayName}</li>
+                </j:forEach>
+            </ul>
+        </f:entry>
+        <f:entry title="${%Provider Type}" field="providerType">
+            <f:enum />
+        </f:entry>
+        <f:entry title="${%Max Input Tokens}" field="maxInputTokens">
+            <f:number />
+        </f:entry>
+        <f:entry title="${%Max Output Tokens}" field="maxOutputTokens">
+            <f:number />
+        </f:entry>
+        <f:entry title="${%Context Window}" field="contextWindow">
+            <f:number />
+        </f:entry>
+        <f:entry title="${%Max Temperature}" field="maxTemperature">
+            <f:number />
+        </f:entry>
+    </f:section>
+</j:jelly>
