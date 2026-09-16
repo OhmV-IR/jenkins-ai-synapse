@@ -4,8 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import hudson.Extension;
+import hudson.ExtensionPoint;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
+import hudson.model.Describable;
 import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsManagementLink;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.skills.SkillConfiguration;
@@ -13,9 +16,10 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.Getter;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-public class SkillData {
+public class SkillData implements Describable<SkillData>, ExtensionPoint {
     private @Getter final String skillName;
     private @Getter final String skillDescription;
     private @Getter @Nullable final String skillLicense;
@@ -25,10 +29,21 @@ public class SkillData {
     private @Getter final String skillText;
     private final HashMap<String, String> skillReferences;
 
+    public Set<Map.Entry<String, String>> getSkillReferencesEntries(){
+        return skillReferences.entrySet();
+    }
+
     /**
      * A map of skill names to SkillData
      */
     private static final HashMap<String, SkillData> skillDataCache = new HashMap<>();
+
+    public String getSkillMetadataPrettyYaml(){
+        if(skillMetadata == null){
+            return null;
+        }
+        return skillMetadata.toPrettyString();
+    }
 
     @Initializer(after = InitMilestone.PLUGINS_STARTED)
     public static void initializeSkillDataCache() {
@@ -104,5 +119,13 @@ public class SkillData {
         this.skillReferences = new HashMap<>();
         this.skillReferences.putAll(skillDirectory);
         this.skillReferences.remove("SKILL.md");
+    }
+
+    @Extension
+    public static class DescriptorImpl extends Descriptor<SkillData> {
+        @Override
+        public @NonNull String getDisplayName() {
+            return "Skill Data";
+        }
     }
 }
