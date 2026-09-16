@@ -1,6 +1,12 @@
 pipeline {
     agent none
 
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '30'))
+    }
+
     stages {
         stage('Build matrix') {
             matrix {
@@ -12,7 +18,7 @@ pipeline {
                 }
 
                 agent { label 'linux' }
-                tools { 
+                tools {
                     jdk "${JDK_VERSION}"
                     maven '3.9.14'
                 }
@@ -22,54 +28,51 @@ pipeline {
                 }
 
                 stages {
-                    stage("Checkout") {
+                    stage('Checkout') {
                         steps {
                             checkout scm
                         }
                     }
 
-                    stage("Compile plugin") {
+                    stage('Build and verify') {
                         steps {
-                            sh "mvn -DforkCount=1C clean compile"
+                            sh 'mvn --batch-mode -s "$MAVEN_SETTINGS" -DforkCount=1C clean verify'
+                        }
+                        post {
+                            always {
+                                junit allowEmptyResults: true,
+                                      testResults: '**/target/surefire-reports/*.xml'
+                            }
                         }
                     }
 
-                    stage("Test plugin"){
+                    stage('Upload artifact') {
                         steps {
-                            sh "mvn -DforkCount=1C test"
-                            junit '**/target/surefire-reports/*.xml'
-                        }
-                    }
-
-                    stage("Verify plugin"){
-                        steps {
-                            sh "mvn -DforkCount=1C verify"
-                        }
-                    }
-
-                    stage("Upload artifact") {
-                        steps {
-                            sh "mkdir -p output"
-                            sh "cp target/jenkinsaisynapse.hpi output/jenkinsaisynapse-jvm-${JDK_VERSION}.hpi"
-                            archiveArtifacts artifacts: "output/jenkinsaisynapse-jvm-${JDK_VERSION}.hpi", fingerprint: true
-                            sh "rm -rf output"
+                            sh """
+                                mkdir -p output
+                                cp target/jenkinsaisynapse.hpi output/jenkinsaisynapse-jvm-${JDK_VERSION}.hpi
+                            """
+                            archiveArtifacts artifacts: "output/jenkinsaisynapse-jvm-${JDK_VERSION}.hpi",
+                                             fingerprint: true
+                            sh 'rm -rf output'
                         }
                     }
 
                     stage('Deploy Snapshot') {
-                         when {
-                              allOf {
-                                   branch 'master'
-                                   not { buildingTag() }
-                                   environment name: 'JDK_VERSION', value: '25'
-                              }
-                         }
-                         steps {
-                             script {
-                                 def snapshotVersion = "1.0.0-BUILD-${BUILD_NUMBER}-SNAPSHOT"
-                                 sh "mvn versions:set -DnewVersion=${snapshotVersion} -DgenerateBackupPoms=false"
-                                 sh 'mvn clean deploy -s "$MAVEN_SETTINGS" -DskipTests'
-                             }
+                        when {
+                            allOf {
+                                branch 'master'
+                                not { buildingTag() }
+                                environment name: 'JDK_VERSION', value: '25'
+                            }
+                        }
+                        steps {
+                            sh '''
+                                mvn --batch-mode -s "$MAVEN_SETTINGS" \
+                                    -Dchangelist="-BUILD-${BUILD_NUMBER}-SNAPSHOT" \
+                                    -DskipTests \
+                                    clean deploy
+                            '''
                         }
                     }
                 }
@@ -109,21 +112,37 @@ pipeline {
                                                   passwordVariable: 'GH_TOKEN')]) {
                     sh '''
                         set -eu
+
                         git config user.name "Jenkins CI"
                         git config user.email "jenkins-ci@ohmvir.dev"
-                        git remote set-url origin "https://${GH_USER}:${GH_TOKEN}@github.com/OhmV-IR/jenkins-ai-synapse.git"
+
+                        # The release plugin pushes to the URL in <developerConnection>,
+                        # not to "origin", so auth has to be attached to git itself.
+                        ASKPASS="${WORKSPACE_TMP:-/tmp}/git-askpass.sh"
+                        cat > "$ASKPASS" <<'SCRIPT'
+#!/bin/sh
+case "$1" in
+  Username*) echo "$GH_USER" ;;
+  Password*) echo "$GH_TOKEN" ;;
+  *) exit 1 ;;
+esac
+SCRIPT
+                        chmod 700 "$ASKPASS"
+                        export GIT_ASKPASS="$ASKPASS"
+
                         git fetch --tags --prune --prune-tags origin
 
                         mvn --batch-mode release:clean release:prepare release:perform \
                             -s "$MAVEN_SETTINGS" \
                             -Dresume=false \
-                            -Darguments="-DskipTests"
+                            -DlocalCheckout=true \
+                            -Darguments="-DskipTests -s $MAVEN_SETTINGS"
                     '''
                 }
             }
             post {
                 always {
-                    sh 'git remote set-url origin "https://github.com/OhmV-IR/jenkins-ai-synapse.git" || true'
+                    sh 'rm -f "${WORKSPACE_TMP:-/tmp}/git-askpass.sh" || true'
                 }
             }
         }
