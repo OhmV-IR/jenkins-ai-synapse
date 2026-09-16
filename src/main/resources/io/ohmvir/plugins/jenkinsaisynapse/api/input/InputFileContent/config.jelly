@@ -4,7 +4,7 @@
     <f:section title="${%Input File Content}">
         <j:if test="${instance.fileData != null}">
             <a href="download" class="jenkins-button">
-                Download ${instance.fileName}
+                Download ${instance.fileId}
             </a>
         </j:if>
         <j:if test="${instance.fileData == null}">
