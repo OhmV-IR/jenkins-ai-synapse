@@ -9,6 +9,7 @@ import java.util.Set;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.Getter;
+import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse2;
@@ -41,6 +42,11 @@ public class OutputVideoContent extends ModelOutput {
         @Override
         public Set<ModelOutputType> getRequiredOutputTypes() {
             return Set.of(ModelOutputType.VIDEO);
+        }
+
+        @Override
+        public @NonNull String getDisplayName() {
+            return "Output Video Content";
         }
     }
 }
