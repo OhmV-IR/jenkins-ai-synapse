@@ -92,7 +92,6 @@ pipeline {
             }
             environment {
                 MAVEN_SETTINGS = credentials('nexus-maven-settings-file')
-                GIT_CREDS      = credentials('ghpat_personal')
             }
             steps {
                 checkout scm
@@ -101,11 +100,13 @@ pipeline {
                     git config user.email "jenkins-ci@ohmvir.dev"
                 '''
 
-                sshagent(credentials: ['ghpat_personal']) {
+                withCredentials([usernamePassword(credentialsId: 'ghpat_personal', usernameVariable: 'GH_USER', passwordVariable: 'GH_TOKEN')]) {
                     sh '''
                         mvn --batch-mode release:prepare release:perform \
                             -s "$MAVEN_SETTINGS" \
-                            -Darguments="-DskipTests"
+                            -Darguments="-DskipTests" \
+                            -Dusername="$GH_USER"
+                            -Dpassword="$GH_TOKEN" \
                     '''
                 }
             }
