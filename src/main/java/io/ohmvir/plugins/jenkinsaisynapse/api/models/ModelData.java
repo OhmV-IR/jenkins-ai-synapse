@@ -1,8 +1,12 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.models;
 
+import hudson.Extension;
 import hudson.ExtensionList;
+import hudson.ExtensionPoint;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
+import hudson.model.Describable;
+import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
 import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClientFactory;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
@@ -19,9 +23,10 @@ import java.util.Optional;
 import java.util.logging.Logger;
 import lombok.Getter;
 import lombok.Setter;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-public class ModelData {
+public class ModelData implements Describable<ModelData>, ExtensionPoint {
     private static final Logger LOGGER = Logger.getLogger(ModelData.class.getName());
     private static final HashMap<String, ModelData> MODEL_DATA = new HashMap<>();
     private @Getter @Setter String modelId;
@@ -152,5 +157,13 @@ public class ModelData {
 
     public boolean supportsThinking() {
         return !supportedThinkingLevels.isEmpty();
+    }
+
+    @Extension
+    public static class DescriptorImpl extends Descriptor<ModelData> {
+        @Override
+        public @NonNull String getDisplayName() {
+            return "Model Data";
+        }
     }
 }
