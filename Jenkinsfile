@@ -77,7 +77,6 @@ pipeline {
         }
 
         stage('Execute Maven Release') {
-            // Runs only on master when a release is triggered (e.g., via parameter or manually)
             when {
                 allOf {
                     branch 'master'
@@ -94,24 +93,37 @@ pipeline {
                 MAVEN_SETTINGS = credentials('nexus-maven-settings-file')
             }
             steps {
+                cleanWs()
                 checkout([
-                            $class: 'GitSCM',
-                            branches: [[name: 'master']],
-                            userRemoteConfigs: scm.userRemoteConfigs,
-                            extensions: [[$class: 'LocalBranch', localBranch: 'master']]
+                    $class: 'GitSCM',
+                    branches: [[name: 'master']],
+                    userRemoteConfigs: scm.userRemoteConfigs,
+                    extensions: [
+                        [$class: 'LocalBranch', localBranch: 'master'],
+                        [$class: 'CloneOption', noTags: false, shallow: false]
+                    ]
                 ])
 
-                withCredentials([usernamePassword(credentialsId: 'ghpat_personal', usernameVariable: 'GH_USER', passwordVariable: 'GH_TOKEN')]) {
+                withCredentials([usernamePassword(credentialsId: 'ghpat_personal',
+                                                  usernameVariable: 'GH_USER',
+                                                  passwordVariable: 'GH_TOKEN')]) {
                     sh '''
+                        set -eu
                         git config user.name "Jenkins CI"
                         git config user.email "jenkins-ci@ohmvir.dev"
                         git remote set-url origin "https://${GH_USER}:${GH_TOKEN}@github.com/OhmV-IR/jenkins-ai-synapse.git"
-                        mvn --batch-mode release:prepare release:perform \
+                        git fetch --tags --prune --prune-tags origin
+
+                        mvn --batch-mode release:clean release:prepare release:perform \
                             -s "$MAVEN_SETTINGS" \
-                            -Darguments="-DskipTests" \
-                            -Dusername="$GH_USER"
-                            -Dpassword="$GH_TOKEN" \
+                            -Dresume=false \
+                            -Darguments="-DskipTests"
                     '''
+                }
+            }
+            post {
+                always {
+                    sh 'git remote set-url origin "https://github.com/OhmV-IR/jenkins-ai-synapse.git" || true'
                 }
             }
         }
