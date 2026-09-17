@@ -4,7 +4,6 @@ import hudson.ExtensionPoint;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelProviderType;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsManagementLink;
 import java.util.Objects;
 import org.kohsuke.stapler.QueryParameter;
@@ -24,20 +23,20 @@ public abstract class ModelConfiguration implements Describable<ModelConfigurati
 
     public static ModelConfiguration getFromId(String id) {
         return ModelsManagementLink.get().getModelConfigurations().stream()
-                .filter(model -> Objects.equals(model.getProviderType().toString(), id.split(":")[0]))
+                .filter(model -> Objects.equals(model.getProviderType(), id.split(":")[0]))
                 .filter(model -> Objects.equals(id.split(":")[1], model.modelName))
                 .findFirst()
                 .orElse(null);
     }
 
-    public abstract ModelProviderType getProviderType();
+    public abstract String getProviderType();
 
     public String getModelIdDisplayName() {
-        return getProviderType().toString() + ":" + modelDisplayName;
+        return getProviderType() + ":" + modelDisplayName;
     }
 
     public String getModelId() {
-        return getProviderType().toString() + ":" + modelName;
+        return getProviderType() + ":" + modelName;
     }
 
     public abstract static class DescriptorImpl extends Descriptor<ModelConfiguration> {

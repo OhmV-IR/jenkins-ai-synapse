@@ -34,7 +34,7 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
     private @Getter @Setter List<ModelInputType> inputs;
     private @Getter @Setter List<ModelOutputType> outputs;
     private @Getter @Setter List<ModelThinkingLevel> supportedThinkingLevels;
-    private @Getter @Setter ModelProviderType providerType;
+    private @Getter @Setter String providerType;
     private @Getter @Setter @Nullable Long maxInputTokens;
     private @Getter @Setter @Nullable Long maxOutputTokens;
     private @Getter @Setter long contextWindow;
