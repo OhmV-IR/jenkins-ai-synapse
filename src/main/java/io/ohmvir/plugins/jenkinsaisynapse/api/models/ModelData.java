@@ -40,7 +40,10 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
     private @Getter @Setter long contextWindow;
     private @Getter @Setter @Nullable Double maxTemperature;
 
-    public ModelData() {}
+    public ModelData(ModelConfiguration config) {
+        this.modelId = config.getModelId();
+        this.providerType = config.getProviderType();
+    }
 
     @Initializer(after = InitMilestone.PLUGINS_STARTED)
     public static void initializeModelDataCache() {
