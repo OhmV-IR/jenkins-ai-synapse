@@ -87,6 +87,10 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
                 .collect(Collectors.toSet());
     }
 
+    public Set<Class<ModelOutput>> getOutputClasses() {
+        return Collections.unmodifiableSet(requestedOutputTypes);
+    }
+
     public Set<ModelCapability> getRequiredCapabilities() {
         Set<ModelCapability> capabilities = modelInputs.stream()
                 .map(ModelInput::getClass)
