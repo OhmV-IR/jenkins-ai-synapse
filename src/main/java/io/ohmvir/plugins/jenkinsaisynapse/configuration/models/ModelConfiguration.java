@@ -6,7 +6,6 @@ import hudson.model.Descriptor;
 import hudson.util.FormValidation;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsManagementLink;
 import java.util.Objects;
-
 import lombok.Getter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
@@ -17,7 +16,7 @@ public abstract class ModelConfiguration implements Describable<ModelConfigurati
     private @Getter final String modelDisplayName;
 
     public ModelConfiguration(String modelName, String modelDisplayName) throws Descriptor.FormException {
-        if(modelDisplayName.isBlank()){
+        if (modelDisplayName.isBlank()) {
             throw new Descriptor.FormException("Model display name should not be empty", "modelDisplayName");
         }
         this.modelDisplayName = modelDisplayName;
