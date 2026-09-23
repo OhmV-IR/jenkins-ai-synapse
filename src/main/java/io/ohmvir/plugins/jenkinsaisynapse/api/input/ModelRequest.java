@@ -194,18 +194,18 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
                         Logger.getLogger(ModelResponse.class.getName())
                                 .severe("Failed to find tool model tried to call with name "
                                         + toolCallOutput.getName());
-                        newInputs.add(new ToolCallResponseContent(toolCallOutput.getToolUseId(), false, null));
+                        newInputs.add(new ToolCallResponseContent(toolCallOutput.getToolUseId(), false, null, tool));
                         return;
                     }
                     Optional<String> toolCallResponseStr = tool.callTool(toolCallOutput.getToolArguments());
                     if (toolCallResponseStr.isEmpty()) {
                         Logger.getLogger(ModelResponse.class.getName())
                                 .severe("Failed to call model tool with name " + toolCallOutput.getName());
-                        newInputs.add(new ToolCallResponseContent(toolCallOutput.getToolUseId(), false, null));
+                        newInputs.add(new ToolCallResponseContent(toolCallOutput.getToolUseId(), false, null, tool));
                         return;
                     }
                     newInputs.add(new ToolCallResponseContent(
-                            toolCallOutput.getToolUseId(), true, toolCallResponseStr.get()));
+                            toolCallOutput.getToolUseId(), true, toolCallResponseStr.get(), tool));
                 }
                 default -> {}
             }
