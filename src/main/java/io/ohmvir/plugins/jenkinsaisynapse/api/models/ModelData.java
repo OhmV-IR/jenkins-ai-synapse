@@ -8,11 +8,11 @@ import hudson.init.Initializer;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
-import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClientFactory;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsManagementLink;
+import io.ohmvir.plugins.jenkinsaisynapse.configuration.client.ModelClientConfiguration;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.models.*;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -73,9 +73,8 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
         return ModelData.MODEL_DATA.get(modelId);
     }
 
-    @SuppressWarnings("unchecked")
-    public static ModelClient<?, ?> createClient(ModelConfiguration config) {
-        Optional<ModelClientFactory> factory = ExtensionList.lookup(ModelClientFactory.class).stream()
+    public static ModelClient<?, ?> getClient(ModelConfiguration config) {
+        Optional<ModelClient> client = ExtensionList.lookup(ModelClient.class).stream()
                 .filter(obj -> {
                     Type genericSuper = obj.getClass().getGenericSuperclass();
                     if (genericSuper instanceof ParameterizedType parameterizedSuper) {
@@ -85,26 +84,29 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
                     }
                 })
                 .findFirst();
-        if (factory.isEmpty()) {
-            return null;
-        }
-        Type genericSuper = factory.getClass().getGenericSuperclass();
-        if (genericSuper instanceof ParameterizedType parameterizedSuper) {
-            return factory.get()
-                    .createClient(
-                            get(config.getModelId()),
-                            config,
-                            ExtensionList.lookupSingleton(parameterizedSuper.getActualTypeArguments()[1].getClass()));
-        }
-        return null;
+        return client.orElse(null);
     }
 
-    public ModelClient<?, ?> createClient() {
-        ModelConfiguration modelConfiguration = ModelsManagementLink.get().getModelConfigurations().stream()
+    public ModelClient<?, ?> getClient() {
+        return getClient(getModelConfiguration());
+    }
+
+    public ModelConfiguration getModelConfiguration() {
+        return ModelsManagementLink.get().getModelConfigurations().stream()
                 .filter(modelCfg -> Objects.equals(modelCfg.getModelId(), modelId))
                 .findFirst()
-                .get();
-        return createClient(modelConfiguration);
+                .orElse(null);
+    }
+
+    public ModelClientConfiguration getClientConfiguration() {
+        Type genericSuper = getClient().getClass().getGenericSuperclass();
+        if (genericSuper instanceof ParameterizedType parameterizedSuper) {
+            return ExtensionList.lookup(ModelClientConfiguration.class).stream()
+                    .filter(obj -> obj.getClass().equals(parameterizedSuper.getActualTypeArguments()[1]))
+                    .findFirst()
+                    .orElse(null);
+        }
+        return null;
     }
 
     /**
@@ -114,13 +116,18 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
      * @return null if no models are capable of fulfilling that request or a model client that can fulfill the request.
      */
     public static @Nullable ModelClient<?, ?> createClientForRequest(ModelRequest request) {
+        ModelData supportedModel = ModelData.findModelForRequest(request);
+        if (supportedModel == null) {
+            return null;
+        }
+        return supportedModel.getClient();
+    }
+
+    public static @Nullable ModelData findModelForRequest(ModelRequest request) {
         Optional<ModelData> supportedModel = MODEL_DATA.values().stream()
                 .filter(modelData -> modelData.supportsRequest(request))
                 .findFirst();
-        if (supportedModel.isEmpty()) {
-            return null;
-        }
-        return supportedModel.get().createClient();
+        return supportedModel.orElse(null);
     }
 
     public boolean supportsRequest(ModelRequest request) {

@@ -142,18 +142,20 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
     }
 
     public @Nullable ModelResponse execute() {
-        return execute(ModelData.createClientForRequest(this));
+        return execute(ModelData.findModelForRequest(this));
     }
 
-    public @Nullable ModelResponse execute(ModelClient<?, ?> client) {
+    public @Nullable ModelResponse execute(ModelData model) {
         try {
+            ModelClient<?, ?> client = model.getClient();
             if (client == null) {
                 return null;
             }
             List<ModelOutput> currentOutputs = new ArrayList<>();
             List<ModelContent> finalContent = new ArrayList<>(modelInputs);
             while (true) {
-                List<ModelOutput> stepOutputs = client.takeStep(this, modelInputs);
+                List<ModelOutput> stepOutputs = client.takeStep(
+                        model, model.getModelConfiguration(), model.getClientConfiguration(), this, modelInputs);
                 if (stepOutputs.isEmpty()) {
                     break;
                 }
