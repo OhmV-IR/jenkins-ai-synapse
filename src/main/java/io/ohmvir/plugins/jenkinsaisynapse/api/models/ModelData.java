@@ -16,10 +16,7 @@ import io.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsManagementLink;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.models.*;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.logging.Logger;
 import lombok.Getter;
 import lombok.Setter;
@@ -43,6 +40,11 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
     public ModelData(ModelConfiguration config) {
         this.modelId = config.getModelId();
         this.providerType = config.getProviderType();
+        this.capabilities = new ArrayList<>();
+        this.inputs = new ArrayList<>();
+        this.outputs = new ArrayList<>();
+        this.supportedThinkingLevels = new ArrayList<>();
+        this.contextWindow = 0L;
     }
 
     @Initializer(after = InitMilestone.PLUGINS_STARTED)
