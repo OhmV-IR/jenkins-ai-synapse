@@ -12,12 +12,14 @@ public class ToolArgumentDescription implements Describable<ToolArgumentDescript
     private @Getter final String name;
     private @Getter final Class<?> type;
     private @Getter final String description;
+    private @Getter final boolean required;
 
     @DataBoundConstructor
-    public ToolArgumentDescription(String name, Class<?> type, String description) {
+    public ToolArgumentDescription(String name, Class<?> type, String description, boolean required) {
         this.name = name;
         this.type = type;
         this.description = description;
+        this.required = required;
     }
 
     public String getTypeName() {

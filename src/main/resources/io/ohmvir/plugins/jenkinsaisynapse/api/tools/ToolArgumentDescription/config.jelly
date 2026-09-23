@@ -11,5 +11,8 @@
         <f:entry title="${%Argument Description}" field="description">
             <f:textbox />
         </f:entry>
+        <f:entry title="${%Required}" field="required">
+            <f:checkbox />
+        </f:entry>
     </f:section>
 </j:jelly>
