@@ -187,27 +187,23 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
     private static List<ModelInput> generateNewInputsForOutputs(List<ModelOutput> stepOutputs) {
         List<ModelInput> newInputs = new ArrayList<>();
         stepOutputs.forEach(modelOutput -> {
-            switch (modelOutput) {
-                case ToolCallContent toolCallOutput -> {
-                    Tool tool = ToolRegistry.getTool(toolCallOutput.getName());
-                    if (tool == null) {
-                        Logger.getLogger(ModelResponse.class.getName())
-                                .severe("Failed to find tool model tried to call with name "
-                                        + toolCallOutput.getName());
-                        newInputs.add(new ToolCallResponseContent(toolCallOutput.getToolUseId(), false, null, tool));
-                        return;
-                    }
-                    Optional<String> toolCallResponseStr = tool.callTool(toolCallOutput.getToolArguments());
-                    if (toolCallResponseStr.isEmpty()) {
-                        Logger.getLogger(ModelResponse.class.getName())
-                                .severe("Failed to call model tool with name " + toolCallOutput.getName());
-                        newInputs.add(new ToolCallResponseContent(toolCallOutput.getToolUseId(), false, null, tool));
-                        return;
-                    }
-                    newInputs.add(new ToolCallResponseContent(
-                            toolCallOutput.getToolUseId(), true, toolCallResponseStr.get(), tool));
+            if (modelOutput instanceof ToolCallContent toolCallOutput) {
+                Tool tool = ToolRegistry.getTool(toolCallOutput.getName());
+                if (tool == null) {
+                    Logger.getLogger(ModelResponse.class.getName())
+                            .severe("Failed to find tool model tried to call with name " + toolCallOutput.getName());
+                    newInputs.add(new ToolCallResponseContent(toolCallOutput.getToolUseId(), false, null, null));
+                    return;
                 }
-                default -> {}
+                Optional<String> toolCallResponseStr = tool.callTool(toolCallOutput.getToolArguments());
+                if (toolCallResponseStr.isEmpty()) {
+                    Logger.getLogger(ModelResponse.class.getName())
+                            .severe("Failed to call model tool with name " + toolCallOutput.getName());
+                    newInputs.add(new ToolCallResponseContent(toolCallOutput.getToolUseId(), false, null, tool));
+                    return;
+                }
+                newInputs.add(new ToolCallResponseContent(
+                        toolCallOutput.getToolUseId(), true, toolCallResponseStr.get(), tool));
             }
         });
         return newInputs;
