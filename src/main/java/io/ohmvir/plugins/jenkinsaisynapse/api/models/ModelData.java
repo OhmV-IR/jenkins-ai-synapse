@@ -7,6 +7,7 @@ import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
+import hudson.util.ListBoxModel;
 import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
@@ -121,6 +122,12 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
             return null;
         }
         return supportedModel.getClient();
+    }
+
+    public static ListBoxModel getAllModelsListBox(){
+        ListBoxModel items = new ListBoxModel();
+        MODEL_DATA.forEach((key, value) -> items.add(key, value.getModelConfiguration().getModelIdDisplayName()));
+        return items;
     }
 
     public static @Nullable ModelData findModelForRequest(ModelRequest request) {
