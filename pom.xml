@@ -61,16 +61,9 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-        <version>7020.vf38cb_40380d1</version>
+        <version>7093.v37de7b_4a_8a_4f</version>
         <type>pom</type>
         <scope>import</scope>
-      </dependency>
-
-      <!-- Explicitly align error_prone_annotations to meet upper bound requirement -->
-      <dependency>
-        <groupId>com.google.errorprone</groupId>
-        <artifactId>error_prone_annotations</artifactId>
-        <version>2.50.0</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -80,7 +73,7 @@
     <dependency>
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
-      <version>2.14.0</version>
+      <version>2.10.1</version>
     </dependency>
     <dependency>
       <groupId>io.github.classgraph</groupId>
@@ -90,6 +83,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>credentials</artifactId>
+      <version>1511.v2e3cb_0008ef0</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
