@@ -124,9 +124,10 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
         return supportedModel.getClient();
     }
 
-    public static ListBoxModel getAllModelsListBox(){
+    public static ListBoxModel getAllModelsListBox() {
         ListBoxModel items = new ListBoxModel();
-        MODEL_DATA.forEach((key, value) -> items.add(key, value.getModelConfiguration().getModelIdDisplayName()));
+        MODEL_DATA.forEach(
+                (key, value) -> items.add(key, value.getModelConfiguration().getModelIdDisplayName()));
         return items;
     }
 
