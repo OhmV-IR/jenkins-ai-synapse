@@ -29,7 +29,7 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 public class ModelRequest implements Cloneable, Describable<ModelRequest>, ExtensionPoint {
-    private final Set<Class<ModelOutput>> requestedOutputTypes = new HashSet<>();
+    private final Set<Class<? extends ModelOutput>> requestedOutputTypes = new HashSet<>();
     private final @Getter List<ModelInput> modelInputs = new ArrayList<>();
 
     @Setter
@@ -87,7 +87,7 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
                 .collect(Collectors.toSet());
     }
 
-    public Set<Class<ModelOutput>> getOutputClasses() {
+    public Set<Class<? extends ModelOutput>> getOutputClasses() {
         return Collections.unmodifiableSet(requestedOutputTypes);
     }
 
@@ -104,7 +104,7 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
         return capabilities;
     }
 
-    public void requestOutputType(Class<ModelOutput> outputType) {
+    public void requestOutputType(Class<? extends ModelOutput> outputType) {
         requestedOutputTypes.add(outputType);
     }
 
