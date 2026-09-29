@@ -95,11 +95,11 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
 
         @DataBoundConstructor
         public SkillReferenceEntry(String relativeFilePath, String fileContent) throws Descriptor.FormException {
-            if(relativeFilePath.trim().isEmpty()){
+            if (relativeFilePath.trim().isEmpty()) {
                 throw new Descriptor.FormException("Relative file path cannot be empty", "relativeFilePath");
             }
             this.relativeFilePath = relativeFilePath;
-            if(fileContent.trim().isEmpty()){
+            if (fileContent.trim().isEmpty()) {
                 throw new Descriptor.FormException("File content cannot be empty", "fileContent");
             }
             this.fileContent = fileContent;
@@ -130,9 +130,10 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
 
     public static class AllowedTool implements Describable<AllowedTool>, ExtensionPoint {
         private @Getter final String toolName;
+
         @DataBoundConstructor
         public AllowedTool(String toolName) throws Descriptor.FormException {
-            if(toolName.trim().isEmpty()){
+            if (toolName.trim().isEmpty()) {
                 throw new Descriptor.FormException("Tool name cannot be empty", "toolName");
             }
             this.toolName = toolName;
