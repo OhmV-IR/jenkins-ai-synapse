@@ -31,11 +31,11 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
                     skillLicense,
                     skillCompatibility,
                     YAML_MAPPER.readTree(skillMetadata),
-                    allowedTools.stream().map(AllowedTool::toolName).toList(),
+                    allowedTools.stream().map(AllowedTool::getToolName).toList(),
                     skillText,
                     skillReferences.stream()
                             .collect(Collectors.toMap(
-                                    SkillReferenceEntry::relativeFilePath, SkillReferenceEntry::fileContent))));
+                                    SkillReferenceEntry::getRelativeFilePath, SkillReferenceEntry::getFileContent))));
         } catch (Exception e) {
             LOGGER.severe("Failed to generate SkillData for DeclaredSkillConfiguration due to " + e.getMessage());
             return List.of();
@@ -89,11 +89,21 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
     private @Getter final String skillText;
     private @Getter final List<SkillReferenceEntry> skillReferences;
 
-    public record SkillReferenceEntry(
-            @Getter String relativeFilePath, @Getter String fileContent)
-            implements Describable<SkillReferenceEntry>, ExtensionPoint {
+    public static class SkillReferenceEntry implements Describable<SkillReferenceEntry>, ExtensionPoint {
+        private @Getter final String relativeFilePath;
+        private @Getter final String fileContent;
+
         @DataBoundConstructor
-        public SkillReferenceEntry {}
+        public SkillReferenceEntry(String relativeFilePath, String fileContent) throws Descriptor.FormException {
+            if(relativeFilePath.trim().isEmpty()){
+                throw new Descriptor.FormException("Relative file path cannot be empty", "relativeFilePath");
+            }
+            this.relativeFilePath = relativeFilePath;
+            if(fileContent.trim().isEmpty()){
+                throw new Descriptor.FormException("File content cannot be empty", "fileContent");
+            }
+            this.fileContent = fileContent;
+        }
 
         @Extension
         public static class DescriptorImpl extends Descriptor<SkillReferenceEntry> {
@@ -118,9 +128,15 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
         }
     }
 
-    public record AllowedTool(@Getter String toolName) implements Describable<AllowedTool>, ExtensionPoint {
+    public static class AllowedTool implements Describable<AllowedTool>, ExtensionPoint {
+        private @Getter final String toolName;
         @DataBoundConstructor
-        public AllowedTool {}
+        public AllowedTool(String toolName) throws Descriptor.FormException {
+            if(toolName.trim().isEmpty()){
+                throw new Descriptor.FormException("Tool name cannot be empty", "toolName");
+            }
+            this.toolName = toolName;
+        }
 
         @Extension
         public static class DescriptorImpl extends Descriptor<AllowedTool> {
