@@ -2,7 +2,9 @@ package io.ohmvir.plugins.jenkinsaisynapse;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.InputVideoContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.output.OutputVideoContent;
 import org.junit.jupiter.api.Test;
@@ -11,24 +13,25 @@ public class VideoContentMimeTypeTest {
     private static final byte[] DATA = {1, 2, 3};
 
     @Test
-    public void inputVideoKeepsDataAndMimeType() {
+    public void inputVideoKeepsDataAndMimeType() throws Descriptor.FormException {
         InputVideoContent content = new InputVideoContent(DATA, "video/webm");
         assertArrayEquals(DATA, content.getVideoData());
         assertEquals("video/webm", content.getMimeType());
     }
 
     @Test
-    public void outputVideoKeepsDataAndMimeType() {
-        OutputVideoContent content = new OutputVideoContent(DATA, "video/quicktime");
+    public void outputVideoKeepsDataAndMimeType() throws Descriptor.FormException {
+        OutputVideoContent content = new OutputVideoContent(DATA, "video/mp4; codecs=\"avc1.42E01E\"");
         assertArrayEquals(DATA, content.getVideoData());
-        assertEquals("video/quicktime", content.getMimeType());
+        assertEquals("video/mp4; codecs=\"avc1.42E01E\"", content.getMimeType());
     }
 
     @Test
-    public void missingOrNonVideoMimeTypeFallsBackToDefault() {
-        assertEquals(InputVideoContent.DEFAULT_MIME_TYPE, new InputVideoContent(DATA, null).getMimeType());
-        assertEquals(InputVideoContent.DEFAULT_MIME_TYPE, new InputVideoContent(DATA, "text/html").getMimeType());
-        assertEquals(OutputVideoContent.DEFAULT_MIME_TYPE, new OutputVideoContent(DATA, " ").getMimeType());
-        assertEquals(OutputVideoContent.DEFAULT_MIME_TYPE, new OutputVideoContent(DATA, "image/png").getMimeType());
+    public void missingOrInvalidMimeTypeIsRejected() {
+        String[] invalidMimeTypes = {null, "", " ", "text/html", "image/png", "video/", "video/mp4\r\nX-Injected: 1"};
+        for (String mimeType : invalidMimeTypes) {
+            assertThrows(Descriptor.FormException.class, () -> new InputVideoContent(DATA, mimeType));
+            assertThrows(Descriptor.FormException.class, () -> new OutputVideoContent(DATA, mimeType));
+        }
     }
 }

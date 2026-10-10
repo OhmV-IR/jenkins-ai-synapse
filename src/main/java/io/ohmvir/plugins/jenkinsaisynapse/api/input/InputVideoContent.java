@@ -1,11 +1,12 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.input;
 
 import hudson.Extension;
+import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
+import io.ohmvir.plugins.jenkinsaisynapse.utils.MimeTypeUtils;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Locale;
 import java.util.Set;
 import lombok.Getter;
 import org.jspecify.annotations.NonNull;
@@ -14,26 +15,14 @@ import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse2;
 
 public class InputVideoContent extends ModelInput {
-    public static final String DEFAULT_MIME_TYPE = "video/mp4";
-
     private @Getter final byte[] videoData;
-    private final String mimeType;
+    /** MIME type identifying the encoding of {@link #videoData}, eg {@code video/mp4} or {@code video/webm}. */
+    private @Getter final String mimeType;
 
     @DataBoundConstructor
-    public InputVideoContent(byte[] videoData, String mimeType) {
+    public InputVideoContent(byte[] videoData, String mimeType) throws Descriptor.FormException {
         this.videoData = videoData;
-        this.mimeType = mimeType;
-    }
-
-    /**
-     * MIME type identifying the encoding of {@link #getVideoData()}, e.g. {@code video/mp4} or {@code video/webm}.
-     * Falls back to {@value #DEFAULT_MIME_TYPE} when unset or not a video type.
-     */
-    public String getMimeType() {
-        if (mimeType == null || !mimeType.trim().toLowerCase(Locale.ROOT).startsWith("video/")) {
-            return DEFAULT_MIME_TYPE;
-        }
-        return mimeType.trim();
+        this.mimeType = MimeTypeUtils.requireVideoMimeType(mimeType, "mimeType");
     }
 
     public void doVideo(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException {
@@ -42,7 +31,7 @@ public class InputVideoContent extends ModelInput {
             return;
         }
 
-        rsp.setContentType(getMimeType());
+        rsp.setContentType(mimeType);
         rsp.setHeader("X-Content-Type-Options", "nosniff");
         rsp.setContentLength(videoData.length);
         rsp.getOutputStream().write(videoData);
