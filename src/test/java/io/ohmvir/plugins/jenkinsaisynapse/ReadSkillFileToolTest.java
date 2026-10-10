@@ -4,7 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.ReadSkillFileTool;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import io.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolRegistry;
@@ -58,9 +59,9 @@ public class ReadSkillFileToolTest {
     @Test
     public void callsToolFromModelArguments(JenkinsRule j) {
         registerSkill();
-        JsonObject arguments = new JsonObject();
-        arguments.addProperty("skill_name", SKILL.getSkillName());
-        arguments.addProperty("file_path", "references/steps.md");
+        ObjectNode arguments = new ObjectMapper().createObjectNode();
+        arguments.put("skill_name", SKILL.getSkillName());
+        arguments.put("file_path", "references/steps.md");
         assertEquals(
                 Optional.of("Step one"),
                 ToolRegistry.getTool(ReadSkillFileTool.NAME).callTool(arguments));
