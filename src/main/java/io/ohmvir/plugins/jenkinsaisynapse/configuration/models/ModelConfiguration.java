@@ -4,8 +4,6 @@ import hudson.ExtensionPoint;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsManagementLink;
-import java.util.Objects;
 import lombok.Getter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
@@ -24,14 +22,6 @@ public abstract class ModelConfiguration implements Describable<ModelConfigurati
             throw new Descriptor.FormException("Model name should not be empty", "modelName");
         }
         this.modelName = modelName;
-    }
-
-    public static ModelConfiguration getFromId(String id) {
-        return ModelsManagementLink.get().getModelConfigurations().stream()
-                .filter(model -> Objects.equals(model.getProviderType(), id.split(":")[0]))
-                .filter(model -> Objects.equals(id.split(":")[1], model.modelName))
-                .findFirst()
-                .orElse(null);
     }
 
     public abstract String getProviderType();
