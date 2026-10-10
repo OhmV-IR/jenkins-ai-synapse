@@ -114,8 +114,11 @@ public abstract class Tool implements Describable<Tool>, ExtensionPoint {
             logger.log(Level.SEVERE, "Failed to invoke tool " + getName(), e);
             return ToolResult.error("Tool " + getName() + " could not be invoked.");
         }
-        if (returnValue == null || returnValue instanceof String) {
-            return ToolResult.success((String) returnValue);
+        if (returnValue == null) {
+            return ToolResult.success("");
+        }
+        if (returnValue instanceof String returnValueStr) {
+            return ToolResult.success(returnValueStr);
         }
         logger.severe("Tool " + getName() + " returned unsupported type "
                 + returnValue.getClass().getName() + ", only String is supported.");
