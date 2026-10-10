@@ -12,7 +12,7 @@
             <f:textbox />
         </f:entry>
         <f:entry title="${%Temperature}" field="temperature">
-            <f:number min="0" max="1" />
+            <f:number min="0" />
         </f:entry>
         <f:entry title="${%Max Output Tokens}" field="maxOutputTokensCount">
             <f:number min="0" />

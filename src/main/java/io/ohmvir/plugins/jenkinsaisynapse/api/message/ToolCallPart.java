@@ -1,7 +1,8 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.message;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.Objects;
 
 /**
@@ -9,12 +10,14 @@ import java.util.Objects;
  * {@link Role#TOOL} message that follows.
  */
 public final class ToolCallPart implements ContentPart {
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     private final String id;
     private final String name;
     // Stored as JSON text so the part is immutable and serializes cleanly.
     private final String argumentsJson;
 
-    public ToolCallPart(String id, String name, JsonObject arguments) {
+    public ToolCallPart(String id, String name, ObjectNode arguments) {
         this.id = Objects.requireNonNull(id, "id");
         this.name = Objects.requireNonNull(name, "name");
         this.argumentsJson = Objects.requireNonNull(arguments, "arguments").toString();
@@ -31,8 +34,13 @@ public final class ToolCallPart implements ContentPart {
     /**
      * @return A copy of the arguments the model passed.
      */
-    public JsonObject getArguments() {
-        return JsonParser.parseString(argumentsJson).getAsJsonObject();
+    public ObjectNode getArguments() {
+        try {
+            return (ObjectNode) MAPPER.readTree(argumentsJson);
+        } catch (JsonProcessingException e) {
+            // The JSON was written from an ObjectNode by the constructor.
+            throw new IllegalStateException("Stored tool arguments are not valid JSON", e);
+        }
     }
 
     public String getArgumentsJson() {

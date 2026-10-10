@@ -1,7 +1,6 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.tools;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
 import hudson.Extension;
 import hudson.ExtensionPoint;
 import hudson.model.Describable;
@@ -59,12 +58,12 @@ public abstract class Tool implements Describable<Tool>, ExtensionPoint {
      * @throws IllegalArgumentException If a required argument is missing or an argument has an unsupported type.
      * @throws Exception Whatever the tool threw.
      */
-    public String invoke(JsonObject arguments) throws Exception {
+    public String invoke(JsonNode arguments) throws Exception {
         List<ToolArgumentDescription> descriptions = getArguments();
         Object[] values = new Object[descriptions.size()];
         for (int i = 0; i < values.length; i++) {
             ToolArgumentDescription description = descriptions.get(i);
-            JsonElement value = arguments == null ? null : arguments.get(description.getName());
+            JsonNode value = arguments == null ? null : arguments.get(description.getName());
             values[i] = convertArgument(description, value);
         }
         Object returnValue;
@@ -80,9 +79,9 @@ public abstract class Tool implements Describable<Tool>, ExtensionPoint {
         return returnValue == null ? "" : returnValue.toString();
     }
 
-    private static @Nullable Object convertArgument(ToolArgumentDescription description, @Nullable JsonElement value) {
+    private static @Nullable Object convertArgument(ToolArgumentDescription description, @Nullable JsonNode value) {
         Class<?> type = description.getType();
-        if (value == null || value.isJsonNull()) {
+        if (value == null || value.isNull() || value.isMissingNode()) {
             if (description.isRequired()) {
                 throw new IllegalArgumentException("Missing required argument " + description.getName());
             }
@@ -104,27 +103,27 @@ public abstract class Tool implements Describable<Tool>, ExtensionPoint {
             return null;
         }
         if (type == double.class || type == Double.class) {
-            return value.getAsDouble();
+            return value.asDouble();
         } else if (type == int.class || type == Integer.class) {
-            return value.getAsInt();
+            return value.asInt();
         } else if (type == boolean.class || type == Boolean.class) {
-            return value.getAsBoolean();
+            return value.asBoolean();
         } else if (type == String.class) {
-            return value.isJsonPrimitive() ? value.getAsString() : value.toString();
+            return value.isValueNode() ? value.asText() : value.toString();
         } else if (type == long.class || type == Long.class) {
-            return value.getAsLong();
+            return value.asLong();
         } else if (type == float.class || type == Float.class) {
-            return value.getAsFloat();
+            return (float) value.asDouble();
         }
         throw new IllegalArgumentException("Argument " + description.getName() + " has unsupported type "
                 + type.getName() + "; use String, int, long, float, double or boolean");
     }
 
     /**
-     * @deprecated Use {@link #invoke(JsonObject)}, which reports failures instead of returning a marker string.
+     * @deprecated Use {@link #invoke(JsonNode)}, which reports failures instead of returning a marker string.
      */
     @Deprecated
-    public Optional<String> callTool(JsonObject toolCallParameters) {
+    public Optional<String> callTool(JsonNode toolCallParameters) {
         try {
             String result = invoke(toolCallParameters);
             return result.isEmpty() ? Optional.empty() : Optional.of(result);

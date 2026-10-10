@@ -1,8 +1,9 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.request;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
 import io.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolArgumentDescription;
 import java.util.Objects;
@@ -12,6 +13,8 @@ import java.util.Objects;
  * Instances are immutable.
  */
 public final class ToolSpec {
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     private final String name;
     private final String description;
     private final String inputSchemaJson;
@@ -21,7 +24,7 @@ public final class ToolSpec {
      * @param description What the tool does.
      * @param inputSchema A JSON schema of type {@code object} describing the tool's arguments.
      */
-    public ToolSpec(String name, String description, JsonObject inputSchema) {
+    public ToolSpec(String name, String description, ObjectNode inputSchema) {
         this.name = Objects.requireNonNull(name, "name");
         this.description = Objects.requireNonNull(description, "description");
         this.inputSchemaJson =
@@ -32,21 +35,18 @@ public final class ToolSpec {
      * Describes a registered {@link Tool}.
      */
     public static ToolSpec of(Tool tool) {
-        JsonObject properties = new JsonObject();
-        JsonArray required = new JsonArray();
+        ObjectNode schema = MAPPER.createObjectNode();
+        schema.put("type", "object");
+        ObjectNode properties = schema.putObject("properties");
+        ArrayNode required = schema.putArray("required");
         for (ToolArgumentDescription argument : tool.getArguments()) {
-            JsonObject property = new JsonObject();
-            property.addProperty("type", jsonType(argument.getType()));
-            property.addProperty("description", argument.getDescription());
-            properties.add(argument.getName(), property);
+            ObjectNode property = properties.putObject(argument.getName());
+            property.put("type", jsonType(argument.getType()));
+            property.put("description", argument.getDescription());
             if (argument.isRequired()) {
                 required.add(argument.getName());
             }
         }
-        JsonObject schema = new JsonObject();
-        schema.addProperty("type", "object");
-        schema.add("properties", properties);
-        schema.add("required", required);
         return new ToolSpec(tool.getName(), tool.getDescription(), schema);
     }
 
@@ -74,8 +74,13 @@ public final class ToolSpec {
     /**
      * @return A copy of the JSON schema of the tool's arguments.
      */
-    public JsonObject getInputSchema() {
-        return JsonParser.parseString(inputSchemaJson).getAsJsonObject();
+    public ObjectNode getInputSchema() {
+        try {
+            return (ObjectNode) MAPPER.readTree(inputSchemaJson);
+        } catch (JsonProcessingException e) {
+            // The JSON was written from an ObjectNode by the constructor.
+            throw new IllegalStateException("Stored input schema is not valid JSON", e);
+        }
     }
 
     public String getInputSchemaJson() {

@@ -144,6 +144,20 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
     }
 
     /**
+     * Returns the highest max temperature reported by any configured model that supports a custom temperature.
+     *
+     * @return null if no such model reports a max temperature, otherwise the highest reported max temperature.
+     */
+    public static @Nullable Double getHighestMaxTemperature() {
+        return MODEL_DATA.values().stream()
+                .filter(modelData -> modelData.hasCapability(ModelCapability.CUSTOM_TEMPERATURE))
+                .map(ModelData::getMaxTemperature)
+                .filter(Objects::nonNull)
+                .max(Double::compare)
+                .orElse(null);
+    }
+
+    /**
      * @return The configured models whose data could be retrieved, in the order they are configured.
      */
     public static List<ModelData> getConfiguredModels() {
@@ -234,6 +248,11 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
         if (thinkingLevel != null && !supportsThinkingLevel(thinkingLevel)) {
             unsupported.add("thinking level " + thinkingLevel);
         }
+        Double temperature = request.getParams().getTemperature();
+        if (temperature != null && !supportsTemperature(temperature)) {
+            unsupported.add(
+                    "temperature " + temperature + (maxTemperature == null ? "" : " (at most " + maxTemperature + ")"));
+        }
         request.getInputTypes().stream()
                 .filter(inputType -> !supportsInput(inputType))
                 .forEach(inputType -> unsupported.add("input type " + inputType));
@@ -260,6 +279,10 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
 
     public boolean supportsThinkingLevel(ModelThinkingLevel input) {
         return supportedThinkingLevels.contains(input);
+    }
+
+    public boolean supportsTemperature(double temperature) {
+        return temperature >= 0 && (maxTemperature == null || temperature <= maxTemperature);
     }
 
     public boolean supportsThinking() {

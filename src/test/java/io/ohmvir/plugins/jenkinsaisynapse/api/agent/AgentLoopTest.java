@@ -6,7 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
 import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelContext;
@@ -43,7 +44,8 @@ import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 @WithJenkins
 class AgentLoopTest {
-    private static final ToolSpec ECHO_TOOL = new ToolSpec("echo", "Echoes its text", new JsonObject());
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ToolSpec ECHO_TOOL = new ToolSpec("echo", "Echoes its text", MAPPER.createObjectNode());
 
     private TestModelConfiguration configuration;
     private TestClientConfiguration clientConfiguration;
@@ -65,13 +67,13 @@ class AgentLoopTest {
     }
 
     private static ToolCallPart echoCall(String id) {
-        JsonObject arguments = new JsonObject();
-        arguments.addProperty("text", "hi");
+        ObjectNode arguments = MAPPER.createObjectNode();
+        arguments.put("text", "hi");
         return new ToolCallPart(id, "echo", arguments);
     }
 
     private static final ToolExecutor UPPER_CASE_EXECUTOR = (request, call) -> ToolResultPart.success(
-            call, call.getArguments().get("text").getAsString().toUpperCase(Locale.ROOT));
+            call, call.getArguments().get("text").asText().toUpperCase(Locale.ROOT));
 
     @Test
     void stopsWhenTheModelAnswers() throws Exception {
@@ -175,7 +177,7 @@ class AgentLoopTest {
     @Test
     void refusesToolsTheRequestDoesNotOffer() throws Exception {
         ScriptedClient client = new ScriptedClient(transcript -> transcript.size() == 1
-                ? StepResult.of(List.of(new ToolCallPart("call-1", "rm-rf", new JsonObject())), null, null)
+                ? StepResult.of(List.of(new ToolCallPart("call-1", "rm-rf", MAPPER.createObjectNode())), null, null)
                 : StepResult.of(List.of(new TextPart("ok")), null, null));
         ModelResponse response = run(AgentLoop.builder().build(), client, request("hi"));
 

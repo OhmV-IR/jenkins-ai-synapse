@@ -1,9 +1,8 @@
 package io.ohmvir.plugins.jenkinsaisynapse.steps;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.FilePath;
@@ -90,6 +89,8 @@ public class AiRequestStepExecution extends SynchronousNonBlockingStepExecution<
             Map.entry("mp4", "video/mp4"),
             Map.entry("webm", "video/webm"),
             Map.entry("mov", "video/quicktime"));
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final transient AiRequestStep step;
 
@@ -493,31 +494,10 @@ public class AiRequestStepExecution extends SynchronousNonBlockingStepExecution<
     /**
      * Converts JSON to the plain maps, lists and values Pipeline scripts can use.
      */
-    static @Nullable Object toJava(@Nullable JsonElement element) {
-        if (element == null || element.isJsonNull()) {
+    static @Nullable Object toJava(@Nullable JsonNode node) {
+        if (node == null || node.isNull() || node.isMissingNode()) {
             return null;
         }
-        if (element instanceof JsonObject object) {
-            Map<String, Object> map = new LinkedHashMap<>();
-            object.entrySet().forEach(entry -> map.put(entry.getKey(), toJava(entry.getValue())));
-            return map;
-        }
-        if (element instanceof JsonArray array) {
-            List<Object> list = new ArrayList<>();
-            array.forEach(item -> list.add(toJava(item)));
-            return list;
-        }
-        JsonPrimitive primitive = element.getAsJsonPrimitive();
-        if (primitive.isBoolean()) {
-            return primitive.getAsBoolean();
-        }
-        if (primitive.isNumber()) {
-            double number = primitive.getAsDouble();
-            if (number == Math.rint(number) && Math.abs(number) < 1e15) {
-                return primitive.getAsLong();
-            }
-            return number;
-        }
-        return primitive.getAsString();
+        return MAPPER.convertValue(node, new TypeReference<Object>() {});
     }
 }

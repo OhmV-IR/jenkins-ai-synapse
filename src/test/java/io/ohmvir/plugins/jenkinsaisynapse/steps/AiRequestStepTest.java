@@ -2,7 +2,8 @@ package io.ohmvir.plugins.jenkinsaisynapse.steps;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import hudson.model.Descriptor;
 import hudson.model.Result;
 import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
@@ -51,6 +52,7 @@ import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 @WithJenkins
 class AiRequestStepTest {
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String FULL_MODEL = "fake:full";
     private static final String TEXT_ONLY_MODEL = "fake:text-only";
     private static final String TOOL_NAME = "aiRequestTestUpper";
@@ -318,8 +320,8 @@ class AiRequestStepTest {
             String prompt = texts.isEmpty() ? "" : texts.get(texts.size() - 1);
             switch (prompt) {
                 case "use tool" -> {
-                    JsonObject arguments = new JsonObject();
-                    arguments.addProperty("text", "hello");
+                    ObjectNode arguments = MAPPER.createObjectNode();
+                    arguments.put("text", "hello");
                     return StepResult.of(
                             List.of(new TextPart("Let me check. "), new ToolCallPart("call-1", TOOL_NAME, arguments)),
                             ModelFinishReason.TOOL_CALLS,
