@@ -3,8 +3,7 @@ package io.ohmvir.plugins.jenkinsaisynapse.configuration.prompts;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.InputTextContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
+import io.ohmvir.plugins.jenkinsaisynapse.api.request.ModelRequest;
 import lombok.Getter;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -22,11 +21,16 @@ public class SimplePrompt extends PromptConfiguration {
         }
     }
 
+    /**
+     * @return A builder holding this prompt, for subclasses to add their settings to.
+     */
+    protected ModelRequest.Builder createRequestBuilder() {
+        return ModelRequest.builder().user(promptText);
+    }
+
     @Override
     public ModelRequest createRequest() {
-        ModelRequest request = new ModelRequest();
-        request.addInput(new InputTextContent(promptText));
-        return request;
+        return createRequestBuilder().build();
     }
 
     @Extension

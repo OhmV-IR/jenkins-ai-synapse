@@ -1,0 +1,54 @@
+<div>
+  <p>
+    Sends a request to one of the AI models configured under <em>Manage Jenkins » Models</em> and returns its answer.
+    While the model works, its answer and the tools it calls are printed to the build log, and aborting the build
+    cancels the request.
+  </p>
+  <p>The simplest form takes the prompt and returns the answer as a string:</p>
+  <pre>def summary = aiRequest 'Summarize the release notes in three bullet points'</pre>
+  <p>Every other parameter is optional:</p>
+  <pre>
+def review = aiRequest(
+    prompt: 'Review this change and list any bugs you find',
+    model: 'anthropic:claude-sonnet',     // omit to use the first model that supports the request
+    systemPrompt: 'You are a strict code reviewer',
+    files: ['build/changes.diff'],        // workspace files to attach (text, documents, images, audio, video)
+    tools: ['readFile'],                  // tools the model may call
+    skills: ['code-review'],              // skills to give the model
+    temperature: 0.2,
+    maxOutputTokens: 4000,
+    thinkingLevel: 'high',
+    timeout: 300,                         // seconds for the whole request
+    returnResponse: true                  // return a map instead of the answer only
+)
+echo review.text
+echo "Used ${review.usage?.outputTokens} output tokens"</pre>
+  <p>
+    Also available: <code>topP</code>, <code>topK</code>, <code>stopSequences</code> (a list of strings),
+    <code>outputTypes</code> (outputs the response must contain, from <code>text</code>, <code>image</code>,
+    <code>audio</code>, <code>video</code> and <code>file</code>),
+    <code>outputDir</code> to save produced files, <code>conversationId</code> to continue a conversation across builds,
+    <code>maxTurns</code>, <code>expandEnvVars</code>, and <code>quiet</code> or <code>verbose</code> to control what is
+    printed to the build log.
+  </p>
+  <p>
+    Start from a prompt stored under <em>Manage Jenkins » Base Prompts</em> with <code>promptId</code>; a
+    <code>prompt</code> given alongside it is appended, and settings given to the step override the stored ones.
+  </p>
+  <p>
+    With <code>returnResponse: true</code> the step returns a map with these keys:
+  </p>
+  <dl>
+    <dt><code>text</code></dt><dd>The model's final answer: the text it produced after its last tool call.</dd>
+    <dt><code>allText</code></dt><dd>All the text the model produced, including text before tool calls.</dd>
+    <dt><code>thinking</code></dt><dd>The model's thinking, if it produced any.</dd>
+    <dt><code>model</code></dt><dd>The id of the model that answered.</dd>
+    <dt><code>steps</code></dt><dd>How many times the model was called.</dd>
+    <dt><code>finishReason</code></dt><dd><code>STOP</code>, <code>TOKEN_CAP</code>, <code>SAFEGUARD</code> or <code>TOOL_CALLS</code>, if the client reports it.</dd>
+    <dt><code>usage</code></dt><dd>A map of <code>inputTokens</code>, <code>outputTokens</code> and <code>cachedTokens</code>, if the client reports it.</dd>
+    <dt><code>toolCalls</code></dt><dd>A list of maps of <code>id</code>, <code>name</code>, <code>arguments</code>, <code>successful</code> and <code>result</code>.</dd>
+    <dt><code>citations</code></dt><dd>A list of maps describing the citations in the answer.</dd>
+    <dt><code>files</code></dt><dd>A list of maps of <code>name</code>, <code>kind</code>, <code>contentType</code>, <code>size</code> and, with <code>outputDir</code>, <code>path</code> for each image, audio, video or file the model produced.</dd>
+    <dt><code>conversationId</code></dt><dd>The UUID of the conversation, with <code>conversationId</code>.</dd>
+  </dl>
+</div>

@@ -9,16 +9,15 @@ import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.util.ListBoxModel;
 import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.TemperatureContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
+import io.ohmvir.plugins.jenkinsaisynapse.api.errors.NoCapableModelException;
+import io.ohmvir.plugins.jenkinsaisynapse.api.request.ModelRequest;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsManagementLink;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.client.ModelClientConfiguration;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.models.*;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import lombok.Getter;
 import lombok.Setter;
@@ -27,7 +26,7 @@ import org.jspecify.annotations.Nullable;
 
 public class ModelData implements Describable<ModelData>, ExtensionPoint {
     private static final Logger LOGGER = Logger.getLogger(ModelData.class.getName());
-    private static final HashMap<String, ModelData> MODEL_DATA = new HashMap<>();
+    private static final Map<String, ModelData> MODEL_DATA = new ConcurrentHashMap<>();
     private @Getter @Setter String modelId;
     private @Getter @Setter List<ModelCapability> capabilities;
     private @Getter @Setter List<ModelInputType> inputs;
@@ -75,6 +74,13 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
         return ModelData.MODEL_DATA.get(modelId);
     }
 
+    /**
+     * @return The data of every configured model whose data could be retrieved.
+     */
+    public static List<ModelData> getAll() {
+        return List.copyOf(MODEL_DATA.values());
+    }
+
     public static ModelClient<?, ?> getClient(ModelConfiguration config) {
         Optional<ModelClient> client = ExtensionList.lookup(ModelClient.class).stream()
                 .filter(obj -> {
@@ -90,7 +96,8 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
     }
 
     public ModelClient<?, ?> getClient() {
-        return getClient(getModelConfiguration());
+        ModelConfiguration configuration = getModelConfiguration();
+        return configuration == null ? null : getClient(configuration);
     }
 
     public ModelConfiguration getModelConfiguration() {
@@ -101,7 +108,11 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
     }
 
     public ModelClientConfiguration getClientConfiguration() {
-        Type genericSuper = getClient().getClass().getGenericSuperclass();
+        ModelClient<?, ?> client = getClient();
+        if (client == null) {
+            return null;
+        }
+        Type genericSuper = client.getClass().getGenericSuperclass();
         if (genericSuper instanceof ParameterizedType parameterizedSuper) {
             return ExtensionList.lookup(ModelClientConfiguration.class).stream()
                     .filter(obj -> obj.getClass().equals(parameterizedSuper.getActualTypeArguments()[1]))
@@ -146,37 +157,112 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
                 .orElse(null);
     }
 
+    /**
+     * @return The configured models whose data could be retrieved, in the order they are configured.
+     */
+    public static List<ModelData> getConfiguredModels() {
+        return ModelsManagementLink.get().getModelConfigurations().stream()
+                .map(configuration -> MODEL_DATA.get(configuration.getModelId()))
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    /**
+     * @return The first configured model that supports the request, or null if there is none.
+     */
     public static @Nullable ModelData findModelForRequest(ModelRequest request) {
-        Optional<ModelData> supportedModel = MODEL_DATA.values().stream()
+        return getConfiguredModels().stream()
                 .filter(modelData -> modelData.supportsRequest(request))
-                .findFirst();
-        return supportedModel.orElse(null);
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Finds the model to run a request on.
+     *
+     * @param model The id of the model, its display name or its model name; or null to use the first configured model
+     *              that supports the request.
+     * @throws NoCapableModelException If the model is not configured or does not support the request, or no model
+     * supports the request.
+     */
+    public static ModelData resolve(@Nullable String model, ModelRequest request) throws NoCapableModelException {
+        Map<String, List<String>> unsupported = new LinkedHashMap<>();
+        getConfiguredModels()
+                .forEach(modelData ->
+                        unsupported.put(modelData.getModelId(), modelData.getUnsupportedRequirements(request)));
+        if (model == null) {
+            ModelData found = findModelForRequest(request);
+            if (found == null) {
+                throw new NoCapableModelException(
+                        "No configured model supports this request. Configured models: " + describe(unsupported),
+                        unsupported);
+            }
+            return found;
+        }
+        ModelData found = get(model);
+        if (found == null) {
+            found = ModelsManagementLink.get().getModelConfigurations().stream()
+                    .filter(configuration -> model.equals(configuration.getModelIdDisplayName())
+                            || model.equals(configuration.getModelName())
+                            || model.equals(configuration.getModelDisplayName()))
+                    .map(configuration -> MODEL_DATA.get(configuration.getModelId()))
+                    .filter(Objects::nonNull)
+                    .findFirst()
+                    .orElse(null);
+        }
+        if (found == null) {
+            throw new NoCapableModelException(
+                    "Unknown model '" + model + "'. Configured models: " + describe(unsupported), unsupported);
+        }
+        List<String> missing = found.getUnsupportedRequirements(request);
+        if (!missing.isEmpty()) {
+            throw new NoCapableModelException(
+                    "Model " + found.getModelId() + " does not support " + String.join(", ", missing)
+                            + ", which this request needs",
+                    Map.of(found.getModelId(), missing));
+        }
+        return found;
+    }
+
+    private static String describe(Map<String, List<String>> unsupported) {
+        if (unsupported.isEmpty()) {
+            return "(none)";
+        }
+        StringJoiner joiner = new StringJoiner(", ");
+        unsupported.forEach(
+                (id, missing) -> joiner.add(missing.isEmpty() ? id : id + " (no " + String.join(", ", missing) + ")"));
+        return joiner.toString();
     }
 
     public boolean supportsRequest(ModelRequest request) {
-        Optional<ModelInput> thinkingLevel = request.getModelInputs().stream()
-                .filter(modelInput -> modelInput instanceof ThinkingLevelContent)
-                .findFirst();
-        if (thinkingLevel.isPresent()
-                && thinkingLevel.get() instanceof ThinkingLevelContent thinkingLevelContent
-                && !supportsThinkingLevel(thinkingLevelContent.getThinkingLevel())) {
-            return false;
+        return getUnsupportedRequirements(request).isEmpty();
+    }
+
+    /**
+     * @return A description of every requirement of the request this model does not meet, empty if it supports the
+     * request.
+     */
+    public List<String> getUnsupportedRequirements(ModelRequest request) {
+        List<String> unsupported = new ArrayList<>();
+        ModelThinkingLevel thinkingLevel = request.getParams().getThinkingLevel();
+        if (thinkingLevel != null && !supportsThinkingLevel(thinkingLevel)) {
+            unsupported.add("thinking level " + thinkingLevel);
         }
-        if (request.getModelInputs().stream()
-                .anyMatch(modelInput -> modelInput instanceof TemperatureContent temperatureContent
-                        && !supportsTemperature(temperatureContent.getTemperature()))) {
-            return false;
+        Double temperature = request.getParams().getTemperature();
+        if (temperature != null && !supportsTemperature(temperature)) {
+            unsupported.add(
+                    "temperature " + temperature + (maxTemperature == null ? "" : " (at most " + maxTemperature + ")"));
         }
-        if (request.getInputTypes().stream().anyMatch(inputType -> !supportsInput(inputType))) {
-            return false;
-        }
-        if (request.getOutputTypes().stream().anyMatch(outputType -> !supportsOutput(outputType))) {
-            return false;
-        }
-        if (request.getRequiredCapabilities().stream().anyMatch(capability -> !hasCapability(capability))) {
-            return false;
-        }
-        return true;
+        request.getInputTypes().stream()
+                .filter(inputType -> !supportsInput(inputType))
+                .forEach(inputType -> unsupported.add("input type " + inputType));
+        request.getOutputTypes().stream()
+                .filter(outputType -> !supportsOutput(outputType))
+                .forEach(outputType -> unsupported.add("output type " + outputType));
+        request.getRequiredCapabilities().stream()
+                .filter(capability -> !hasCapability(capability))
+                .forEach(capability -> unsupported.add("capability " + capability));
+        return unsupported;
     }
 
     public boolean hasCapability(ModelCapability capability) {

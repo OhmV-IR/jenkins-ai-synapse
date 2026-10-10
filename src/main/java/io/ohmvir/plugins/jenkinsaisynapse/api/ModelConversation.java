@@ -2,6 +2,7 @@ package io.ohmvir.plugins.jenkinsaisynapse.api;
 
 import hudson.XmlFile;
 import hudson.model.Saveable;
+import io.ohmvir.plugins.jenkinsaisynapse.api.message.Message;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
@@ -11,7 +12,7 @@ import lombok.Getter;
 
 public class ModelConversation implements Saveable, Loadable {
     private final @Getter UUID conversationId;
-    private final ArrayList<ModelContent> conversation = new ArrayList<>();
+    private final ArrayList<Message> conversation = new ArrayList<>();
 
     public ModelConversation(UUID conversationId) throws IOException {
         this.conversationId = conversationId;
@@ -22,18 +23,21 @@ public class ModelConversation implements Saveable, Loadable {
         conversationId = UUID.randomUUID();
     }
 
-    public void addContent(ModelContent content) throws IOException {
-        conversation.add(content);
+    public synchronized void addMessage(Message message) throws IOException {
+        conversation.add(message);
         save();
     }
 
-    public void addAllContent(Collection<ModelContent> content) throws IOException {
-        conversation.addAll(content);
+    public synchronized void addMessages(Collection<Message> messages) throws IOException {
+        conversation.addAll(messages);
         save();
     }
 
-    public List<ModelContent> getConversation() {
-        return Collections.unmodifiableList(conversation);
+    /**
+     * @return The conversation's messages, oldest first. Prepend them to a request to continue the conversation.
+     */
+    public synchronized List<Message> getMessages() {
+        return List.copyOf(conversation);
     }
 
     protected XmlFile getSaveLocation() {
@@ -45,12 +49,12 @@ public class ModelConversation implements Saveable, Loadable {
     }
 
     @Override
-    public void save() throws IOException {
+    public synchronized void save() throws IOException {
         getSaveLocation().write(this);
     }
 
     @Override
-    public void load() throws IOException {
+    public synchronized void load() throws IOException {
         XmlFile configFile = getSaveLocation();
         if (configFile.exists()) {
             configFile.unmarshal(this);

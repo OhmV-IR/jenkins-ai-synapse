@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:entry title="${%Prompt}" field="prompt">
+        <f:textarea />
+    </f:entry>
+    <f:entry title="${%Stored prompt}" field="promptId">
+        <f:select />
+    </f:entry>
+    <f:entry title="${%Model}" field="model">
+        <f:select />
+    </f:entry>
+    <f:entry title="${%System prompt}" field="systemPrompt">
+        <f:textarea />
+    </f:entry>
+    <f:entry field="returnResponse">
+        <f:checkbox title="${%Return the whole response as a map}" />
+    </f:entry>
+    <f:advanced>
+        <f:entry title="${%Temperature}" field="temperature">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="${%Max output tokens}" field="maxOutputTokens">
+            <f:number min="1" />
+        </f:entry>
+        <f:entry title="${%Thinking level}" field="thinkingLevel">
+            <f:select />
+        </f:entry>
+        <f:entry title="${%Top P}" field="topP">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="${%Top K}" field="topK">
+            <f:number min="1" />
+        </f:entry>
+        <f:entry title="${%Timeout (seconds)}" field="timeout">
+            <f:number min="1" />
+        </f:entry>
+        <f:entry title="${%Max turns}" field="maxTurns">
+            <f:number min="1" />
+        </f:entry>
+        <f:entry title="${%Conversation id}" field="conversationId">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="${%Output directory}" field="outputDir">
+            <f:textbox />
+        </f:entry>
+        <f:entry field="expandEnvVars">
+            <f:checkbox title="${%Expand environment variables in prompt texts}" />
+        </f:entry>
+        <f:entry field="quiet">
+            <f:checkbox title="${%Do not print the answer to the build log}" />
+        </f:entry>
+        <f:entry field="verbose">
+            <f:checkbox title="${%Print thinking, tool arguments and tool results to the build log}" />
+        </f:entry>
+    </f:advanced>
+</j:jelly>

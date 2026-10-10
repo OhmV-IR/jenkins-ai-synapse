@@ -4,7 +4,7 @@ import hudson.ExtensionPoint;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
+import io.ohmvir.plugins.jenkinsaisynapse.api.request.ModelRequest;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.BasePromptsManagementLink;
 import lombok.Getter;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -13,6 +13,9 @@ import org.kohsuke.stapler.QueryParameter;
 public abstract class PromptConfiguration implements Describable<PromptConfiguration>, ExtensionPoint {
     private @Getter String promptId = "";
 
+    /**
+     * @return A new request holding this prompt and its settings.
+     */
     public abstract ModelRequest createRequest();
 
     public PromptConfiguration(String promptId) throws Descriptor.FormException {
