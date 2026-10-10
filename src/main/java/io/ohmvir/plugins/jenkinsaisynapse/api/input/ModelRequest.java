@@ -4,6 +4,12 @@ import hudson.Extension;
 import hudson.ExtensionPoint;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
+import hudson.model.Queue;
+import hudson.model.Run;
+import hudson.model.TaskListener;
+import hudson.model.queue.Tasks;
+import hudson.security.ACL;
+import hudson.security.ACLContext;
 import io.ohmvir.plugins.jenkinsaisynapse.api.ModelContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.ModelConversation;
 import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
@@ -18,6 +24,7 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import io.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
 import io.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolRegistry;
+import io.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolResult;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -27,8 +34,12 @@ import lombok.Getter;
 import lombok.Setter;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
+import org.springframework.security.core.Authentication;
 
 public class ModelRequest implements Cloneable, Describable<ModelRequest>, ExtensionPoint {
+    private static final Logger LOGGER = Logger.getLogger(ModelRequest.class.getName());
+    private static final int MAX_LOGGED_LENGTH = 2000;
+
     private final Set<Class<? extends ModelOutput>> requestedOutputTypes = new HashSet<>();
     private final @Getter List<ModelInput> modelInputs = new ArrayList<>();
 
@@ -145,16 +156,64 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
         addInput(new InputSkillContent(skill));
     }
 
+    /**
+     * The tools the model may call while executing this request: the tools attached to this request, further limited
+     * to the {@code allowed-tools} of the attached skills when any attached skill declares them.
+     * Model clients should advertise exactly these tools to the model, any other tool call is rejected.
+     * @return The tools the model may call, keyed by name
+     */
+    public Map<String, Tool> getAvailableTools() {
+        Map<String, Tool> attachedTools = new LinkedHashMap<>();
+        Set<String> skillAllowedTools = new HashSet<>();
+        boolean skillsRestrictTools = false;
+        for (ModelInput input : modelInputs) {
+            if (input instanceof InputToolContent toolContent && toolContent.getTool() != null) {
+                attachedTools.put(toolContent.getTool().getName(), toolContent.getTool());
+            } else if (input instanceof InputSkillContent skillContent && skillContent.getSkill() != null) {
+                List<String> allowedTools = skillContent.getSkill().getAllowedTools();
+                if (allowedTools != null && allowedTools.stream().anyMatch(name -> !name.isBlank())) {
+                    skillsRestrictTools = true;
+                    skillAllowedTools.addAll(allowedTools);
+                }
+            }
+        }
+        if (skillsRestrictTools) {
+            attachedTools.keySet().retainAll(skillAllowedTools);
+        }
+        return attachedTools;
+    }
+
     public @Nullable ModelResponse execute() {
         return execute(ModelData.findModelForRequest(this));
     }
 
     public @Nullable ModelResponse execute(ModelData model) {
+        return execute(model, null, null);
+    }
+
+    /**
+     * Executes the request on behalf of a build. Tools called by the model run as the build's authentication
+     * and every tool call is written to the build log.
+     * @param run The build this request is executed for
+     * @param listener The build's listener, tool calls are logged to it
+     */
+    public @Nullable ModelResponse execute(@NonNull Run<?, ?> run, @NonNull TaskListener listener) {
+        return execute(ModelData.findModelForRequest(this), run, listener);
+    }
+
+    /**
+     * @param model The model to execute the request with
+     * @param run The build this request is executed for. When set, tools called by the model run as the build's
+     *            authentication, otherwise as the authentication of the calling thread.
+     * @param listener When set, every tool call is written to it
+     */
+    public @Nullable ModelResponse execute(ModelData model, @Nullable Run<?, ?> run, @Nullable TaskListener listener) {
         try {
             ModelClient<?, ?> client = model.getClient();
             if (client == null) {
                 return null;
             }
+            Authentication toolAuthentication = getToolAuthentication(run);
             List<ModelOutput> currentOutputs = new ArrayList<>();
             List<ModelContent> finalContent = new ArrayList<>(modelInputs);
             while (true) {
@@ -165,7 +224,7 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
                 }
                 currentOutputs.addAll(stepOutputs);
                 finalContent.addAll(stepOutputs);
-                List<ModelInput> newInputs = generateNewInputsForOutputs(stepOutputs);
+                List<ModelInput> newInputs = generateNewInputsForOutputs(stepOutputs, toolAuthentication, listener);
                 finalContent.addAll(newInputs);
                 modelInputs.addAll(newInputs);
             }
@@ -178,39 +237,76 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
             }
             return new ModelResponse(currentOutputs);
         } catch (Exception e) {
-            Logger.getLogger(ModelRequest.class.getName()).log(Level.WARNING, "Failed to execute ModelRequest", e);
+            LOGGER.log(Level.WARNING, "Failed to execute ModelRequest", e);
             return null;
         }
     }
 
+    private static Authentication getToolAuthentication(@Nullable Run<?, ?> run) {
+        if (run != null && run.getParent() instanceof Queue.Task task) {
+            return Tasks.getAuthenticationOf2(task);
+        }
+        return Jenkins.getAuthentication2();
+    }
+
     /**
      * Used within request execution to generate all necessary inputs from anything the model outputs. Namely, executing tool calls.
+     * Only tools returned by {@link #getAvailableTools()} can be called.
      * @param stepOutputs The outputs to generate inputs for
-     * Appends the inputs to the internal model inputs list
+     * @param toolAuthentication The authentication tools are run as
+     * @param listener If set, every tool call is logged to it
+     * @return The inputs to append to the internal model inputs list
      */
-    private static List<ModelInput> generateNewInputsForOutputs(List<ModelOutput> stepOutputs) {
+    private List<ModelInput> generateNewInputsForOutputs(
+            List<ModelOutput> stepOutputs, Authentication toolAuthentication, @Nullable TaskListener listener) {
         List<ModelInput> newInputs = new ArrayList<>();
-        stepOutputs.forEach(modelOutput -> {
-            if (modelOutput instanceof ToolCallContent toolCallOutput) {
-                Tool tool = ToolRegistry.getTool(toolCallOutput.getName());
-                if (tool == null) {
-                    Logger.getLogger(ModelResponse.class.getName())
-                            .severe("Failed to find tool model tried to call with name " + toolCallOutput.getName());
-                    newInputs.add(new ToolCallResponseContent(toolCallOutput.getToolUseId(), false, null, null));
-                    return;
-                }
-                Optional<String> toolCallResponseStr = tool.callTool(toolCallOutput.getToolArguments());
-                if (toolCallResponseStr.isEmpty()) {
-                    Logger.getLogger(ModelResponse.class.getName())
-                            .severe("Failed to call model tool with name " + toolCallOutput.getName());
-                    newInputs.add(new ToolCallResponseContent(toolCallOutput.getToolUseId(), false, null, tool));
-                    return;
-                }
-                newInputs.add(new ToolCallResponseContent(
-                        toolCallOutput.getToolUseId(), true, toolCallResponseStr.get(), tool));
+        Map<String, Tool> availableTools = getAvailableTools();
+        for (ModelOutput modelOutput : stepOutputs) {
+            if (!(modelOutput instanceof ToolCallContent toolCallOutput)) {
+                continue;
             }
-        });
+            String toolName = sanitizeForLog(toolCallOutput.getName());
+            Tool tool = toolCallOutput.getName() == null ? null : availableTools.get(toolCallOutput.getName());
+            if (tool == null) {
+                LOGGER.warning("Rejected call to tool '" + toolName + "' which is not available to this request");
+                logToBuild(listener, "Rejected call to tool '" + toolName + "': not available to this request");
+                newInputs.add(new ToolCallResponseContent(
+                        toolCallOutput.getToolUseId(),
+                        ToolResult.error("Tool '" + toolName + "' is not available."),
+                        null));
+                continue;
+            }
+            logToBuild(
+                    listener,
+                    "Model called tool '" + toolName + "' as " + toolAuthentication.getName() + " with arguments "
+                            + truncate(sanitizeForLog(toolCallOutput.getArgumentsPrettyJson())));
+            ToolResult result;
+            try (ACLContext ignored = ACL.as2(toolAuthentication)) {
+                result = tool.callTool(toolCallOutput.getToolArguments());
+            }
+            if (result.isError()) {
+                LOGGER.warning("Call to tool '" + toolName + "' failed: " + result.content());
+                logToBuild(listener, "Tool '" + toolName + "' failed: " + truncate(sanitizeForLog(result.content())));
+            } else {
+                logToBuild(listener, "Tool '" + toolName + "' succeeded");
+            }
+            newInputs.add(new ToolCallResponseContent(toolCallOutput.getToolUseId(), result, tool));
+        }
         return newInputs;
+    }
+
+    private static void logToBuild(@Nullable TaskListener listener, String message) {
+        if (listener != null) {
+            listener.getLogger().println("[AI Synapse] " + message);
+        }
+    }
+
+    private static String sanitizeForLog(@Nullable String text) {
+        return text == null ? "" : text.replaceAll("[\\p{Cntrl}&&[^\\n\\t]]", "?");
+    }
+
+    private static String truncate(String text) {
+        return text.length() <= MAX_LOGGED_LENGTH ? text : text.substring(0, MAX_LOGGED_LENGTH) + "... (truncated)";
     }
 
     /**
