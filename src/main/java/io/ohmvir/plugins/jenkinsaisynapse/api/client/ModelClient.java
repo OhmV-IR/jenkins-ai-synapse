@@ -33,7 +33,7 @@ public abstract class ModelClient<
     /**
      * Generate a response for the given request. This function can assume that the request is able to be handled by the model.
      * @param request The associated model request
-     * @param turnInputs The inputs to attach for the model to respond. This will include all context and relevant conversation history, as well as things like tool responses
+     * @param turnInputs The inputs to attach for the model to respond. This will include all context, prior conversation history (as {@link io.ohmvir.plugins.jenkinsaisynapse.api.input.InputConversationContent}), as well as things like tool responses
      * @return A list of all the model outputs that were produced on this exchange (ie API roundtrip)
      */
     protected abstract List<ModelOutput> takeStepImpl(
