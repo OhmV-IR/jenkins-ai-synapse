@@ -41,7 +41,9 @@ public class SkillDataTest {
         assertEquals(
                 List.of("Read", "Bash(git:*)"),
                 parse("name: a\nallowed-tools: \"  Read   Bash(git:*) \"").getAllowedTools());
-        assertEquals(List.of("Read", "Write"), parse("name: a\nallowed-tools:\n  - Read\n  - Write").getAllowedTools());
+        assertEquals(
+                List.of("Read", "Write"),
+                parse("name: a\nallowed-tools:\n  - Read\n  - Write").getAllowedTools());
         assertEquals(List.of(), parse("name: a\nallowed-tools: \"\"").getAllowedTools());
     }
 
@@ -63,7 +65,8 @@ public class SkillDataTest {
         assertEquals("first text", SkillData.getSkillData("shared").getSkillText());
         assertEquals(2, SkillData.getAllSkills().size());
         assertEquals(1, SkillData.getDuplicateSkillRegistrations().size());
-        SkillData.DuplicateSkillRegistration duplicate = SkillData.getDuplicateSkillRegistrations().get(0);
+        SkillData.DuplicateSkillRegistration duplicate =
+                SkillData.getDuplicateSkillRegistrations().get(0);
         assertEquals("shared", duplicate.skillName());
         assertTrue(duplicate.rejectedSource().contains("#2"));
         assertTrue(duplicate.registeredSource().contains("#1"));

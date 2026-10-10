@@ -80,7 +80,8 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
         List<DuplicateSkillRegistration> duplicates = new ArrayList<>();
         for (int i = 0; i < configs.size(); i++) {
             SkillConfiguration config = configs.get(i);
-            String source = "skill configuration #" + (i + 1) + " (" + config.getClass().getSimpleName() + ")";
+            String source =
+                    "skill configuration #" + (i + 1) + " (" + config.getClass().getSimpleName() + ")";
             for (SkillData skillData : config.generateSkills()) {
                 String name = skillData.getSkillName();
                 if (name == null || name.isBlank()) {
@@ -159,8 +160,7 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
         }
         this.skillName = textOrNull(root.get("name"));
         if (this.skillName == null || this.skillName.isBlank()) {
-            throw new Descriptor.FormException(
-                    "skillMd frontmatter is missing the required 'name' field", "skillMd");
+            throw new Descriptor.FormException("skillMd frontmatter is missing the required 'name' field", "skillMd");
         }
         this.skillDescription = textOrNull(root.get("description"));
         this.skillLicense = textOrNull(root.get("license"));
