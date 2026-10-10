@@ -15,23 +15,36 @@ public abstract class ModelClient<
         implements Describable<ModelClient<?, ?>>, ExtensionPoint {
     public ModelClient() {}
 
-    @SuppressWarnings("unchecked")
     public List<ModelOutput> takeStep(
             ModelData modelData,
             ModelConfiguration configuration,
             ModelClientConfiguration clientConfiguration,
             ModelRequest request,
             List<ModelInput> turnInputs) {
+        return takeStep(modelData, configuration, clientConfiguration, request, turnInputs, ModelRequestListener.NOOP);
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<ModelOutput> takeStep(
+            ModelData modelData,
+            ModelConfiguration configuration,
+            ModelClientConfiguration clientConfiguration,
+            ModelRequest request,
+            List<ModelInput> turnInputs,
+            ModelRequestListener listener) {
         return takeStepImpl(
                 modelData,
                 (ConfigurationType) configuration,
                 (ClientConfigurationType) clientConfiguration,
                 request,
-                turnInputs);
+                turnInputs,
+                listener);
     }
 
     /**
      * Generate a response for the given request. This function can assume that the request is able to be handled by the model.
+     * Steps run on a separate thread so the caller can enforce the client configuration's timeout; when the request is
+     * cancelled or times out that thread is interrupted, so implementations should use interruptible I/O.
      * @param request The associated model request
      * @param turnInputs The inputs to attach for the model to respond. This will include all context and relevant conversation history, as well as things like tool responses
      * @return A list of all the model outputs that were produced on this exchange (ie API roundtrip)
@@ -42,4 +55,19 @@ public abstract class ModelClient<
             ClientConfigurationType clientConfiguration,
             ModelRequest request,
             List<ModelInput> turnInputs);
+
+    /**
+     * Same as {@link #takeStepImpl(ModelData, ModelConfiguration, ModelClientConfiguration, ModelRequest, List)}, with
+     * a listener to report progress to. Clients that stream responses should override this and call
+     * {@link ModelRequestListener#onTextDelta(String)} as text arrives.
+     */
+    protected List<ModelOutput> takeStepImpl(
+            ModelData modelData,
+            ConfigurationType configuration,
+            ClientConfigurationType clientConfiguration,
+            ModelRequest request,
+            List<ModelInput> turnInputs,
+            ModelRequestListener listener) {
+        return takeStepImpl(modelData, configuration, clientConfiguration, request, turnInputs);
+    }
 }

@@ -10,7 +10,7 @@ import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsManagementLink;
+import io.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsConfiguration;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.skills.SkillConfiguration;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -47,7 +47,7 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
 
     @Initializer(after = InitMilestone.PLUGINS_STARTED)
     public static void initializeSkillDataCache() {
-        for (SkillConfiguration skillConfig : SkillsManagementLink.get().getSkills()) {
+        for (SkillConfiguration skillConfig : SkillsConfiguration.get().getSkills()) {
             initializeSkillDataForConfig(skillConfig);
         }
     }

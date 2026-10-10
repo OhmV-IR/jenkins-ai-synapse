@@ -6,6 +6,7 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+import org.jenkinsci.Symbol;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -29,6 +30,7 @@ public class BasicSkillFileConfiguration extends SkillConfiguration {
     }
 
     @Extension
+    @Symbol("skillFile")
     public static class DescriptorImpl extends SkillConfiguration.DescriptorImpl {
         @Override
         public @NonNull String getDisplayName() {

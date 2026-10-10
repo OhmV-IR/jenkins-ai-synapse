@@ -1,64 +1,151 @@
 package io.ohmvir.plugins.jenkinsaisynapse;
 
+import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.Extension;
+import hudson.Util;
 import hudson.model.AbstractProject;
+import hudson.model.Item;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
-import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.*;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelResponse;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.OutputTextContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ThinkingContent;
+import hudson.util.ListBoxModel;
+import io.ohmvir.plugins.jenkinsaisynapse.steps.AiRequestRunner;
 import java.io.IOException;
-import java.io.PrintStream;
+import java.util.Arrays;
+import java.util.List;
 import jenkins.tasks.SimpleBuildStep;
-import org.jenkinsci.Symbol;
+import lombok.Getter;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
+/**
+ * Freestyle build step that sends a request to a model and writes the answer to the build log. Every field supports
+ * build variables such as {@code ${GIT_COMMIT}}. In Pipeline, use the {@code aiRequest} step instead, which returns
+ * the answer.
+ */
+@Getter
 public class ModelRequestExecutionStep extends Builder implements SimpleBuildStep {
-    private final ModelRequest request;
+    private @Nullable String prompt;
+    private @Nullable String promptId;
+    private @Nullable String model;
+    private @Nullable String systemPrompt;
+    /** Kept as text so that it can contain build variables. */
+    private @Nullable String temperature;
+    /** Kept as text so that it can contain build variables. */
+    private @Nullable String maxOutputTokens;
+    /** Tool names, separated by commas or whitespace. */
+    private @Nullable String tools;
+    /** Skill names, separated by commas or whitespace. */
+    private @Nullable String skills;
+
+    private boolean quiet;
 
     @DataBoundConstructor
-    public ModelRequestExecutionStep(
-            String requestText, String systemPrompt, double temperature, @Nullable Long maxOutputTokens) {
-        this.request = new ModelRequest();
-        this.request.addInput(new InputTextContent(requestText));
-        this.request.addInput(new SystemPromptContent(systemPrompt));
-        if (maxOutputTokens != null) {
-            this.request.addInput(new MaxOutputTokensContent(maxOutputTokens));
-        }
-        this.request.addInput(new TemperatureContent(temperature));
+    public ModelRequestExecutionStep() {}
+
+    @DataBoundSetter
+    public void setPrompt(@Nullable String prompt) {
+        this.prompt = Util.fixEmpty(prompt);
+    }
+
+    @DataBoundSetter
+    public void setPromptId(@Nullable String promptId) {
+        this.promptId = Util.fixEmptyAndTrim(promptId);
+    }
+
+    @DataBoundSetter
+    public void setModel(@Nullable String model) {
+        this.model = Util.fixEmptyAndTrim(model);
+    }
+
+    @DataBoundSetter
+    public void setSystemPrompt(@Nullable String systemPrompt) {
+        this.systemPrompt = Util.fixEmpty(systemPrompt);
+    }
+
+    @DataBoundSetter
+    public void setTemperature(@Nullable String temperature) {
+        this.temperature = Util.fixEmptyAndTrim(temperature);
+    }
+
+    @DataBoundSetter
+    public void setMaxOutputTokens(@Nullable String maxOutputTokens) {
+        this.maxOutputTokens = Util.fixEmptyAndTrim(maxOutputTokens);
+    }
+
+    @DataBoundSetter
+    public void setTools(@Nullable String tools) {
+        this.tools = Util.fixEmptyAndTrim(tools);
+    }
+
+    @DataBoundSetter
+    public void setSkills(@Nullable String skills) {
+        this.skills = Util.fixEmptyAndTrim(skills);
+    }
+
+    @DataBoundSetter
+    public void setQuiet(boolean quiet) {
+        this.quiet = quiet;
+    }
+
+    @Override
+    public boolean requiresWorkspace() {
+        return false;
     }
 
     @Override
     public void perform(@NonNull Run<?, ?> run, @NonNull EnvVars env, @NonNull TaskListener listener)
             throws InterruptedException, IOException {
-        ModelClient<?, ?> client = ModelData.createClientForRequest(request);
-        if (client == null) {
-            throw new IOException("Failed to get a client that could respond to the request");
+        AiRequestRunner runner = new AiRequestRunner();
+        runner.setPrompt(expand(env, prompt));
+        runner.setPromptId(Util.fixEmptyAndTrim(expand(env, promptId)));
+        runner.setModel(Util.fixEmptyAndTrim(expand(env, model)));
+        runner.setSystemPrompt(expand(env, systemPrompt));
+        runner.setTemperature(parseDouble("temperature", Util.fixEmptyAndTrim(expand(env, temperature))));
+        runner.setMaxOutputTokens(parseLong("maxOutputTokens", Util.fixEmptyAndTrim(expand(env, maxOutputTokens))));
+        runner.setTools(splitNames(expand(env, tools)));
+        runner.setSkills(splitNames(expand(env, skills)));
+        runner.setQuiet(quiet);
+        AiRequestRunner.Result result = runner.execute(run, listener);
+        if (quiet) {
+            listener.getLogger().println(result.getText());
         }
-        ModelResponse response = request.execute();
-        if (response == null) {
-            throw new IOException("Failed to get a response that could respond to the request");
-        }
-        PrintStream logger = listener.getLogger();
-        response.getOutputs().forEach(output -> {
-            switch (output) {
-                case OutputTextContent text -> logger.println("Model response: " + text.getText());
-                case ThinkingContent thinking -> logger.println("Model thinking: " + thinking.getThinking());
-                default ->
-                    logger.println("Unknown output type: " + output.getClass().getName());
-            }
-        });
     }
 
-    @Symbol("customStep")
+    private static @Nullable String expand(EnvVars env, @Nullable String value) {
+        return value == null ? null : Util.fixEmpty(env.expand(value));
+    }
+
+    private static @Nullable Double parseDouble(String field, @Nullable String value) throws AbortException {
+        try {
+            return value == null ? null : Double.valueOf(value);
+        } catch (NumberFormatException e) {
+            throw new AbortException(field + " must be a number, got '" + value + "'");
+        }
+    }
+
+    private static @Nullable Long parseLong(String field, @Nullable String value) throws AbortException {
+        try {
+            return value == null ? null : Long.valueOf(value);
+        } catch (NumberFormatException e) {
+            throw new AbortException(field + " must be a whole number, got '" + value + "'");
+        }
+    }
+
+    static List<String> splitNames(@Nullable String names) {
+        if (names == null) {
+            return List.of();
+        }
+        return Arrays.stream(names.split("[,\\s]+"))
+                .filter(name -> !name.isEmpty())
+                .toList();
+    }
+
     @Extension
     public static class DescriptorImpl extends BuildStepDescriptor<Builder> {
         @Override
@@ -68,7 +155,15 @@ public class ModelRequestExecutionStep extends Builder implements SimpleBuildSte
 
         @Override
         public @NonNull String getDisplayName() {
-            return "Model Request Execution Step";
+            return "Send a request to an AI model";
+        }
+
+        public ListBoxModel doFillModelItems(@AncestorInPath @Nullable Item item) {
+            return AiRequestRunner.fillModelItems(item);
+        }
+
+        public ListBoxModel doFillPromptIdItems(@AncestorInPath @Nullable Item item) {
+            return AiRequestRunner.fillPromptIdItems(item);
         }
     }
 }

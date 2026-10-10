@@ -5,6 +5,7 @@ import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import java.util.List;
 import java.util.Map;
+import org.jenkinsci.Symbol;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -27,6 +28,7 @@ public class BasicSkillConfiguration extends SkillConfiguration {
     public String skillDescription;
 
     @Extension
+    @Symbol("basicSkill")
     public static class DescriptorImpl extends SkillConfiguration.DescriptorImpl {
         @Override
         public @NonNull String getDisplayName() {
