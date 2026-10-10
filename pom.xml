@@ -19,7 +19,9 @@
   <url>https://github.com/OhmV-IR/jenkins-ai-synapse</url>
   <licenses>
     <license>
-      <name>ARR</name>
+      <name>GNU Lesser General Public License v3.0</name>
+      <url>https://www.gnu.org/licenses/lgpl-3.0.txt</url>
+      <distribution>repo</distribution>
     </license>
   </licenses>
   <developers>
