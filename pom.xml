@@ -15,12 +15,20 @@
   <packaging>hpi</packaging>
 
   <name>Jenkins AI Synapse base plugin</name>
+  <description>Provides a base API for interacting with AI models in Jenkins, including requests, thinking, tools and skills.</description>
   <url>https://github.com/OhmV-IR/jenkins-ai-synapse</url>
   <licenses>
     <license>
       <name>ARR</name>
     </license>
   </licenses>
+  <developers>
+    <developer>
+      <id>OhmV-IR</id>
+      <name>Ohm</name>
+      <url>https://github.com/OhmV-IR</url>
+    </developer>
+  </developers>
   <scm child.scm.connection.inherit.append.path="false" child.scm.developerConnection.inherit.append.path="false" child.scm.url.inherit.append.path="false">
     <connection>scm:git:https://github.com/${gitHubRepo}</connection>
     <developerConnection>scm:git:https://github.com/${gitHubRepo}</developerConnection>
@@ -28,31 +36,22 @@
     <url>https://github.com/${gitHubRepo}</url>
   </scm>
 
-  <distributionManagement>
-    <repository>
-      <id>nexus-releases</id>
-      <name>Nexus Releases repository</name>
-      <url>https://nexus.ohmvir.dev/repository/maven-releases/</url>
-    </repository>
-    <snapshotRepository>
-      <id>nexus-snapshots</id>
-      <name>Nexus Snapshots repository</name>
-      <url>https://nexus.ohmvir.dev/repository/maven-snapshots/</url>
-    </snapshotRepository>
-  </distributionManagement>
-
   <properties>
     <revision>1.15</revision>
     <changelist>-SNAPSHOT</changelist>
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
     <jenkins.baseline>2.555</jenkins.baseline>
     <jenkins.version>${jenkins.baseline}.1</jenkins.version>
+    <maven.compiler.release>25</maven.compiler.release>
     <gitHubRepo>OhmV-IR/jenkins-ai-synapse</gitHubRepo>
 
     <spotless.check.skip>false</spotless.check.skip>
     <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
     <ban-commons-lang-2.skip>false</ban-commons-lang-2.skip>
     <hpi.strictBundledArtifacts>true</hpi.strictBundledArtifacts>
+
+    <!-- Extra profiles activated by release:perform, on top of the parent's jenkins-release -->
+    <releaseProfiles>central-release</releaseProfiles>
   </properties>
 
   <dependencyManagement>
@@ -128,6 +127,48 @@
           <tagNameFormat>jenkinscr-@{project.version}</tagNameFormat>
         </configuration>
       </plugin>
+      <!-- Replaces maven-deploy-plugin: releases go to Maven Central, snapshots to the Central snapshots repository -->
+      <plugin>
+        <groupId>org.sonatype.central</groupId>
+        <artifactId>central-publishing-maven-plugin</artifactId>
+        <version>0.11.0</version>
+        <extensions>true</extensions>
+        <configuration>
+          <publishingServerId>central</publishingServerId>
+          <autoPublish>true</autoPublish>
+          <waitUntil>validated</waitUntil>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <!-- Maven Central requires signed release artifacts -->
+    <profile>
+      <id>central-release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>3.2.8</version>
+            <configuration>
+              <!-- Pure Java signer: reads the key from MAVEN_GPG_KEY and the passphrase from MAVEN_GPG_PASSPHRASE -->
+              <signer>bc</signer>
+              <bestPractices>true</bestPractices>
+            </configuration>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+                <phase>verify</phase>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
