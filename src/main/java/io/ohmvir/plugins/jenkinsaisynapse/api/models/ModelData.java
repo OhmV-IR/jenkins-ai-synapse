@@ -11,6 +11,7 @@ import hudson.util.ListBoxModel;
 import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
+import io.ohmvir.plugins.jenkinsaisynapse.api.input.TemperatureContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsManagementLink;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.client.ModelClientConfiguration;
@@ -131,6 +132,20 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
         return items;
     }
 
+    /**
+     * Returns the highest max temperature reported by any configured model that supports a custom temperature.
+     *
+     * @return null if no such model reports a max temperature, otherwise the highest reported max temperature.
+     */
+    public static @Nullable Double getHighestMaxTemperature() {
+        return MODEL_DATA.values().stream()
+                .filter(modelData -> modelData.hasCapability(ModelCapability.CUSTOM_TEMPERATURE))
+                .map(ModelData::getMaxTemperature)
+                .filter(Objects::nonNull)
+                .max(Double::compare)
+                .orElse(null);
+    }
+
     public static @Nullable ModelData findModelForRequest(ModelRequest request) {
         Optional<ModelData> supportedModel = MODEL_DATA.values().stream()
                 .filter(modelData -> modelData.supportsRequest(request))
@@ -145,6 +160,11 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
         if (thinkingLevel.isPresent()
                 && thinkingLevel.get() instanceof ThinkingLevelContent thinkingLevelContent
                 && !supportsThinkingLevel(thinkingLevelContent.getThinkingLevel())) {
+            return false;
+        }
+        if (request.getModelInputs().stream()
+                .anyMatch(modelInput -> modelInput instanceof TemperatureContent temperatureContent
+                        && !supportsTemperature(temperatureContent.getTemperature()))) {
             return false;
         }
         if (request.getInputTypes().stream().anyMatch(inputType -> !supportsInput(inputType))) {
@@ -173,6 +193,10 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
 
     public boolean supportsThinkingLevel(ModelThinkingLevel input) {
         return supportedThinkingLevels.contains(input);
+    }
+
+    public boolean supportsTemperature(double temperature) {
+        return temperature >= 0 && (maxTemperature == null || temperature <= maxTemperature);
     }
 
     public boolean supportsThinking() {
