@@ -16,7 +16,7 @@ Releases are published to Maven Central:
 
 ```xml
 <dependency>
-  <groupId>io.ohmvir.plugins</groupId>
+  <groupId>dev.ohmvir.plugins</groupId>
   <artifactId>jenkinsaisynapse</artifactId>
   <version>VERSION</version>
 </dependency>

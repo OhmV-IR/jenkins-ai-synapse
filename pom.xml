@@ -9,7 +9,7 @@
     <relativePath />
   </parent>
 
-  <groupId>io.ohmvir.plugins</groupId>
+  <groupId>dev.ohmvir.plugins</groupId>
   <artifactId>jenkinsaisynapse</artifactId>
   <version>${revision}${changelist}</version>
   <packaging>hpi</packaging>
