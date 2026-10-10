@@ -25,8 +25,8 @@ echo review.text
 echo "Used ${review.usage?.outputTokens} output tokens"</pre>
   <p>
     Also available: <code>topP</code>, <code>topK</code>, <code>stopSequences</code> (a list of strings),
-    <code>outputTypes</code> (outputs the response must contain, from <code>text</code>, <code>thinking</code>,
-    <code>image</code>, <code>audio</code>, <code>video</code>, <code>file</code> and <code>citations</code>),
+    <code>outputTypes</code> (outputs the response must contain, from <code>text</code>, <code>image</code>,
+    <code>audio</code>, <code>video</code> and <code>file</code>),
     <code>outputDir</code> to save produced files, <code>conversationId</code> to continue a conversation across builds,
     <code>maxTurns</code>, <code>expandEnvVars</code>, and <code>quiet</code> or <code>verbose</code> to control what is
     printed to the build log.
@@ -43,11 +43,12 @@ echo "Used ${review.usage?.outputTokens} output tokens"</pre>
     <dt><code>allText</code></dt><dd>All the text the model produced, including text before tool calls.</dd>
     <dt><code>thinking</code></dt><dd>The model's thinking, if it produced any.</dd>
     <dt><code>model</code></dt><dd>The id of the model that answered.</dd>
+    <dt><code>steps</code></dt><dd>How many times the model was called.</dd>
     <dt><code>finishReason</code></dt><dd><code>STOP</code>, <code>TOKEN_CAP</code>, <code>SAFEGUARD</code> or <code>TOOL_CALLS</code>, if the client reports it.</dd>
     <dt><code>usage</code></dt><dd>A map of <code>inputTokens</code>, <code>outputTokens</code> and <code>cachedTokens</code>, if the client reports it.</dd>
     <dt><code>toolCalls</code></dt><dd>A list of maps of <code>id</code>, <code>name</code>, <code>arguments</code>, <code>successful</code> and <code>result</code>.</dd>
     <dt><code>citations</code></dt><dd>A list of maps describing the citations in the answer.</dd>
-    <dt><code>files</code></dt><dd>A list of maps of <code>name</code>, <code>contentType</code>, <code>size</code> and, with <code>outputDir</code>, <code>path</code> for each image, audio, video or file the model produced.</dd>
+    <dt><code>files</code></dt><dd>A list of maps of <code>name</code>, <code>kind</code>, <code>contentType</code>, <code>size</code> and, with <code>outputDir</code>, <code>path</code> for each image, audio, video or file the model produced.</dd>
     <dt><code>conversationId</code></dt><dd>The UUID of the conversation, with <code>conversationId</code>.</dd>
   </dl>
 </div>

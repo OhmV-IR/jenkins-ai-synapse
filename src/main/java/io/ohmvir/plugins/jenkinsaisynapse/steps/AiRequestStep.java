@@ -8,7 +8,7 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
+import io.ohmvir.plugins.jenkinsaisynapse.api.agent.AgentLoop;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.BasePromptsManagementLink;
@@ -16,7 +16,6 @@ import io.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguratio
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.PromptConfiguration;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -287,7 +286,7 @@ public class AiRequestStep extends Step {
     }
 
     int getEffectiveMaxTurns() {
-        return maxTurns == null ? ModelRequest.DEFAULT_MAX_TURNS : maxTurns;
+        return maxTurns == null ? AgentLoop.DEFAULT_MAX_STEPS : maxTurns;
     }
 
     @Override
@@ -322,14 +321,12 @@ public class AiRequestStep extends Step {
             if (!canConfigure(item)) {
                 return items;
             }
-            ModelData.getAll().stream()
-                    .sorted(Comparator.comparing(ModelData::getModelId))
-                    .forEach(modelData -> {
-                        ModelConfiguration configuration = modelData.getModelConfiguration();
-                        items.add(
-                                configuration == null ? modelData.getModelId() : configuration.getModelIdDisplayName(),
-                                modelData.getModelId());
-                    });
+            ModelData.getConfiguredModels().forEach(modelData -> {
+                ModelConfiguration configuration = modelData.getModelConfiguration();
+                items.add(
+                        configuration == null ? modelData.getModelId() : configuration.getModelIdDisplayName(),
+                        modelData.getModelId());
+            });
             return items;
         }
 

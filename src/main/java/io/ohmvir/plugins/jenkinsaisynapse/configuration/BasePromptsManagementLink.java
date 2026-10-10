@@ -8,7 +8,7 @@ import hudson.model.Descriptor;
 import hudson.model.ManagementLink;
 import hudson.model.Saveable;
 import hudson.security.Permission;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
+import io.ohmvir.plugins.jenkinsaisynapse.api.request.ModelRequest;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.PromptConfiguration;
 import jakarta.servlet.ServletException;
 import java.io.File;
@@ -36,7 +36,8 @@ public class BasePromptsManagementLink extends ManagementLink implements Saveabl
     }
 
     public @Nullable ModelRequest getRequestFromPromptId(String promptId) {
-        return prompts.get(promptId).createRequest();
+        PromptConfiguration prompt = prompts.get(promptId);
+        return prompt == null ? null : prompt.createRequest();
     }
 
     public @Nullable PromptConfiguration getPromptConfiguration(String promptId) {

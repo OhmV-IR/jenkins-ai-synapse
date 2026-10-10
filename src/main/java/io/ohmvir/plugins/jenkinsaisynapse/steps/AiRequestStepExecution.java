@@ -10,46 +10,28 @@ import hudson.FilePath;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import io.ohmvir.plugins.jenkinsaisynapse.api.ModelConversation;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.InputAudioContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.InputConversationContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.InputFileContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.InputImageContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.InputTextContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.InputVideoContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.MaxOutputTokensContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequestException;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.StopSequencesContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.SystemPromptContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.TemperatureContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ToolCallResponseContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.TopKContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.TopPContent;
+import io.ohmvir.plugins.jenkinsaisynapse.api.agent.AgentLoop;
+import io.ohmvir.plugins.jenkinsaisynapse.api.errors.ModelException;
+import io.ohmvir.plugins.jenkinsaisynapse.api.message.CitationPart;
+import io.ohmvir.plugins.jenkinsaisynapse.api.message.ContentPart;
+import io.ohmvir.plugins.jenkinsaisynapse.api.message.MediaPart;
+import io.ohmvir.plugins.jenkinsaisynapse.api.message.Message;
+import io.ohmvir.plugins.jenkinsaisynapse.api.message.TextPart;
+import io.ohmvir.plugins.jenkinsaisynapse.api.message.ToolCallPart;
+import io.ohmvir.plugins.jenkinsaisynapse.api.message.ToolResultPart;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelFinishReason;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.CitationContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelResponse;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.OutputAudioContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.OutputFileContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.OutputImageContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.OutputTextContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.OutputVideoContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ThinkingContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.TokenUtilizationContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
+import io.ohmvir.plugins.jenkinsaisynapse.api.request.GenerationParams;
+import io.ohmvir.plugins.jenkinsaisynapse.api.request.ModelRequest;
+import io.ohmvir.plugins.jenkinsaisynapse.api.request.ToolSpec;
+import io.ohmvir.plugins.jenkinsaisynapse.api.response.ModelResponse;
+import io.ohmvir.plugins.jenkinsaisynapse.api.response.TokenUsage;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import io.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
 import io.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolRegistry;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.BasePromptsManagementLink;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsManagementLink;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.PromptConfiguration;
-import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -67,14 +49,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import javax.imageio.ImageIO;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.SynchronousNonBlockingStepExecution;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Builds a fresh {@link ModelRequest} for every execution of {@link AiRequestStep}, so nothing is shared between
- * builds, and executes it on a background thread so the build can be aborted while the model is working.
+ * Builds a {@link ModelRequest} from the step's parameters and runs it with an {@link AgentLoop} on a background
+ * thread, so the build can be aborted while the model is working.
  */
 public class AiRequestStepExecution extends SynchronousNonBlockingStepExecution<Object> {
     private static final long serialVersionUID = 1L;
@@ -87,7 +68,7 @@ public class AiRequestStepExecution extends SynchronousNonBlockingStepExecution<
     /**
      * The values accepted by {@link AiRequestStep#setOutputTypes(List)}.
      */
-    static final Map<String, Class<? extends ModelOutput>> OUTPUT_TYPES = createOutputTypes();
+    static final Map<String, ModelOutputType> OUTPUT_TYPES = createOutputTypes();
 
     private static final Map<String, String> CONTENT_TYPES_BY_EXTENSION = Map.ofEntries(
             Map.entry("md", "text/markdown"),
@@ -112,15 +93,13 @@ public class AiRequestStepExecution extends SynchronousNonBlockingStepExecution<
 
     private final transient AiRequestStep step;
 
-    private static Map<String, Class<? extends ModelOutput>> createOutputTypes() {
-        Map<String, Class<? extends ModelOutput>> outputTypes = new LinkedHashMap<>();
-        outputTypes.put("text", OutputTextContent.class);
-        outputTypes.put("thinking", ThinkingContent.class);
-        outputTypes.put("image", OutputImageContent.class);
-        outputTypes.put("audio", OutputAudioContent.class);
-        outputTypes.put("video", OutputVideoContent.class);
-        outputTypes.put("file", OutputFileContent.class);
-        outputTypes.put("citations", CitationContent.class);
+    private static Map<String, ModelOutputType> createOutputTypes() {
+        Map<String, ModelOutputType> outputTypes = new LinkedHashMap<>();
+        outputTypes.put("text", ModelOutputType.UNSTRUCTURED_TEXT);
+        outputTypes.put("image", ModelOutputType.IMAGE);
+        outputTypes.put("audio", ModelOutputType.AUDIO);
+        outputTypes.put("video", ModelOutputType.VIDEO);
+        outputTypes.put("file", ModelOutputType.FILE);
         return Collections.unmodifiableMap(outputTypes);
     }
 
@@ -140,36 +119,40 @@ public class AiRequestStepExecution extends SynchronousNonBlockingStepExecution<
             throw new AbortException("aiRequest needs a prompt or a promptId");
         }
 
-        ModelRequest request = new ModelRequest();
-        UUID conversationUuid = attachConversation(request, run, env);
-        addPromptInputs(request, env);
-        addSettings(request);
-        attachToolsAndSkills(request, env);
+        ModelRequest.Builder builder = startRequest(env);
+        builder.tools(resolveTools(env)).skills(resolveSkills(env));
+        List<ContentPart> userParts = new ArrayList<>();
         for (String path : expand(env, step.getFiles())) {
-            request.addInput(readAttachment(requireWorkspace(context, "files"), path));
+            userParts.add(readAttachment(requireWorkspace(context, "files"), path));
         }
         String prompt = step.getPrompt();
         if (prompt != null) {
-            request.addInput(new InputTextContent(step.isExpandEnvVars() ? env.expand(prompt) : prompt));
+            userParts.add(new TextPart(step.isExpandEnvVars() ? env.expand(prompt) : prompt));
         }
+        builder.addUserParts(userParts);
         if (step.getOutputTypes() != null) {
             step.getOutputTypes()
-                    .forEach(type -> request.requestOutputType(OUTPUT_TYPES.get(type.toLowerCase(Locale.ROOT))));
+                    .forEach(type -> builder.requireOutput(OUTPUT_TYPES.get(type.toLowerCase(Locale.ROOT))));
         }
-        ModelData model = resolveModel(request, env.expand(step.getModel()));
+        ModelConversation conversation = loadConversation(run, env);
+        List<Message> history = conversation == null ? List.of() : conversation.getMessages();
+        builder.prependMessages(history);
+        ModelRequest request = builder.build();
 
         BuildLogRequestListener requestListener = new BuildLogRequestListener(logger, step.isQuiet(), step.isVerbose());
-        request.setListener(requestListener);
-        if (!step.isQuiet()) {
-            logger.println("[aiRequest] Sending request to " + model.getModelId());
-        }
+        AgentLoop loop = AgentLoop.builder()
+                .maxSteps(step.getEffectiveMaxTurns())
+                .timeout(step.getTimeout() == null ? null : Duration.ofSeconds(step.getTimeout()))
+                .listener(requestListener)
+                .build();
         ModelResponse response;
         try {
-            response = request.executeOrThrow(
-                    model,
-                    step.getTimeout() == null ? null : Duration.ofSeconds(step.getTimeout()),
-                    step.getEffectiveMaxTurns());
-        } catch (ModelRequestException e) {
+            ModelData model = ModelData.resolve(env.expand(step.getModel()), request);
+            if (!step.isQuiet()) {
+                logger.println("[aiRequest] Sending request to " + model.getModelId());
+            }
+            response = loop.run(model, request);
+        } catch (ModelException e) {
             if (e.getCause() == null) {
                 throw new AbortException(e.getMessage());
             }
@@ -178,11 +161,17 @@ public class AiRequestStepExecution extends SynchronousNonBlockingStepExecution<
             requestListener.finish();
         }
 
+        if (conversation != null) {
+            List<Message> added = new ArrayList<>(request.getMessages()
+                    .subList(history.size(), request.getMessages().size()));
+            added.addAll(response.getNewMessages());
+            conversation.addMessages(added);
+        }
         String outputDir = env.expand(step.getOutputDir());
         List<Map<String, Object>> outputFiles =
                 saveOutputFiles(response, outputDir == null ? null : requireWorkspace(context, "outputDir"), outputDir);
         if (!step.isQuiet()) {
-            logger.println("[aiRequest] " + describeCompletion(model, response));
+            logger.println("[aiRequest] " + describeCompletion(response));
             if (outputDir == null && !outputFiles.isEmpty()) {
                 logger.println("[aiRequest] The model produced " + outputFiles.size()
                         + " files, set outputDir to save them to the workspace");
@@ -191,10 +180,105 @@ public class AiRequestStepExecution extends SynchronousNonBlockingStepExecution<
         if (!step.isReturnResponse()) {
             return response.getText();
         }
-        return toMap(request, response, model, outputFiles, conversationUuid);
+        return toMap(response, outputFiles, conversation);
     }
 
-    private @Nullable UUID attachConversation(ModelRequest request, Run<?, ?> run, EnvVars env) throws IOException {
+    /**
+     * Starts the request from the stored prompt, if there is one, and applies the step's settings over it.
+     */
+    private ModelRequest.Builder startRequest(EnvVars env) throws AbortException {
+        String promptId = env.expand(step.getPromptId());
+        ModelRequest.Builder builder = ModelRequest.builder();
+        GenerationParams baseParams = GenerationParams.DEFAULTS;
+        if (promptId != null) {
+            PromptConfiguration promptConfiguration =
+                    BasePromptsManagementLink.get().getPromptConfiguration(promptId);
+            if (promptConfiguration == null) {
+                throw new AbortException("Unknown prompt id '" + promptId + "'. Configured prompts: "
+                        + describeNames(BasePromptsManagementLink.get().getPrompts().stream()
+                                .map(PromptConfiguration::getPromptId)
+                                .toList()));
+            }
+            ModelRequest stored = promptConfiguration.createRequest();
+            baseParams = stored.getParams();
+            stored.getRequiredOutputs().forEach(builder::requireOutput);
+            builder.tools(stored.getTools()).skills(stored.getSkills());
+            if (step.isExpandEnvVars()) {
+                builder.systemPrompt(env.expand(stored.getSystemPrompt()));
+                stored.getMessages().forEach(message -> builder.message(expandText(message, env)));
+            } else {
+                builder.systemPrompt(stored.getSystemPrompt()).messages(stored.getMessages());
+            }
+        }
+        if (step.getSystemPrompt() != null) {
+            builder.systemPrompt(step.getSystemPrompt());
+        }
+        GenerationParams.Builder params = baseParams.toBuilder();
+        if (step.getTemperature() != null) {
+            params.temperature(step.getTemperature());
+        }
+        if (step.getMaxOutputTokens() != null) {
+            params.maxOutputTokens(step.getMaxOutputTokens());
+        }
+        if (step.getThinkingLevel() != null) {
+            params.thinkingLevel(AiRequestStep.parseThinkingLevel(step.getThinkingLevel()));
+        }
+        if (step.getTopP() != null) {
+            params.topP(step.getTopP());
+        }
+        if (step.getTopK() != null) {
+            params.topK(step.getTopK());
+        }
+        if (step.getStopSequences() != null) {
+            params.stopSequences(step.getStopSequences());
+        }
+        return builder.params(params.build());
+    }
+
+    private static Message expandText(Message message, EnvVars env) {
+        return new Message(
+                message.getRole(),
+                message.getParts().stream()
+                        .map(part -> part instanceof TextPart text ? new TextPart(env.expand(text.getText())) : part)
+                        .toList());
+    }
+
+    private List<ToolSpec> resolveTools(EnvVars env) throws AbortException {
+        List<ToolSpec> tools = new ArrayList<>();
+        for (String toolName : expand(env, step.getTools())) {
+            Tool tool = ToolRegistry.getTool(toolName);
+            if (tool == null) {
+                throw new AbortException("Unknown tool '" + toolName + "'. Available tools: "
+                        + describeNames(ToolRegistry.getAllTools().stream()
+                                .map(Tool::getName)
+                                .sorted()
+                                .toList()));
+            }
+            tools.add(ToolSpec.of(tool));
+        }
+        return tools;
+    }
+
+    private List<SkillData> resolveSkills(EnvVars env) throws AbortException {
+        List<SkillData> skills = new ArrayList<>();
+        for (String skillName : expand(env, step.getSkills())) {
+            SkillData skill = SkillData.getSkillData(skillName);
+            if (skill == null) {
+                throw new AbortException("Unknown skill '" + skillName + "'. Available skills: "
+                        + describeNames(SkillData.getAllSkills().stream()
+                                .map(SkillData::getSkillName)
+                                .sorted()
+                                .toList()));
+            }
+            skills.add(skill);
+        }
+        return skills;
+    }
+
+    /**
+     * Loads the conversation named by the step, if any. Keys other than UUIDs are scoped to the job.
+     */
+    private @Nullable ModelConversation loadConversation(Run<?, ?> run, EnvVars env) throws IOException {
         String key = env.expand(step.getConversationId());
         if (key == null) {
             return null;
@@ -206,126 +290,7 @@ public class AiRequestStepExecution extends SynchronousNonBlockingStepExecution<
             uuid = UUID.nameUUIDFromBytes(
                     (run.getParent().getFullName() + "\n" + key).getBytes(StandardCharsets.UTF_8));
         }
-        ModelConversation conversation = new ModelConversation(uuid);
-        request.addInput(new InputConversationContent(conversation));
-        request.setAssociatedConversation(conversation);
-        return uuid;
-    }
-
-    private void addPromptInputs(ModelRequest request, EnvVars env) throws AbortException {
-        String promptId = env.expand(step.getPromptId());
-        if (promptId == null) {
-            return;
-        }
-        PromptConfiguration promptConfiguration =
-                BasePromptsManagementLink.get().getPromptConfiguration(promptId);
-        if (promptConfiguration == null) {
-            throw new AbortException("Unknown prompt id '" + promptId + "'. Configured prompts: "
-                    + describeNames(BasePromptsManagementLink.get().getPrompts().stream()
-                            .map(PromptConfiguration::getPromptId)
-                            .toList()));
-        }
-        for (ModelInput input : promptConfiguration.createRequest().getModelInputs()) {
-            if (step.isExpandEnvVars() && input instanceof InputTextContent text) {
-                request.addInput(new InputTextContent(env.expand(text.getText())));
-            } else if (step.isExpandEnvVars() && input instanceof SystemPromptContent systemPrompt) {
-                request.addInput(new SystemPromptContent(env.expand(systemPrompt.getSystemPrompt())));
-            } else {
-                request.addInput(input);
-            }
-        }
-    }
-
-    private void addSettings(ModelRequest request) {
-        if (step.getSystemPrompt() != null) {
-            request.replaceInput(new SystemPromptContent(step.getSystemPrompt()));
-        }
-        if (step.getTemperature() != null) {
-            request.replaceInput(new TemperatureContent(step.getTemperature()));
-        }
-        if (step.getMaxOutputTokens() != null) {
-            request.replaceInput(new MaxOutputTokensContent(step.getMaxOutputTokens()));
-        }
-        if (step.getThinkingLevel() != null) {
-            request.replaceInput(new ThinkingLevelContent(AiRequestStep.parseThinkingLevel(step.getThinkingLevel())));
-        }
-        if (step.getTopP() != null) {
-            request.replaceInput(new TopPContent(step.getTopP()));
-        }
-        if (step.getTopK() != null) {
-            request.replaceInput(new TopKContent(step.getTopK()));
-        }
-        if (step.getStopSequences() != null) {
-            request.replaceInput(new StopSequencesContent(List.copyOf(step.getStopSequences())));
-        }
-    }
-
-    private void attachToolsAndSkills(ModelRequest request, EnvVars env) throws AbortException {
-        for (String toolName : expand(env, step.getTools())) {
-            Tool tool = ToolRegistry.getTool(toolName);
-            if (tool == null) {
-                throw new AbortException("Unknown tool '" + toolName + "'. Available tools: "
-                        + describeNames(ToolRegistry.getAllTools().stream()
-                                .map(Tool::getName)
-                                .toList()));
-            }
-            request.attachTool(tool);
-        }
-        for (String skillName : expand(env, step.getSkills())) {
-            SkillData skill = SkillData.getSkillData(skillName);
-            if (skill == null) {
-                throw new AbortException("Unknown skill '" + skillName + "'. Available skills: "
-                        + describeNames(SkillData.getAllSkills().stream()
-                                .map(SkillData::getSkillName)
-                                .toList()));
-            }
-            request.attachSkill(skill);
-        }
-    }
-
-    private static ModelData resolveModel(ModelRequest request, @Nullable String modelName) throws AbortException {
-        if (modelName == null) {
-            ModelData model = ModelData.findModelForRequest(request);
-            if (model == null) {
-                throw new AbortException(
-                        "No configured model supports this request. Configured models: " + describeModels(request));
-            }
-            return model;
-        }
-        ModelData model = ModelData.get(modelName);
-        if (model == null) {
-            model = ModelsManagementLink.get().getModelConfigurations().stream()
-                    .filter(configuration -> modelName.equals(configuration.getModelIdDisplayName())
-                            || modelName.equals(configuration.getModelName())
-                            || modelName.equals(configuration.getModelDisplayName()))
-                    .map(ModelConfiguration::getModelId)
-                    .map(ModelData::get)
-                    .filter(Objects::nonNull)
-                    .findFirst()
-                    .orElse(null);
-        }
-        if (model == null) {
-            throw new AbortException(
-                    "Unknown model '" + modelName + "'. Configured models: " + describeModels(request));
-        }
-        List<String> unsupported = model.getUnsupportedRequirements(request);
-        if (!unsupported.isEmpty()) {
-            throw new AbortException("Model " + model.getModelId() + " does not support "
-                    + String.join(", ", unsupported) + ", which this request needs");
-        }
-        return model;
-    }
-
-    private static String describeModels(ModelRequest request) {
-        return describeNames(ModelData.getAll().stream()
-                .map(model -> {
-                    List<String> unsupported = model.getUnsupportedRequirements(request);
-                    return unsupported.isEmpty()
-                            ? model.getModelId()
-                            : model.getModelId() + " (no " + String.join(", ", unsupported) + ")";
-                })
-                .sorted()
-                .toList());
+        return new ModelConversation(uuid);
     }
 
     private static String describeNames(List<String> names) {
@@ -345,7 +310,7 @@ public class AiRequestStepExecution extends SynchronousNonBlockingStepExecution<
         return workspace;
     }
 
-    private static ModelInput readAttachment(FilePath workspace, String path) throws IOException, InterruptedException {
+    private static MediaPart readAttachment(FilePath workspace, String path) throws IOException, InterruptedException {
         FilePath file = workspace.child(path);
         if (!file.exists() || file.isDirectory()) {
             throw new AbortException("File to attach does not exist: " + file.getRemote());
@@ -358,17 +323,17 @@ public class AiRequestStepExecution extends SynchronousNonBlockingStepExecution<
             data = in.readAllBytes();
         }
         String contentType = guessContentType(file.getName(), data);
+        MediaPart.Kind kind;
         if (contentType.startsWith("image/")) {
-            BufferedImage image = ImageIO.read(new ByteArrayInputStream(data));
-            if (image != null) {
-                return new InputImageContent(image);
-            }
+            kind = MediaPart.Kind.IMAGE;
         } else if (contentType.startsWith("audio/")) {
-            return new InputAudioContent(data);
+            kind = MediaPart.Kind.AUDIO;
         } else if (contentType.startsWith("video/")) {
-            return new InputVideoContent(data);
+            kind = MediaPart.Kind.VIDEO;
+        } else {
+            kind = MediaPart.Kind.FILE;
         }
-        return new InputFileContent(file.getName(), data, contentType);
+        return new MediaPart(kind, file.getName(), contentType, data);
     }
 
     static String guessContentType(String fileName, byte[] data) {
@@ -392,9 +357,18 @@ public class AiRequestStepExecution extends SynchronousNonBlockingStepExecution<
         return "text/plain";
     }
 
+    private static String extensionFor(String mediaType) {
+        return CONTENT_TYPES_BY_EXTENSION.entrySet().stream()
+                .filter(entry -> entry.getValue().equals(mediaType))
+                .map(Map.Entry::getKey)
+                .sorted()
+                .findFirst()
+                .orElse(mediaType.startsWith("text/") ? "txt" : "bin");
+    }
+
     /**
-     * Describes the images, audio, video and files in the response, saving them to the output directory if there is
-     * one.
+     * Describes the images, audio, video and files the model produced, saving them to the output directory if there
+     * is one.
      */
     private static List<Map<String, Object>> saveOutputFiles(
             ModelResponse response, @Nullable FilePath workspace, @Nullable String outputDir)
@@ -403,62 +377,26 @@ public class AiRequestStepExecution extends SynchronousNonBlockingStepExecution<
         Set<String> usedNames = new HashSet<>();
         FilePath directory = workspace == null || outputDir == null ? null : workspace.child(outputDir);
         int index = 0;
-        for (ModelOutput output : response.getOutputs()) {
-            String name;
-            String contentType;
-            byte[] data;
-            switch (output) {
-                case OutputFileContent file -> {
-                    name = file.getFileId();
-                    contentType = file.getContentType();
-                    data = file.getFileData();
-                }
-                case OutputImageContent image -> {
-                    name = "image-" + (index + 1) + ".png";
-                    contentType = "image/png";
-                    data = toPng(image.getImage());
-                }
-                case OutputAudioContent audio -> {
-                    name = "audio-" + (index + 1) + ".mp3";
-                    contentType = "audio/mpeg";
-                    data = audio.getAudioData();
-                }
-                case OutputVideoContent video -> {
-                    name = "video-" + (index + 1) + ".mp4";
-                    contentType = "video/mp4";
-                    data = video.getVideoData();
-                }
-                default -> {
-                    continue;
-                }
-            }
+        for (MediaPart media : response.getMedia()) {
             index++;
-            if (data == null) {
-                data = new byte[0];
-            }
+            String name = media.getName() == null
+                    ? media.getKind().name().toLowerCase(Locale.ROOT) + "-" + index + "."
+                            + extensionFor(media.getMediaType())
+                    : media.getName();
             name = uniqueFileName(name, index, usedNames);
             Map<String, Object> description = new LinkedHashMap<>();
             description.put("name", name);
-            description.put("contentType", contentType);
-            description.put("size", data.length);
+            description.put("kind", media.getKind().name());
+            description.put("contentType", media.getMediaType());
+            description.put("size", media.getSize());
             if (directory != null) {
                 directory.mkdirs();
-                directory.child(name).copyFrom(new ByteArrayInputStream(data));
+                directory.child(name).copyFrom(new ByteArrayInputStream(media.getData()));
                 description.put("path", outputDir + "/" + name);
             }
             files.add(description);
         }
         return files;
-    }
-
-    private static byte[] toPng(@Nullable BufferedImage image) throws IOException {
-        if (image == null) {
-            return new byte[0];
-        }
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            ImageIO.write(image, "png", out);
-            return out.toByteArray();
-        }
     }
 
     /**
@@ -478,73 +416,63 @@ public class AiRequestStepExecution extends SynchronousNonBlockingStepExecution<
         return fileName;
     }
 
-    private static String describeCompletion(ModelData model, ModelResponse response) {
-        StringBuilder description = new StringBuilder(model.getModelId()).append(" finished");
+    private static String describeCompletion(ModelResponse response) {
+        StringBuilder description = new StringBuilder(response.getModelId()).append(" finished");
         List<String> details = new ArrayList<>();
-        ModelFinishReason finishReason = response.getFinishReason();
-        if (finishReason != null) {
-            details.add(finishReason.name().toLowerCase(Locale.ROOT));
-        }
-        TokenUtilizationContent usage = response.getTokenUtilization();
+        details.add(response.getFinishReason().name().toLowerCase(Locale.ROOT));
+        TokenUsage usage = response.getUsage();
         if (usage != null) {
-            details.add(usage.getInputTokensUsed() + " input tokens");
-            details.add(usage.getOutputTokensUsed() + " output tokens");
+            details.add(usage.inputTokens() + " input tokens");
+            details.add(usage.outputTokens() + " output tokens");
         }
-        if (!details.isEmpty()) {
-            description.append(" (").append(String.join(", ", details)).append(")");
-        }
-        return description.toString();
+        return description
+                .append(" (")
+                .append(String.join(", ", details))
+                .append(")")
+                .toString();
     }
 
     /**
      * Converts the response to plain maps, lists and values that Pipeline scripts can use and store.
      */
     private static Map<String, Object> toMap(
-            ModelRequest request,
-            ModelResponse response,
-            ModelData model,
-            List<Map<String, Object>> outputFiles,
-            @Nullable UUID conversationUuid) {
+            ModelResponse response, List<Map<String, Object>> outputFiles, @Nullable ModelConversation conversation) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("text", response.getText());
         result.put("allText", response.getAllText());
         result.put("thinking", response.getThinking());
-        result.put("model", model.getModelId());
-        ModelFinishReason finishReason = response.getFinishReason();
-        result.put("finishReason", finishReason == null ? null : finishReason.name());
+        result.put("model", response.getModelId());
+        result.put("finishReason", response.getFinishReason().name());
+        result.put("steps", response.getSteps());
 
-        TokenUtilizationContent usage = response.getTokenUtilization();
+        TokenUsage usage = response.getUsage();
         if (usage == null) {
             result.put("usage", null);
         } else {
             Map<String, Object> usageMap = new LinkedHashMap<>();
-            usageMap.put("inputTokens", usage.getInputTokensUsed());
-            usageMap.put("outputTokens", usage.getOutputTokensUsed());
-            usageMap.put("cachedTokens", usage.getCachedTokensUsed());
+            usageMap.put("inputTokens", usage.inputTokens());
+            usageMap.put("outputTokens", usage.outputTokens());
+            usageMap.put("cachedTokens", usage.cachedTokens());
             result.put("usage", usageMap);
         }
 
-        Map<String, ToolCallResponseContent> toolResults = new HashMap<>();
-        request.getModelInputs().stream()
-                .filter(ToolCallResponseContent.class::isInstance)
-                .map(ToolCallResponseContent.class::cast)
-                .filter(toolResult -> toolResult.getToolUseId() != null)
-                .forEach(toolResult -> toolResults.put(toolResult.getToolUseId(), toolResult));
+        Map<String, ToolResultPart> toolResults = new HashMap<>();
+        response.getToolResults().forEach(toolResult -> toolResults.put(toolResult.getToolCallId(), toolResult));
         List<Map<String, Object>> toolCalls = new ArrayList<>();
-        for (ToolCallContent toolCall : response.getOutputs(ToolCallContent.class)) {
+        for (ToolCallPart toolCall : response.getToolCalls()) {
             Map<String, Object> toolCallMap = new LinkedHashMap<>();
-            toolCallMap.put("id", toolCall.getToolUseId());
+            toolCallMap.put("id", toolCall.getId());
             toolCallMap.put("name", toolCall.getName());
-            toolCallMap.put("arguments", toJava(toolCall.getToolArguments()));
-            ToolCallResponseContent toolResult = toolResults.get(toolCall.getToolUseId());
-            toolCallMap.put("successful", toolResult != null && toolResult.isSuccessful());
-            toolCallMap.put("result", toolResult == null ? null : toolResult.getResponseContent());
+            toolCallMap.put("arguments", toJava(toolCall.getArguments()));
+            ToolResultPart toolResult = toolResults.get(toolCall.getId());
+            toolCallMap.put("successful", toolResult != null && !toolResult.isError());
+            toolCallMap.put("result", toolResult == null ? null : toolResult.getContent());
             toolCalls.add(toolCallMap);
         }
         result.put("toolCalls", toolCalls);
 
         List<Map<String, Object>> citations = new ArrayList<>();
-        for (CitationContent citation : response.getOutputs(CitationContent.class)) {
+        for (CitationPart citation : response.getParts(CitationPart.class)) {
             Map<String, Object> citationMap = new LinkedHashMap<>();
             citationMap.put("citedText", citation.getCitedText());
             citationMap.put("documentIndex", citation.getDocumentIndex());
@@ -556,7 +484,9 @@ public class AiRequestStepExecution extends SynchronousNonBlockingStepExecution<
         }
         result.put("citations", citations);
         result.put("files", outputFiles);
-        result.put("conversationId", conversationUuid == null ? null : conversationUuid.toString());
+        result.put(
+                "conversationId",
+                conversation == null ? null : conversation.getConversationId().toString());
         return result;
     }
 

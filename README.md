@@ -42,7 +42,7 @@ node {
 
 - `promptId` starts from a prompt stored under *Manage Jenkins » Base Prompts*; a `prompt` given alongside it is
   appended, and settings given to the step override the stored ones.
-- `returnResponse: true` returns a map with `text`, `allText`, `thinking`, `model`, `finishReason`, `usage`,
+- `returnResponse: true` returns a map with `text`, `allText`, `thinking`, `model`, `steps`, `finishReason`, `usage`,
   `toolCalls`, `citations`, `files` and `conversationId`.
 - `conversationId: "pr-${env.CHANGE_ID}"` continues a conversation across builds of the job.
 - `outputDir` saves the images, audio, video and files the model produces to the workspace.
@@ -52,13 +52,33 @@ node {
 While the model works, its answer and the tools it calls are printed to the build log, and aborting the build cancels
 the request.
 
-Plugins can do the same through the Java API: build a `ModelRequest`, then call `executeOrThrow` with a model from
-`ModelData`. Attach a `ModelRequestListener` with `setListener` to follow the request's progress.
+## Java API
 
-## Contributing
+Requests are immutable and model the conversation explicitly, as messages with a role (`USER`, `ASSISTANT` or `TOOL`)
+and content parts (text, media, thinking, tool calls, tool results and citations):
 
-Refer to our [contribution guidelines](https://github.com/jenkinsci/.github/blob/master/CONTRIBUTING.md)
+```java
+ModelRequest request = ModelRequest.builder()
+        .systemPrompt("You are a strict code reviewer")
+        .user("Review this change")
+        .tool(ToolSpec.of(ToolRegistry.getTool("readFile")))
+        .params(GenerationParams.builder().temperature(0.2).build())
+        .build();
+ModelResponse response = AgentLoop.builder().maxSteps(10).build()
+        .run(ModelData.resolve(null, request), request);
+String answer = response.getText();
+```
 
-## LICENSE
+`AgentLoop` owns the transcript: it adds each assistant message, runs the tools that message calls and adds their
+results, and calls the model again until it stops for a reason other than `TOOL_CALLS`. Failures are reported as
+`NoCapableModelException`, `ModelInvocationException` (and `ModelTimeoutException`), `MaxStepsExceededException` or
+`MissingOutputException`. Continue a conversation by passing `response.getTranscript()` as the messages of the next
+request.
 
-Currently private and ARR, but this is likely subject to change in the future
+### Writing a client
+
+A client calls one provider. It is a singleton extension shared by every request, so it must be stateless: implement
+`StepResult step(ModelContext<C, CC> context, List<Message> transcript)`, translating the transcript, and the system
+prompt, settings, tools and skills from `context.getRequest()`, into one API call. Return the assistant message with
+the provider's finish reason and token usage, send thinking parts back with their signatures, and report streamed text
+to `context.getListener()`.

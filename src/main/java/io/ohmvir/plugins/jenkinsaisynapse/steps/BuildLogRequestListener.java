@@ -1,28 +1,28 @@
 package io.ohmvir.plugins.jenkinsaisynapse.steps;
 
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequestListener;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ToolCallResponseContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.CitationContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.FinishReasonContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.OutputTextContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ThinkingContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
+import io.ohmvir.plugins.jenkinsaisynapse.api.agent.AgentListener;
+import io.ohmvir.plugins.jenkinsaisynapse.api.message.CitationPart;
+import io.ohmvir.plugins.jenkinsaisynapse.api.message.ContentPart;
+import io.ohmvir.plugins.jenkinsaisynapse.api.message.TextPart;
+import io.ohmvir.plugins.jenkinsaisynapse.api.message.ThinkingPart;
+import io.ohmvir.plugins.jenkinsaisynapse.api.message.ToolCallPart;
+import io.ohmvir.plugins.jenkinsaisynapse.api.message.ToolResultPart;
+import io.ohmvir.plugins.jenkinsaisynapse.api.response.StepResult;
 import java.io.PrintStream;
 import org.jspecify.annotations.Nullable;
 
 /**
  * Prints a request's progress to the build log as it happens: streamed text when the client supports streaming,
- * otherwise each complete output as soon as the model's turn ends.
+ * otherwise each step's message as soon as the model produces it.
  */
-class BuildLogRequestListener implements ModelRequestListener {
+class BuildLogRequestListener implements AgentListener {
     private static final int MAX_TOOL_RESULT_LENGTH = 2000;
 
     private final PrintStream logger;
     private final boolean quiet;
     private final boolean verbose;
 
-    /** Whether text or thinking of the current turn was streamed, so the complete output is not printed again. */
+    /** Whether text or thinking of the current step was streamed, so the complete message is not printed again. */
     private boolean textStreamed;
 
     private boolean thinkingStreamed;
@@ -61,50 +61,50 @@ class BuildLogRequestListener implements ModelRequestListener {
     }
 
     @Override
-    public synchronized void onOutput(ModelOutput output) {
-        switch (output) {
-            case OutputTextContent text -> {
-                if (!quiet && !textStreamed) {
-                    println(text.getText());
+    public synchronized void onStep(int step, StepResult result) {
+        for (ContentPart part : result.message().getParts()) {
+            switch (part) {
+                case TextPart text -> {
+                    if (!quiet && !textStreamed) {
+                        println(text.getText());
+                    }
                 }
-            }
-            case ThinkingContent thinking -> {
-                if (verbose && !thinkingStreamed) {
-                    println("[thinking] " + thinking.getThinking());
+                case ThinkingPart thinking -> {
+                    if (verbose && !thinkingStreamed) {
+                        println("[thinking] " + thinking.getThinking());
+                    }
                 }
-            }
-            case ToolCallContent toolCall -> {
-                if (!quiet) {
-                    println("[aiRequest] Calling tool " + toolCall.getName()
-                            + (verbose ? " with " + toolCall.getArgumentsPrettyJson() : ""));
+                case ToolCallPart toolCall -> {
+                    if (!quiet) {
+                        println("[aiRequest] Calling tool " + toolCall.getName()
+                                + (verbose ? " with " + toolCall.getArgumentsJson() : ""));
+                    }
                 }
-            }
-            case CitationContent citation -> {
-                if (verbose) {
-                    println("[citation] " + citation.getCitedText());
+                case CitationPart citation -> {
+                    if (verbose) {
+                        println("[citation] " + citation.getCitedText());
+                    }
                 }
+                default -> {}
             }
-            case FinishReasonContent finishReason -> {
-                if (verbose) {
-                    println("[aiRequest] Turn finished: " + finishReason.getReason());
-                }
-            }
-            default -> {}
         }
+        if (verbose) {
+            println("[aiRequest] Step " + step + " finished: " + result.finishReason());
+        }
+        // The next step streams afresh.
+        textStreamed = false;
+        thinkingStreamed = false;
     }
 
     @Override
-    public synchronized void onToolResult(ToolCallContent call, ToolCallResponseContent result) {
-        // A tool result means the next turn is about to start.
-        textStreamed = false;
-        thinkingStreamed = false;
+    public synchronized void onToolResult(ToolCallPart call, ToolResultPart result) {
         if (quiet) {
             return;
         }
-        if (!result.isSuccessful()) {
-            println("[aiRequest] Tool " + call.getName() + " failed");
+        if (result.isError()) {
+            println("[aiRequest] Tool " + call.getName() + " failed: " + truncate(result.getContent()));
         } else if (verbose) {
-            println("[aiRequest] Tool " + call.getName() + " returned: " + truncate(result.getResponseContent()));
+            println("[aiRequest] Tool " + call.getName() + " returned: " + truncate(result.getContent()));
         }
     }
 

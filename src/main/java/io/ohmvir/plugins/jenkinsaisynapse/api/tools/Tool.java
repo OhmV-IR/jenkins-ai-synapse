@@ -1,15 +1,18 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.tools;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import hudson.Extension;
 import hudson.ExtensionPoint;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Create a method in your class with the tool arguments that returns a String or void.
@@ -49,44 +52,85 @@ public abstract class Tool implements Describable<Tool>, ExtensionPoint {
      */
     public abstract List<ToolArgumentDescription> getArguments();
 
+    /**
+     * Calls the tool with the arguments the model passed.
+     *
+     * @return What the tool returned, or an empty string if it returns nothing.
+     * @throws IllegalArgumentException If a required argument is missing or an argument has an unsupported type.
+     * @throws Exception Whatever the tool threw.
+     */
+    public String invoke(JsonObject arguments) throws Exception {
+        List<ToolArgumentDescription> descriptions = getArguments();
+        Object[] values = new Object[descriptions.size()];
+        for (int i = 0; i < values.length; i++) {
+            ToolArgumentDescription description = descriptions.get(i);
+            JsonElement value = arguments == null ? null : arguments.get(description.getName());
+            values[i] = convertArgument(description, value);
+        }
+        Object returnValue;
+        try {
+            returnValue = toolMethod.invoke(this, values);
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof Exception exception) {
+                throw exception;
+            }
+            throw e;
+        }
+        return returnValue == null ? "" : returnValue.toString();
+    }
+
+    private static @Nullable Object convertArgument(ToolArgumentDescription description, @Nullable JsonElement value) {
+        Class<?> type = description.getType();
+        if (value == null || value.isJsonNull()) {
+            if (description.isRequired()) {
+                throw new IllegalArgumentException("Missing required argument " + description.getName());
+            }
+            if (type == boolean.class) {
+                return false;
+            }
+            if (type == int.class) {
+                return 0;
+            }
+            if (type == long.class) {
+                return 0L;
+            }
+            if (type == double.class) {
+                return 0d;
+            }
+            if (type == float.class) {
+                return 0f;
+            }
+            return null;
+        }
+        if (type == double.class || type == Double.class) {
+            return value.getAsDouble();
+        } else if (type == int.class || type == Integer.class) {
+            return value.getAsInt();
+        } else if (type == boolean.class || type == Boolean.class) {
+            return value.getAsBoolean();
+        } else if (type == String.class) {
+            return value.isJsonPrimitive() ? value.getAsString() : value.toString();
+        } else if (type == long.class || type == Long.class) {
+            return value.getAsLong();
+        } else if (type == float.class || type == Float.class) {
+            return value.getAsFloat();
+        }
+        throw new IllegalArgumentException("Argument " + description.getName() + " has unsupported type "
+                + type.getName() + "; use String, int, long, float, double or boolean");
+    }
+
+    /**
+     * @deprecated Use {@link #invoke(JsonObject)}, which reports failures instead of returning a marker string.
+     */
+    @Deprecated
     public Optional<String> callTool(JsonObject toolCallParameters) {
         try {
-            Object returnValue = toolMethod.invoke(
-                    this,
-                    getArguments().stream()
-                            .map(argument -> {
-                                var jsonArg = toolCallParameters.get(argument.getName());
-                                Class<?> tt = argument.getType();
-                                if (tt.equals(double.class)) {
-                                    return jsonArg.getAsDouble();
-                                } else if (tt.equals(int.class)) {
-                                    return jsonArg.getAsInt();
-                                } else if (tt.equals(boolean.class)) {
-                                    return jsonArg.getAsBoolean();
-                                } else if (tt.equals(String.class)) {
-                                    return jsonArg.getAsString();
-                                } else if (tt.equals(long.class)) {
-                                    return jsonArg.getAsLong();
-                                } else if (tt.equals(float.class)) {
-                                    return jsonArg.getAsFloat();
-                                } else {
-                                    logger.severe(
-                                            "Tool " + getClass().getName() + " had an argument of type " + tt.getName()
-                                                    + " which was not supported. Please use one of the supported types.");
-                                    return null;
-                                }
-                            })
-                            .toArray());
-            if (returnValue instanceof String returnValueStr) {
-                return returnValueStr.describeConstable();
-            } else if (returnValue != null) {
-                logger.severe("Tool call returned unsupported return type, only String is supported.");
-                return "<tool-call-failure>".describeConstable();
-            }
-            return Optional.empty();
+            String result = invoke(toolCallParameters);
+            return result.isEmpty() ? Optional.empty() : Optional.of(result);
         } catch (Exception e) {
             logger.severe("Failed to call tool with exception: " + e.getMessage());
-            return "<tool-call-failure>".describeConstable();
+            return Optional.of("<tool-call-failure>");
         }
     }
 

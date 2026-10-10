@@ -3,12 +3,9 @@ package io.ohmvir.plugins.jenkinsaisynapse.configuration.prompts;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.MaxOutputTokensContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.SystemPromptContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.TemperatureContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
+import io.ohmvir.plugins.jenkinsaisynapse.api.request.GenerationParams;
+import io.ohmvir.plugins.jenkinsaisynapse.api.request.ModelRequest;
 import lombok.Getter;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -49,13 +46,15 @@ public class FullPrompt extends SimplePrompt {
     }
 
     @Override
-    public ModelRequest createRequest() {
-        ModelRequest req = super.createRequest();
-        req.addInput(new SystemPromptContent(systemPrompt));
-        req.addInput(new TemperatureContent(temperature));
-        req.addInput(new MaxOutputTokensContent(maxOutputTokensCount));
-        req.addInput(new ThinkingLevelContent(thinkingLevel));
-        return req;
+    protected ModelRequest.Builder createRequestBuilder() {
+        return super.createRequestBuilder()
+                .systemPrompt(systemPrompt)
+                .params(GenerationParams.builder()
+                        .temperature(temperature)
+                        // 0 means no limit
+                        .maxOutputTokens(maxOutputTokensCount > 0 ? Math.toIntExact(maxOutputTokensCount) : null)
+                        .thinkingLevel(thinkingLevel)
+                        .build());
     }
 
     @Extension

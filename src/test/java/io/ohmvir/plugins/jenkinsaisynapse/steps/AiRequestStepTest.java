@@ -6,16 +6,13 @@ import com.google.gson.JsonObject;
 import hudson.model.Descriptor;
 import hudson.model.Result;
 import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.InputConversationContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.InputFileContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.InputTextContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.MaxOutputTokensContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.SystemPromptContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.TemperatureContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ToolCallResponseContent;
+import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelContext;
+import io.ohmvir.plugins.jenkinsaisynapse.api.message.MediaPart;
+import io.ohmvir.plugins.jenkinsaisynapse.api.message.Message;
+import io.ohmvir.plugins.jenkinsaisynapse.api.message.Role;
+import io.ohmvir.plugins.jenkinsaisynapse.api.message.TextPart;
+import io.ohmvir.plugins.jenkinsaisynapse.api.message.ToolCallPart;
+import io.ohmvir.plugins.jenkinsaisynapse.api.message.ToolResultPart;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelDataRetriever;
@@ -23,12 +20,10 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelFinishReason;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.FinishReasonContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.OutputFileContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.OutputTextContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.TokenUtilizationContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
+import io.ohmvir.plugins.jenkinsaisynapse.api.request.GenerationParams;
+import io.ohmvir.plugins.jenkinsaisynapse.api.request.ModelRequest;
+import io.ohmvir.plugins.jenkinsaisynapse.api.response.StepResult;
+import io.ohmvir.plugins.jenkinsaisynapse.api.response.TokenUsage;
 import io.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
 import io.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolArgumentDescription;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.BasePromptsManagementLink;
@@ -170,8 +165,11 @@ class AiRequestStepTest {
         job.setDefinition(new CpsFlowDefinition(
                 "echo \"answer=${aiRequest(prompt: 'hi', model: '" + FULL_MODEL + "', conversationId: 'conv')}\"",
                 true));
-        j.assertLogContains("answer=echo: hi [history=0]", j.buildAndAssertSuccess(job));
-        j.assertLogNotContains("[history=0]", j.buildAndAssertSuccess(job));
+        WorkflowRun first = j.buildAndAssertSuccess(job);
+        j.assertLogContains("answer=echo: hi", first);
+        j.assertLogNotContains("[history=", first);
+        // The second build sees the first build's question and answer.
+        j.assertLogContains("answer=echo: hi [history=2]", j.buildAndAssertSuccess(job));
     }
 
     @Test
@@ -295,114 +293,106 @@ class AiRequestStepTest {
     }
 
     /**
-     * Answers by echoing the request, or behaves as the prompt says: calls a tool, streams, sleeps or makes a file.
+     * A stateless client that answers by echoing the request, or behaves as the prompt says: calls a tool, streams,
+     * sleeps or makes a file. Everything it knows comes from the context and the transcript.
      */
     @TestExtension
     public static class FakeClient extends ModelClient<FakeModelConfiguration, FakeClientConfiguration> {
         @Override
-        protected List<ModelOutput> takeStepImpl(
-                ModelData modelData,
-                FakeModelConfiguration configuration,
-                FakeClientConfiguration clientConfiguration,
-                ModelRequest request,
-                List<ModelInput> turnInputs) {
-            List<String> texts = turnInputs.stream()
-                    .filter(InputTextContent.class::isInstance)
-                    .map(input -> ((InputTextContent) input).getText())
+        public StepResult step(
+                ModelContext<FakeModelConfiguration, FakeClientConfiguration> context, List<Message> transcript)
+                throws InterruptedException {
+            Message last = transcript.get(transcript.size() - 1);
+            if (last.getRole() == Role.TOOL) {
+                // The tool results must directly follow the assistant message that called the tools.
+                Message previous = transcript.get(transcript.size() - 2);
+                ToolResultPart result = last.getParts(ToolResultPart.class).get(0);
+                boolean answersCall = previous.getRole() == Role.ASSISTANT
+                        && previous.getToolCalls().stream()
+                                .anyMatch(call -> call.getId().equals(result.getToolCallId()));
+                return answer(answersCall ? "tool said " + result.getContent() : "broken transcript");
+            }
+            List<String> texts = last.getParts(TextPart.class).stream()
+                    .map(TextPart::getText)
                     .toList();
             String prompt = texts.isEmpty() ? "" : texts.get(texts.size() - 1);
-            ToolCallResponseContent toolResult = turnInputs.stream()
-                    .filter(ToolCallResponseContent.class::isInstance)
-                    .map(ToolCallResponseContent.class::cast)
-                    .reduce((first, second) -> second)
-                    .orElse(null);
-            if (toolResult != null) {
-                return answer("tool said " + toolResult.getResponseContent());
-            }
             switch (prompt) {
                 case "use tool" -> {
                     JsonObject arguments = new JsonObject();
                     arguments.addProperty("text", "hello");
-                    return List.of(
-                            new OutputTextContent("Let me check. "),
-                            new ToolCallContent("call-1", arguments, TOOL_NAME),
-                            new FinishReasonContent(ModelFinishReason.TOOL_CALLS));
+                    return StepResult.of(
+                            List.of(new TextPart("Let me check. "), new ToolCallPart("call-1", TOOL_NAME, arguments)),
+                            ModelFinishReason.TOOL_CALLS,
+                            new TokenUsage(10, 5, 0));
                 }
                 case "stream" -> {
-                    request.getListener().onTextDelta("streamed ");
-                    request.getListener().onTextDelta("text");
+                    context.getListener().onTextDelta("streamed ");
+                    context.getListener().onTextDelta("text");
                     return answer("streamed text");
                 }
                 case "sleep" -> {
-                    try {
-                        Thread.sleep(60_000);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                    return List.of();
+                    Thread.sleep(60_000);
+                    return answer("woke up");
                 }
                 case "make file" -> {
-                    return List.of(
-                            new OutputFileContent(
-                                    "../evil.txt", "generated".getBytes(StandardCharsets.UTF_8), "text/plain"),
-                            new FinishReasonContent(ModelFinishReason.STOP));
+                    return StepResult.of(
+                            List.of(new MediaPart(
+                                    MediaPart.Kind.FILE,
+                                    "../evil.txt",
+                                    "text/plain",
+                                    "generated".getBytes(StandardCharsets.UTF_8))),
+                            ModelFinishReason.STOP,
+                            null);
                 }
                 default -> {
-                    return answer(describe(texts, turnInputs));
+                    return answer(describe(context.getRequest(), texts, last, transcript.size() - 1));
                 }
             }
         }
 
-        private static List<ModelOutput> answer(String text) {
-            return List.of(
-                    new OutputTextContent(text),
-                    new FinishReasonContent(ModelFinishReason.STOP),
-                    new TokenUtilizationContent(10, 5, 0));
+        private static StepResult answer(String text) {
+            return StepResult.of(List.of(new TextPart(text)), ModelFinishReason.STOP, new TokenUsage(10, 5, 0));
         }
 
-        private static String describe(List<String> texts, List<ModelInput> inputs) {
+        private static String describe(ModelRequest request, List<String> texts, Message last, int history) {
             StringBuilder description = new StringBuilder("echo: ").append(String.join(" | ", texts));
-            for (ModelInput input : inputs) {
-                switch (input) {
-                    case SystemPromptContent systemPrompt ->
-                        description
-                                .append(" [system=")
-                                .append(systemPrompt.getSystemPrompt())
-                                .append(']');
-                    case TemperatureContent temperature ->
-                        description
-                                .append(" [temperature=")
-                                .append(temperature.getTemperature())
-                                .append(']');
-                    case MaxOutputTokensContent maxOutputTokens ->
-                        description
-                                .append(" [maxOutputTokens=")
-                                .append(maxOutputTokens.getMaxOutputTokens())
-                                .append(']');
-                    case ThinkingLevelContent thinkingLevel ->
-                        description
-                                .append(" [thinking=")
-                                .append(thinkingLevel.getThinkingLevel())
-                                .append(']');
-                    case InputFileContent file ->
-                        description
-                                .append(" [file ")
-                                .append(file.getFileId())
-                                .append(' ')
-                                .append(file.getContentType())
-                                .append(": ")
-                                .append(new String(file.getFileData(), StandardCharsets.UTF_8))
-                                .append(']');
-                    case InputConversationContent conversation ->
-                        description
-                                .append(" [history=")
-                                .append(conversation
-                                        .getConversation()
-                                        .getConversation()
-                                        .size())
-                                .append(']');
-                    default -> {}
-                }
+            if (request.getSystemPrompt() != null) {
+                description
+                        .append(" [system=")
+                        .append(request.getSystemPrompt())
+                        .append(']');
+            }
+            GenerationParams params = request.getParams();
+            if (params.getTemperature() != null) {
+                description
+                        .append(" [temperature=")
+                        .append(params.getTemperature())
+                        .append(']');
+            }
+            if (params.getMaxOutputTokens() != null) {
+                description
+                        .append(" [maxOutputTokens=")
+                        .append(params.getMaxOutputTokens())
+                        .append(']');
+            }
+            if (params.getThinkingLevel() != null) {
+                description
+                        .append(" [thinking=")
+                        .append(params.getThinkingLevel())
+                        .append(']');
+            }
+            for (MediaPart media : last.getParts(MediaPart.class)) {
+                description
+                        .append(" [file ")
+                        .append(media.getName())
+                        .append(' ')
+                        .append(media.getMediaType())
+                        .append(": ")
+                        .append(new String(media.getData(), StandardCharsets.UTF_8))
+                        .append(']');
+            }
+            if (history > 0) {
+                description.append(" [history=").append(history).append(']');
             }
             return description.toString();
         }
