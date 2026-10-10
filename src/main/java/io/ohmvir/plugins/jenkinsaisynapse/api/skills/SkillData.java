@@ -12,7 +12,10 @@ import hudson.model.Describable;
 import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsManagementLink;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.skills.SkillConfiguration;
+import io.ohmvir.plugins.jenkinsaisynapse.utils.SnapshotCache;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.Getter;
@@ -20,6 +23,7 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 public class SkillData implements Describable<SkillData>, ExtensionPoint {
+    private static final Logger LOGGER = Logger.getLogger(SkillData.class.getName());
     private @Getter final String skillName;
     private @Getter final String skillDescription;
     private @Getter @Nullable final String skillLicense;
@@ -36,7 +40,8 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
     /**
      * A map of skill names to SkillData
      */
-    private static final HashMap<String, SkillData> skillDataCache = new HashMap<>();
+    private static final SnapshotCache<SkillData> skillDataCache =
+            new SnapshotCache<>("skill data", SkillData::generateAllSkills);
 
     public String getSkillMetadataPrettyYaml() {
         if (skillMetadata == null) {
@@ -45,23 +50,49 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
         return skillMetadata.toPrettyString();
     }
 
-    @Initializer(after = InitMilestone.PLUGINS_STARTED)
+    /**
+     * Generates skills in the background, since some skill configurations fetch them over the network.
+     */
+    @Initializer(after = InitMilestone.PLUGINS_STARTED, fatal = false)
     public static void initializeSkillDataCache() {
-        for (SkillConfiguration skillConfig : SkillsManagementLink.get().getSkills()) {
-            initializeSkillDataForConfig(skillConfig);
-        }
+        skillDataCache.reloadInBackground();
     }
 
-    public static SkillData getSkillData(String skillName) {
-        return skillDataCache.get(skillName);
+    /**
+     * Rebuilds the skills from the current skill configurations and swaps them in.
+     * Call this after the skill configurations change.
+     */
+    public static void reload() {
+        skillDataCache.reload();
+    }
+
+    private static Map<String, SkillData> generateAllSkills() {
+        Map<String, SkillData> skills = new LinkedHashMap<>();
+        for (SkillConfiguration config : SkillsManagementLink.get().getSkills()) {
+            List<SkillData> generated;
+            try {
+                generated = config.generateSkills();
+            } catch (RuntimeException e) {
+                LOGGER.log(
+                        Level.WARNING,
+                        "Failed to generate skills for " + config.getClass().getName(),
+                        e);
+                continue;
+            }
+            if (generated == null) {
+                continue;
+            }
+            generated.forEach(skillData -> skills.put(skillData.getSkillName(), skillData));
+        }
+        return skills;
+    }
+
+    public static @Nullable SkillData getSkillData(String skillName) {
+        return skillDataCache.get().get(skillName);
     }
 
     public static List<SkillData> getAllSkills() {
-        return skillDataCache.values().stream().toList();
-    }
-
-    public static void initializeSkillDataForConfig(SkillConfiguration config) {
-        config.generateSkills().forEach(skillData -> skillDataCache.put(skillData.getSkillName(), skillData));
+        return List.copyOf(skillDataCache.get().values());
     }
 
     public Map<String, String> getSkillReferences() {

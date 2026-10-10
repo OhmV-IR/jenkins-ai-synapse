@@ -24,7 +24,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 
 @Extension
 public class SkillsManagementLink extends ManagementLink implements Saveable, Loadable {
-    private List<SkillConfiguration> skillConfigurations = new ArrayList<>();
+    private volatile List<SkillConfiguration> skillConfigurations = new ArrayList<>();
 
     public SkillsManagementLink() throws IOException {
         load();
@@ -85,8 +85,17 @@ public class SkillsManagementLink extends ManagementLink implements Saveable, Lo
         } finally {
             change.abort();
         }
-        skillConfigurations.forEach(SkillData::initializeSkillDataForConfig);
+        SkillData.reload();
         res.sendRedirect2(req.getContextPath() + "/" + getUrlName());
+    }
+
+    /**
+     * Replaces the skill configurations, saves them and reloads the skills.
+     */
+    public void setSkills(List<SkillConfiguration> skillConfigurations) throws IOException {
+        this.skillConfigurations = new ArrayList<>(skillConfigurations);
+        save();
+        SkillData.reload();
     }
 
     protected XmlFile getConfigFile() {
