@@ -74,6 +74,13 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
         return ModelData.MODEL_DATA.get(modelId);
     }
 
+    /**
+     * @return The data of every configured model whose data could be retrieved.
+     */
+    public static List<ModelData> getAll() {
+        return List.copyOf(MODEL_DATA.values());
+    }
+
     public static ModelClient<?, ?> getClient(ModelConfiguration config) {
         Optional<ModelClient> client = ExtensionList.lookup(ModelClient.class).stream()
                 .filter(obj -> {
@@ -89,7 +96,8 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
     }
 
     public ModelClient<?, ?> getClient() {
-        return getClient(getModelConfiguration());
+        ModelConfiguration configuration = getModelConfiguration();
+        return configuration == null ? null : getClient(configuration);
     }
 
     public ModelConfiguration getModelConfiguration() {
@@ -100,7 +108,11 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
     }
 
     public ModelClientConfiguration getClientConfiguration() {
-        Type genericSuper = getClient().getClass().getGenericSuperclass();
+        ModelClient<?, ?> client = getClient();
+        if (client == null) {
+            return null;
+        }
+        Type genericSuper = client.getClass().getGenericSuperclass();
         if (genericSuper instanceof ParameterizedType parameterizedSuper) {
             return ExtensionList.lookup(ModelClientConfiguration.class).stream()
                     .filter(obj -> obj.getClass().equals(parameterizedSuper.getActualTypeArguments()[1]))
@@ -139,24 +151,33 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
     }
 
     public boolean supportsRequest(ModelRequest request) {
+        return getUnsupportedRequirements(request).isEmpty();
+    }
+
+    /**
+     * @return A description of every requirement of the request this model does not meet, empty if it supports the
+     * request.
+     */
+    public List<String> getUnsupportedRequirements(ModelRequest request) {
+        List<String> unsupported = new ArrayList<>();
         Optional<ModelInput> thinkingLevel = request.getModelInputs().stream()
                 .filter(modelInput -> modelInput instanceof ThinkingLevelContent)
                 .findFirst();
         if (thinkingLevel.isPresent()
                 && thinkingLevel.get() instanceof ThinkingLevelContent thinkingLevelContent
                 && !supportsThinkingLevel(thinkingLevelContent.getThinkingLevel())) {
-            return false;
+            unsupported.add("thinking level " + thinkingLevelContent.getThinkingLevel());
         }
-        if (request.getInputTypes().stream().anyMatch(inputType -> !supportsInput(inputType))) {
-            return false;
-        }
-        if (request.getOutputTypes().stream().anyMatch(outputType -> !supportsOutput(outputType))) {
-            return false;
-        }
-        if (request.getRequiredCapabilities().stream().anyMatch(capability -> !hasCapability(capability))) {
-            return false;
-        }
-        return true;
+        request.getInputTypes().stream()
+                .filter(inputType -> !supportsInput(inputType))
+                .forEach(inputType -> unsupported.add("input type " + inputType));
+        request.getOutputTypes().stream()
+                .filter(outputType -> !supportsOutput(outputType))
+                .forEach(outputType -> unsupported.add("output type " + outputType));
+        request.getRequiredCapabilities().stream()
+                .filter(capability -> !hasCapability(capability))
+                .forEach(capability -> unsupported.add("capability " + capability));
+        return unsupported;
     }
 
     public boolean hasCapability(ModelCapability capability) {
