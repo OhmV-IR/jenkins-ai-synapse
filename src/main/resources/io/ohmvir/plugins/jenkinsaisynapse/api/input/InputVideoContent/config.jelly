@@ -4,7 +4,7 @@
     <f:section title="${%Input Video Content}" description="${%Video uploaded to the model}">
         <j:if test="${instance.videoData != null}">
             <video width="640" height="360" controls="controls">
-                <source src="${descriptor.descriptorUrl}/${instance.url}/video" type="video/mp4" />
+                <source src="${descriptor.descriptorUrl}/${instance.url}/video" type="${instance.mimeType}" />
                 Your browser does not support the video tag.
             </video>
         </j:if>
