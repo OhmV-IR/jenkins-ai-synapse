@@ -1,0 +1,26 @@
+<div>
+    <p>
+        Sends a request to an AI model, running any tools it calls, and returns its answer.
+        Set <code>prompt</code>, <code>promptId</code>, or both: the prompt text is added to the base prompt.
+        The request's progress is written to the build log as it happens, and the conversation is kept with the build
+        under <em>AI Conversations</em>.
+    </p>
+    <p>
+        Aborting the build cancels the request. The request also fails if it takes longer than the timeout configured
+        for the model's client.
+    </p>
+<pre>
+def answer = aiRequest 'Summarize the changes in this build'
+
+def review = aiRequest(promptId: 'code-review', prompt: diff,
+                       model: 'anthropic:claude-opus-5-5',
+                       tools: ['readFile'], skills: ['java-style'],
+                       returnDetails: true)
+echo review.text
+echo "Used ${review.usage?.outputTokens} output tokens"
+</pre>
+    <p>
+        <code>tools</code> and <code>skills</code> are lists of tool and skill names. They are not shown in the
+        snippet generator.
+    </p>
+</div>
