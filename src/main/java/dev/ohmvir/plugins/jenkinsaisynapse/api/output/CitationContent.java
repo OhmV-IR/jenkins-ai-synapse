@@ -1,15 +1,14 @@
-package dev.ohmvir.plugins.jenkinsaisynapse.api.output;
+package io.ohmvir.plugins.jenkinsaisynapse.api.output;
 
-import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
-import hudson.Extension;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import java.util.Set;
 import lombok.Getter;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
-import org.kohsuke.stapler.DataBoundConstructor;
 
 public class CitationContent extends ModelOutput {
+    public static final ModelOutputKind<CitationContent> KIND =
+            new ModelOutputKind<>(CitationContent.class, Set.of(ModelCapability.CITATIONS), Set.of());
+
     private @Getter final String citedText;
     private @Getter final int documentIndex;
     private @Getter final @Nullable String documentTitle;
@@ -17,7 +16,6 @@ public class CitationContent extends ModelOutput {
     private @Getter final @Nullable String fileId;
     private @Getter final int startCharIndex;
 
-    @DataBoundConstructor
     public CitationContent(
             String citedText,
             int documentIndex,
@@ -33,21 +31,8 @@ public class CitationContent extends ModelOutput {
         this.startCharIndex = startCharIndex;
     }
 
-    @Extension
-    public static class DescriptorImpl extends ModelOutputDescriptor {
-        @Override
-        public Set<ModelCapability> getRequiredCapabilities() {
-            return Set.of(ModelCapability.CITATIONS);
-        }
-
-        @Override
-        public Set<ModelOutputType> getRequiredOutputTypes() {
-            return Set.of();
-        }
-
-        @Override
-        public @NonNull String getDisplayName() {
-            return "Citation Content";
-        }
+    @Override
+    public ModelOutputKind<CitationContent> getKind() {
+        return KIND;
     }
 }

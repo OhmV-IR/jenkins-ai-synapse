@@ -1,33 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
-    <f:entry title="${%Prompt}" field="prompt">
+    <f:entry title="${%Request Text}" field="requestText">
         <f:textarea />
     </f:entry>
-    <f:entry title="${%Base prompt}" field="promptId">
+    <f:entry title="${%System Prompt}" field="systemPrompt">
+        <f:textarea />
+    </f:entry>
+    <f:entry title="${%Temperature}" field="temperature">
+        <f:number min="0" step="any" />
+    </f:entry>
+    <f:entry title="${%Max Output Tokens}" field="maxOutputTokens">
+        <f:number min="0" />
+    </f:entry>
+    <f:entry title="${%Model}" field="modelId" description="${%Leave on automatic to use the first model, in the order set on the Models page, that can handle the request}">
         <f:select />
     </f:entry>
-    <f:entry title="${%Model}" field="model">
-        <f:select />
-    </f:entry>
-    <f:advanced>
-        <f:entry title="${%System prompt}" field="systemPrompt">
-            <f:textarea />
-        </f:entry>
-        <f:entry title="${%Temperature}" field="temperature">
-            <f:textbox />
-        </f:entry>
-        <f:entry title="${%Max output tokens}" field="maxOutputTokens">
-            <f:textbox />
-        </f:entry>
-        <f:entry title="${%Tools}" field="tools">
-            <f:textbox />
-        </f:entry>
-        <f:entry title="${%Skills}" field="skills">
-            <f:textbox />
-        </f:entry>
-        <f:entry field="quiet">
-            <f:checkbox title="${%Only log the answer}" />
-        </f:entry>
-    </f:advanced>
 </j:jelly>

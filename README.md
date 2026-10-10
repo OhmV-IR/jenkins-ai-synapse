@@ -28,7 +28,7 @@ Snapshot builds of `master` are published to `https://central.sonatype.com/repos
 
 Skills don't need any support from the model provider. When a request with skills attached runs, the plugin lists each
 skill's name and description in the system prompt and attaches the built-in `read_skill_file` tool, which the model
-calls to load a skill's `SKILL.md` and any files it references. Any model with the `TOOLS` and
+calls to load its `SKILL.md` and any files it references. Any model with the `TOOLS` and
 `ADJUSTABLE_SYSTEM_PROMPT` capabilities can use skills.
 
 ## Using models in jobs
@@ -42,12 +42,12 @@ is written to the build log as it happens, and aborting the build cancels the re
 def summary = aiRequest 'Summarize the changes in this build'
 
 def review = aiRequest(
-    promptId: 'code-review',              // a base prompt from Manage Jenkins » Base Prompts
-    prompt: diff,                         // added to the base prompt
-    model: 'anthropic:claude-opus-5-5',   // optional, by default any model that supports the request is used
+    promptId: 'code-review',
+    prompt: diff,
+    model: 'anthropic:claude-opus-5-5',
     tools: ['readFile'],
     skills: ['java-style'],
-    returnDetails: true)                  // return a map instead of only the text
+    returnDetails: true)
 echo review.text
 echo "Used ${review.usage?.outputTokens} output tokens"
 ```
@@ -58,8 +58,6 @@ With `returnDetails: true` the step returns a map with `text`, `thinking`, `tool
 ### Freestyle
 
 Add the *Send a request to an AI model* build step. All of its fields accept build variables such as `${GIT_COMMIT}`.
-
-### Conversations
 
 Each request made by a build is recorded on that build under *AI Conversations*, and is deleted with the build.
 
@@ -72,7 +70,7 @@ Models, base prompts and skills can be managed with the
 unclassified:
   aiModels:
     models:
-      - anthropic:                 # the symbol of the model configuration from your client plugin
+      - anthropic:
           modelName: "claude-opus-5-5"
           modelDisplayName: "Claude Opus"
   aiPrompts:
@@ -91,17 +89,42 @@ unclassified:
 Settings from earlier versions (`models.xml`, `prompts.xml` and `skills.xml` in `JENKINS_HOME`) are migrated
 automatically on startup; the old files are kept with a `.migrated` suffix.
 
-## Writing a client plugin
+## Writing a provider
 
-A client plugin provides a `ModelConfiguration`, a `ModelDataRetriever`, a `ModelClient` and a
-`ModelClientConfiguration`. `ModelClientConfiguration` is a `GlobalConfiguration`: annotate the subclass with
-`@Extension` and `@Symbol`, give it a no-argument constructor that calls `load()`, and use `@DataBoundSetter`s that
-call `save()` for its settings (for example an API key credentials id). Include a `timeoutSeconds` field in its
-`config.jelly`; the core uses it to bound each request.
+A provider plugin implements one extension point, `ModelProvider`, for its own `ModelConfiguration` subclass:
 
-Clients that stream responses can override the `takeStepImpl` overload that takes a `ModelRequestListener` and call
-`onTextDelta` as text arrives, so it appears in the build log immediately. Steps run on a separate thread that is
-interrupted when the request is cancelled or times out, so clients should use interruptible I/O.
+```java
+@Extension
+public class MyProvider extends ModelProvider<MyModelConfiguration> {
+    public MyProvider() {
+        super(MyModelConfiguration.class);
+    }
+
+    @Override
+    protected ModelData describe(MyModelConfiguration config) {
+        ModelData data = new ModelData(config);
+        data.getCapabilities().add(ModelCapability.TOOLS);
+        data.getCapabilities().add(ModelCapability.of("myvendor:computer-use"));
+        data.getInputs().add(ModelInputType.TEXT);
+        data.getOutputs().add(ModelOutputType.UNSTRUCTURED_TEXT);
+        return data;
+    }
+
+    @Override
+    protected ModelClient createClient(MyModelConfiguration config) {
+        return (modelData, request, turnInputs) -> callMyApi(config, request, turnInputs);
+    }
+}
+```
+
+Capabilities, input types and output types the core plugin doesn't define can be added with a namespaced id such as
+`ModelCapability.of("myvendor:computer-use")` or `ModelInputType.of("myvendor:pdf")`.
+
+## Choosing a model
+
+A request runs on the model named with `ModelRequest.setModelId(...)` (or the `modelId` option of the build step). If
+no model is named, it runs on the first model that can handle it, in the order the models are listed on the Models
+page. A requested thinking level is mapped to the nearest level the model supports.
 
 ## Contributing
 
@@ -109,4 +132,5 @@ Refer to our [contribution guidelines](https://github.com/jenkinsci/.github/blob
 
 ## LICENSE
 
-Licensed under the [GNU Lesser General Public License v3.0](COPYING.LESSER), which supplements the [GNU General Public License v3.0](COPYING).
+Licensed under the [GNU Lesser General Public License v3.0](COPYING.LESSER), which supplements the
+[GNU General Public License v3.0](COPYING).

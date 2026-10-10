@@ -1,7 +1,21 @@
-package dev.ohmvir.plugins.jenkinsaisynapse.api.input;
+package io.ohmvir.plugins.jenkinsaisynapse.api.input;
 
-import dev.ohmvir.plugins.jenkinsaisynapse.api.ModelContent;
-import hudson.ExtensionPoint;
-import hudson.model.Describable;
+import io.ohmvir.plugins.jenkinsaisynapse.api.ModelContent;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
+import java.util.Set;
 
-public abstract class ModelInput implements Describable<ModelInput>, ExtensionPoint, ModelContent {}
+/**
+ * Something sent to a model. Plain data: it declares what a model needs to accept it, and needs no running Jenkins.
+ */
+public abstract class ModelInput implements ModelContent {
+    /**
+     * @return The capabilities a model must have to accept this input.
+     */
+    public abstract Set<ModelCapability> getRequiredCapabilities();
+
+    /**
+     * @return The input types a model must accept to accept this input.
+     */
+    public abstract Set<ModelInputType> getRequiredInputTypes();
+}

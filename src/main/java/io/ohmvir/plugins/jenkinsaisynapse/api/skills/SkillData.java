@@ -4,11 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import hudson.Extension;
-import hudson.ExtensionPoint;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
-import hudson.model.Describable;
 import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsConfiguration;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.skills.SkillConfiguration;
@@ -16,10 +13,12 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.Getter;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-public class SkillData implements Describable<SkillData>, ExtensionPoint {
+/**
+ * A skill a model can use. Plain data: it can be built and read without a running Jenkins.
+ */
+public class SkillData {
     private @Getter final String skillName;
     private @Getter final String skillDescription;
     private @Getter @Nullable final String skillLicense;
@@ -119,13 +118,5 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
         this.skillReferences = new HashMap<>();
         this.skillReferences.putAll(skillDirectory);
         this.skillReferences.remove("SKILL.md");
-    }
-
-    @Extension
-    public static class DescriptorImpl extends Descriptor<SkillData> {
-        @Override
-        public @NonNull String getDisplayName() {
-            return "Skill Data";
-        }
     }
 }

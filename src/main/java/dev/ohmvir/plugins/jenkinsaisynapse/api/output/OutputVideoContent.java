@@ -1,26 +1,23 @@
-package dev.ohmvir.plugins.jenkinsaisynapse.api.output;
+package io.ohmvir.plugins.jenkinsaisynapse.api.output;
 
-import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
-import dev.ohmvir.plugins.jenkinsaisynapse.utils.MimeTypeUtils;
-import hudson.Extension;
-import hudson.model.Descriptor;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
+import io.ohmvir.plugins.jenkinsaisynapse.utils.MimeTypeUtils;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Set;
 import lombok.Getter;
-import org.jspecify.annotations.NonNull;
-import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse2;
 
 public class OutputVideoContent extends ModelOutput {
+    public static final ModelOutputKind<OutputVideoContent> KIND =
+            new ModelOutputKind<>(OutputVideoContent.class, Set.of(), Set.of(ModelOutputType.VIDEO));
+
     private @Getter final byte[] videoData;
     /** MIME type identifying the encoding of {@link #videoData}, eg {@code video/mp4} or {@code video/webm}. */
     private @Getter final String mimeType;
 
-    @DataBoundConstructor
-    public OutputVideoContent(byte[] videoData, String mimeType) throws Descriptor.FormException {
+    public OutputVideoContent(byte[] videoData, String mimeType) {
         this.videoData = videoData;
         this.mimeType = MimeTypeUtils.requireVideoMimeType(mimeType, "mimeType");
     }
@@ -36,21 +33,8 @@ public class OutputVideoContent extends ModelOutput {
         rsp.getOutputStream().write(videoData);
     }
 
-    @Extension
-    public static class DescriptorImpl extends ModelOutputDescriptor {
-        @Override
-        public Set<ModelCapability> getRequiredCapabilities() {
-            return Set.of();
-        }
-
-        @Override
-        public Set<ModelOutputType> getRequiredOutputTypes() {
-            return Set.of(ModelOutputType.VIDEO);
-        }
-
-        @Override
-        public @NonNull String getDisplayName() {
-            return "Output Video Content";
-        }
+    @Override
+    public ModelOutputKind<OutputVideoContent> getKind() {
+        return KIND;
     }
 }

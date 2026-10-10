@@ -1,19 +1,18 @@
-package dev.ohmvir.plugins.jenkinsaisynapse.api.output;
+package io.ohmvir.plugins.jenkinsaisynapse.api.output;
 
-import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
-import hudson.Extension;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Locale;
 import java.util.Set;
 import lombok.Getter;
-import org.jspecify.annotations.NonNull;
-import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse2;
 
 public class OutputAudioContent extends ModelOutput {
+    public static final ModelOutputKind<OutputAudioContent> KIND =
+            new ModelOutputKind<>(OutputAudioContent.class, Set.of(), Set.of(ModelOutputType.AUDIO));
+
     private @Getter final byte[] audioData;
     private @Getter final String mimeType;
 
@@ -22,7 +21,6 @@ public class OutputAudioContent extends ModelOutput {
      * @param mimeType the MIME type identifying the audio encoding, e.g. {@code audio/mpeg}, {@code audio/wav}
      *     or {@code audio/ogg; codecs=opus}
      */
-    @DataBoundConstructor
     public OutputAudioContent(byte[] audioData, String mimeType) {
         if (mimeType == null || !mimeType.trim().toLowerCase(Locale.ROOT).startsWith("audio/")) {
             throw new IllegalArgumentException("mimeType must be an audio MIME type, got: " + mimeType);
@@ -41,21 +39,8 @@ public class OutputAudioContent extends ModelOutput {
         rsp.getOutputStream().write(audioData);
     }
 
-    @Extension
-    public static final class DescriptorImpl extends ModelOutputDescriptor {
-        @Override
-        public Set<ModelCapability> getRequiredCapabilities() {
-            return Set.of();
-        }
-
-        @Override
-        public Set<ModelOutputType> getRequiredOutputTypes() {
-            return Set.of(ModelOutputType.AUDIO);
-        }
-
-        @Override
-        public @NonNull String getDisplayName() {
-            return "Output Audio Content";
-        }
+    @Override
+    public ModelOutputKind<OutputAudioContent> getKind() {
+        return KIND;
     }
 }

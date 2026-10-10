@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+<<<<<<<< HEAD:src/main/resources/dev/ohmvir/plugins/jenkinsaisynapse/api/input/InputConversationContent/config.jelly
+    <f:section title="${%Input Conversation Content}" description="${%Prior conversation history from a previous model response, attached as input to a model}" />
+========
+    <f:section title="${%Input Conversation Content}" description="${%A conversation attached as input to a model}">
+        <f:entry title="${%Conversation Id}">
+            <f:readOnlyTextbox value="${it.conversation.conversationId}" />
+        </f:entry>
+    </f:section>
+>>>>>>>> 3762fab (Make the core model API pluggable and testable without Jenkins):src/main/resources/dev/ohmvir/plugins/jenkinsaisynapse/api/input/InputConversationContent/summary.jelly
+</j:jelly>

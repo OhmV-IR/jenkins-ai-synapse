@@ -3,30 +3,37 @@ package io.ohmvir.plugins.jenkinsaisynapse.configuration;
 import hudson.BulkChange;
 import hudson.Extension;
 import hudson.ExtensionList;
+import hudson.XmlFile;
 import hudson.model.Descriptor;
 import hudson.model.ManagementLink;
+import hudson.model.Saveable;
 import hudson.security.Permission;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelProvider;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelRegistry;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import jakarta.servlet.ServletException;
+import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import jenkins.model.Jenkins;
+import jenkins.model.Loadable;
+import lombok.Getter;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
-/**
- * Page for editing {@link ModelsConfiguration}.
- */
 @Extension
-public class ModelsManagementLink extends ManagementLink {
-    public static ModelsManagementLink get() {
-        return ExtensionList.lookupSingleton(ModelsManagementLink.class);
+public class ModelsManagementLink extends ManagementLink implements Saveable, Loadable {
+    private @Getter List<ModelConfiguration> modelConfigurations = new ArrayList<>();
+
+    public ModelsManagementLink() throws IOException {
+        load();
     }
 
-    public List<ModelConfiguration> getModelConfigurations() {
-        return ModelsConfiguration.get().getModels();
+    public static ModelsManagementLink get() {
+        return ExtensionList.lookupSingleton(ModelsManagementLink.class);
     }
 
     public List<Descriptor<ModelConfiguration>> getModelDescriptors() {
@@ -67,12 +74,33 @@ public class ModelsManagementLink extends ManagementLink {
     public void doConfigSubmit(StaplerRequest2 req, StaplerResponse2 res)
             throws IOException, Descriptor.FormException, ServletException {
         Jenkins.get().checkPermission(getRequiredPermission());
-        List<ModelConfiguration> models = FormLists.bind(req, ModelConfiguration.class, "modelConfigurations");
-        ModelsConfiguration configuration = ModelsConfiguration.get();
-        try (BulkChange change = new BulkChange(configuration)) {
-            configuration.setModels(models);
+        BulkChange change = new BulkChange(this);
+        try {
+            this.modelConfigurations = req.bindJSONToList(
+                    ModelConfiguration.class, req.getSubmittedForm().get("modelConfigurations"));
+            save();
             change.commit();
+        } finally {
+            change.abort();
         }
-        res.sendRedirect2(".");
+        ModelRegistry.get().reload(modelConfigurations, ModelProvider.all());
+        res.sendRedirect2(req.getContextPath() + "/" + getUrlName());
+    }
+
+    protected XmlFile getConfigFile() {
+        return new XmlFile(Jenkins.XSTREAM, new File(Jenkins.get().getRootDir(), getUrlName() + ".xml"));
+    }
+
+    @Override
+    public void save() throws IOException {
+        getConfigFile().write(this);
+    }
+
+    @Override
+    public void load() throws IOException {
+        XmlFile file = getConfigFile();
+        if (file.exists()) {
+            file.unmarshal(this);
+        }
     }
 }

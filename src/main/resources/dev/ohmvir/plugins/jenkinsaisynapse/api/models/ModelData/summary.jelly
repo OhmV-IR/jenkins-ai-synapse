@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:section title="${%Model Data}">
+        <f:entry title="${%Model Id}">
+            <f:readOnlyTextbox value="${it.modelId}" />
+        </f:entry>
+        <f:entry title="${%Provider Type}">
+            <f:readOnlyTextbox value="${it.providerType}" />
+        </f:entry>
+        <f:entry title="${%Capabilities}">
+            <ul>
+                <j:forEach var="item" items="${it.capabilities}">
+                    <li>${item.id}</li>
+                </j:forEach>
+            </ul>
+        </f:entry>
+        <f:entry title="${%Supported Inputs}">
+            <ul>
+                <j:forEach var="item" items="${it.inputs}">
+                    <li>${item.id}</li>
+                </j:forEach>
+            </ul>
+        </f:entry>
+        <f:entry title="${%Supported Outputs}">
+            <ul>
+                <j:forEach var="item" items="${it.outputs}">
+                    <li>${item.id}</li>
+                </j:forEach>
+            </ul>
+        </f:entry>
+        <f:entry title="${%Supported Thinking Levels}">
+            <ul>
+                <j:forEach var="item" items="${it.supportedThinkingLevels}">
+                    <li>${item}</li>
+                </j:forEach>
+            </ul>
+        </f:entry>
+        <f:entry title="${%Max Input Tokens}">
+            <f:readOnlyTextbox value="${it.maxInputTokens}" />
+        </f:entry>
+        <f:entry title="${%Max Output Tokens}">
+            <f:readOnlyTextbox value="${it.maxOutputTokens}" />
+        </f:entry>
+        <f:entry title="${%Context Window}">
+            <f:readOnlyTextbox value="${it.contextWindow}" />
+        </f:entry>
+        <f:entry title="${%Max Temperature}">
+            <f:readOnlyTextbox value="${it.maxTemperature}" />
+        </f:entry>
+    </f:section>
+</j:jelly>

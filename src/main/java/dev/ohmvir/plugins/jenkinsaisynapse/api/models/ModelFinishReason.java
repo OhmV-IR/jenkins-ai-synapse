@@ -9,4 +9,10 @@ public enum ModelFinishReason {
     SAFEGUARD,
     /** Model stopped responding to wait for tool calls */
     TOOL_CALLS,
+    /** Model declined to fulfil the request */
+    REFUSAL,
+    /** The request and response no longer fit in the model's context window */
+    CONTEXT_WINDOW_EXCEEDED,
+    /** Model stopped for a reason this plugin doesn't know about. The provider's own reason is kept on the output */
+    OTHER
 }

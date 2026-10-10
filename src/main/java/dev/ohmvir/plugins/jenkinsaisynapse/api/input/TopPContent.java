@@ -1,36 +1,24 @@
-package dev.ohmvir.plugins.jenkinsaisynapse.api.input;
+package io.ohmvir.plugins.jenkinsaisynapse.api.input;
 
-import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
-import hudson.Extension;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import java.util.Set;
 import lombok.Getter;
-import org.jspecify.annotations.NonNull;
-import org.kohsuke.stapler.DataBoundConstructor;
 
 public class TopPContent extends ModelInput {
     private @Getter final double topP;
 
-    @DataBoundConstructor
     public TopPContent(double topP) {
         this.topP = topP;
     }
 
-    @Extension
-    public static class DescriptorImpl extends ModelInputDescriptor {
-        @Override
-        public Set<ModelCapability> getRequiredCapabilities() {
-            return Set.of(ModelCapability.CUSTOM_TOP_P);
-        }
+    @Override
+    public Set<ModelCapability> getRequiredCapabilities() {
+        return Set.of(ModelCapability.CUSTOM_TOP_P);
+    }
 
-        @Override
-        public Set<ModelInputType> getRequiredInputTypes() {
-            return Set.of();
-        }
-
-        @Override
-        public @NonNull String getDisplayName() {
-            return "Top P Content";
-        }
+    @Override
+    public Set<ModelInputType> getRequiredInputTypes() {
+        return Set.of();
     }
 }

@@ -2,13 +2,12 @@ package io.ohmvir.plugins.jenkinsaisynapse.configuration;
 
 import hudson.Extension;
 import hudson.ExtensionList;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelProvider;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelRegistry;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import jenkins.model.GlobalConfiguration;
 import org.jenkinsci.Symbol;
 import org.jspecify.annotations.NonNull;
@@ -21,7 +20,6 @@ import org.kohsuke.stapler.DataBoundSetter;
 @Extension
 @Symbol("aiModels")
 public class ModelsConfiguration extends GlobalConfiguration {
-    private static final Logger LOGGER = Logger.getLogger(ModelsConfiguration.class.getName());
     private static final String LEGACY_FILE = "models.xml";
 
     private volatile List<ModelConfiguration> models = new ArrayList<>();
@@ -52,13 +50,7 @@ public class ModelsConfiguration extends GlobalConfiguration {
     public void setModels(List<ModelConfiguration> models) {
         this.models = models == null ? new ArrayList<>() : new ArrayList<>(models);
         save();
-        for (ModelConfiguration model : this.models) {
-            try {
-                ModelData.initializeModelDataForConfig(model);
-            } catch (RuntimeException e) {
-                LOGGER.log(Level.WARNING, "Failed to retrieve model data for " + model.getModelId(), e);
-            }
-        }
+        ModelRegistry.get().reload(this.models, ModelProvider.all());
     }
 
     @Override

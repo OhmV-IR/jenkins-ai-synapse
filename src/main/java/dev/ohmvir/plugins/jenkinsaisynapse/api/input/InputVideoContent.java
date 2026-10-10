@@ -1,16 +1,12 @@
-package dev.ohmvir.plugins.jenkinsaisynapse.api.input;
+package io.ohmvir.plugins.jenkinsaisynapse.api.input;
 
-import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
-import dev.ohmvir.plugins.jenkinsaisynapse.utils.MimeTypeUtils;
-import hudson.Extension;
-import hudson.model.Descriptor;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
+import io.ohmvir.plugins.jenkinsaisynapse.utils.MimeTypeUtils;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Set;
 import lombok.Getter;
-import org.jspecify.annotations.NonNull;
-import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse2;
 
@@ -19,8 +15,7 @@ public class InputVideoContent extends ModelInput {
     /** MIME type identifying the encoding of {@link #videoData}, eg {@code video/mp4} or {@code video/webm}. */
     private @Getter final String mimeType;
 
-    @DataBoundConstructor
-    public InputVideoContent(byte[] videoData, String mimeType) throws Descriptor.FormException {
+    public InputVideoContent(byte[] videoData, String mimeType) {
         this.videoData = videoData;
         this.mimeType = MimeTypeUtils.requireVideoMimeType(mimeType, "mimeType");
     }
@@ -37,21 +32,13 @@ public class InputVideoContent extends ModelInput {
         rsp.getOutputStream().write(videoData);
     }
 
-    @Extension
-    public static class DescriptorImpl extends ModelInputDescriptor {
-        @Override
-        public Set<ModelCapability> getRequiredCapabilities() {
-            return Set.of();
-        }
+    @Override
+    public Set<ModelCapability> getRequiredCapabilities() {
+        return Set.of();
+    }
 
-        @Override
-        public Set<ModelInputType> getRequiredInputTypes() {
-            return Set.of(ModelInputType.VIDEO);
-        }
-
-        @Override
-        public @NonNull String getDisplayName() {
-            return "Input Video Content";
-        }
+    @Override
+    public Set<ModelInputType> getRequiredInputTypes() {
+        return Set.of(ModelInputType.VIDEO);
     }
 }
