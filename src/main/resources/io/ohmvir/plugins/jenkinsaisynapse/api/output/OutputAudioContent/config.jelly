@@ -4,7 +4,7 @@
     <f:section title="${%Output Audio Content}">
         <j:if test="${instance.audioData != null}">
             <audio controls="controls" preload="metadata">
-                <source src="audio" type="audio/mpeg" />
+                <source src="audio" type="${instance.mimeType}" />
                 Your browser does not support the audio element.
             </audio>
         </j:if>
