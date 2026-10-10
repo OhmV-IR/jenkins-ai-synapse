@@ -3,12 +3,18 @@ package io.ohmvir.plugins.jenkinsaisynapse.api.input;
 import hudson.Extension;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
+import io.ohmvir.plugins.jenkinsaisynapse.api.skills.ReadSkillFileTool;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import java.util.Set;
 import lombok.Getter;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+/**
+ * Attaches a skill to a request. Skills don't need any provider support: when the request executes, every attached
+ * skill is listed in the system prompt and the built-in {@link ReadSkillFileTool} is attached so the model can load
+ * the skill's files on demand. Clients therefore never receive this input directly.
+ */
 public class InputSkillContent extends ModelInput {
     private @Getter final SkillData skill;
 
@@ -21,12 +27,12 @@ public class InputSkillContent extends ModelInput {
     public static class DescriptorImpl extends ModelInputDescriptor {
         @Override
         public Set<ModelCapability> getRequiredCapabilities() {
-            return Set.of(ModelCapability.SKILLS);
+            return Set.of(ModelCapability.TOOLS, ModelCapability.ADJUSTABLE_SYSTEM_PROMPT);
         }
 
         @Override
         public Set<ModelInputType> getRequiredInputTypes() {
-            return Set.of();
+            return Set.of(ModelInputType.TEXT);
         }
 
         @Override
