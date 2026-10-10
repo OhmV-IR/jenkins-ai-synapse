@@ -1,24 +1,26 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.output;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import hudson.Extension;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import lombok.Getter;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 public class ToolCallContent extends ModelOutput {
     private @Getter final String toolUseId;
-    private @Getter final JsonObject toolArguments;
+    private @Getter final ObjectNode toolArguments;
     private @Getter final String name;
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @DataBoundConstructor
-    public ToolCallContent(String toolUseId, JsonObject toolArguments, String name) {
+    public ToolCallContent(String toolUseId, ObjectNode toolArguments, String name) {
         this.toolUseId = toolUseId;
         this.toolArguments = toolArguments;
         this.name = name;
@@ -28,7 +30,13 @@ public class ToolCallContent extends ModelOutput {
         if (toolArguments == null) {
             return "{}";
         }
-        return GSON.toJson(toolArguments);
+        try {
+            return MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(toolArguments);
+        } catch (JsonProcessingException e) {
+            Logger.getLogger(ToolCallContent.class.getName())
+                    .log(Level.WARNING, "Failed to serialize tool arguments to JSON", e);
+            return "{}";
+        }
     }
 
     @Extension

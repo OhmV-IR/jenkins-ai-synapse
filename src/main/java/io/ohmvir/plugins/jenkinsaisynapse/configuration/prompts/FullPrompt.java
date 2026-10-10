@@ -8,9 +8,11 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.SystemPromptContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.TemperatureContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
 import lombok.Getter;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
@@ -34,8 +36,9 @@ public class FullPrompt extends SimplePrompt {
             throw new Descriptor.FormException("System prompt cannot be empty", "systemPrompt");
         }
         this.systemPrompt = systemPrompt;
-        if (temperature < 0 || temperature > 1) {
-            throw new Descriptor.FormException("Temperature cannot be less than 0 or greater than 1", "temperature");
+        String temperatureError = validateTemperature(temperature);
+        if (temperatureError != null) {
+            throw new Descriptor.FormException(temperatureError, "temperature");
         }
         this.temperature = temperature;
         if (maxOutputTokensCount < 0) {
@@ -46,6 +49,23 @@ public class FullPrompt extends SimplePrompt {
             throw new Descriptor.FormException("Thinking level cannot be null", "thinkingLevel");
         }
         this.thinkingLevel = thinkingLevel;
+    }
+
+    /**
+     * Validates the temperature against the highest max temperature reported by the configured models.
+     *
+     * @return null if the temperature is valid, otherwise an error message.
+     */
+    private static @Nullable String validateTemperature(double temperature) {
+        if (temperature < 0) {
+            return "Temperature cannot be less than 0";
+        }
+        Double maxTemperature = ModelData.getHighestMaxTemperature();
+        if (maxTemperature != null && temperature > maxTemperature) {
+            return "Temperature cannot be greater than " + maxTemperature
+                    + ", the highest max temperature supported by the configured models";
+        }
+        return null;
     }
 
     @Override
@@ -73,8 +93,9 @@ public class FullPrompt extends SimplePrompt {
         }
 
         public FormValidation doCheckTemperature(@QueryParameter double value) {
-            if (value < 0.0f || value > 1.0f) {
-                return FormValidation.error("Temperature must be within 0 and 1.");
+            String error = validateTemperature(value);
+            if (error != null) {
+                return FormValidation.error(error);
             }
             return FormValidation.ok();
         }
