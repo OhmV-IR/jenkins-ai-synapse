@@ -8,7 +8,7 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.SystemPromptContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.TemperatureContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelRegistry;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
 import lombok.Getter;
 import org.jspecify.annotations.NonNull;
@@ -60,7 +60,7 @@ public class FullPrompt extends SimplePrompt {
         if (temperature < 0) {
             return "Temperature cannot be less than 0";
         }
-        Double maxTemperature = ModelData.getHighestMaxTemperature();
+        Double maxTemperature = ModelRegistry.get().getHighestMaxTemperature();
         if (maxTemperature != null && temperature > maxTemperature) {
             return "Temperature cannot be greater than " + maxTemperature
                     + ", the highest max temperature supported by the configured models";

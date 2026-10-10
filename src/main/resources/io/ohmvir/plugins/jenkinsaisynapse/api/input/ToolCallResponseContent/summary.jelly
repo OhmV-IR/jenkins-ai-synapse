@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:section title="${%Tool Call Response Content}" description="${%Our response to the model's tool call}">
+        <f:entry title="${%Tool Use Id}">
+            <f:readOnlyTextbox value="${it.toolUseId}" />
+        </f:entry>
+        <f:entry title="${%Tool Name}">
+            <f:readOnlyTextbox value="${it.calledTool.name}" />
+        </f:entry>
+        <f:entry title="${%Success Status}">
+            <f:readOnlyTextbox value="${it.successful}" />
+        </f:entry>
+        <f:entry title="${%Response Content}">
+            <pre style="white-space: pre-wrap;">${it.responseContent}</pre>
+        </f:entry>
+    </f:section>
+</j:jelly>

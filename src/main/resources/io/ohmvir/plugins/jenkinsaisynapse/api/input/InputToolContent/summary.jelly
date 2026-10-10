@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:section title="${%Input Tool Content}">
+        <f:entry title="${%Tool Name}">
+            <f:readOnlyTextbox value="${it.tool.name}" />
+        </f:entry>
+        <f:entry title="${%Tool Description}">
+            <f:readOnlyTextbox value="${it.tool.description}" />
+        </f:entry>
+    </f:section>
+</j:jelly>

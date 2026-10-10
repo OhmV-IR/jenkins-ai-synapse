@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:section title="${%Token Utilization Content}" description="${%Info about how many tokens a model response consumed}">
+        <f:entry title="${%Input Tokens Used}">
+            <f:readOnlyTextbox value="${it.inputTokensUsed}" />
+        </f:entry>
+        <f:entry title="${%Output Tokens Used}">
+            <f:readOnlyTextbox value="${it.outputTokensUsed}" />
+        </f:entry>
+        <f:entry title="${%Cached Tokens Used}">
+            <f:readOnlyTextbox value="${it.cachedTokensUsed}" />
+        </f:entry>
+    </f:section>
+</j:jelly>

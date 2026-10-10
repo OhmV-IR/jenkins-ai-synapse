@@ -8,7 +8,8 @@ import hudson.model.Descriptor;
 import hudson.model.ManagementLink;
 import hudson.model.Saveable;
 import hudson.security.Permission;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelProvider;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelRegistry;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import jakarta.servlet.ServletException;
 import java.io.File;
@@ -82,7 +83,7 @@ public class ModelsManagementLink extends ManagementLink implements Saveable, Lo
         } finally {
             change.abort();
         }
-        modelConfigurations.forEach(ModelData::initializeModelDataForConfig);
+        ModelRegistry.get().reload(modelConfigurations, ModelProvider.all());
         res.sendRedirect2(req.getContextPath() + "/" + getUrlName());
     }
 
