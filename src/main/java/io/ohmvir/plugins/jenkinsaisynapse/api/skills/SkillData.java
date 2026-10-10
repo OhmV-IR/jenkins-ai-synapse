@@ -114,11 +114,24 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
         this.skillLicense = root.path("license").asText();
         this.skillCompatibility = root.path("compatibility").asText();
         this.skillMetadata = root.path("metadata");
-        this.allowedTools =
-                Arrays.stream(root.path("allowed-tools").asText().split(" ")).toList();
+        this.allowedTools = parseAllowedTools(root.path("allowed-tools"));
         this.skillReferences = new HashMap<>();
         this.skillReferences.putAll(skillDirectory);
         this.skillReferences.remove("SKILL.md");
+    }
+
+    /**
+     * Parses the {@code allowed-tools} front matter field, either a space-delimited string or a YAML list.
+     * @return The tool names, empty if the field is missing.
+     */
+    static List<String> parseAllowedTools(JsonNode allowedToolsNode) {
+        List<String> names = new ArrayList<>();
+        if (allowedToolsNode.isArray()) {
+            allowedToolsNode.forEach(node -> names.add(node.asText()));
+        } else if (allowedToolsNode.isTextual()) {
+            names.addAll(Arrays.asList(allowedToolsNode.asText().split("\\s+")));
+        }
+        return names.stream().map(String::trim).filter(name -> !name.isEmpty()).toList();
     }
 
     @Extension
