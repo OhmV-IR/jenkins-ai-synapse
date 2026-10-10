@@ -1,37 +1,31 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.output;
 
-import hudson.Extension;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelFinishReason;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
+import java.util.Objects;
 import java.util.Set;
 import lombok.Getter;
-import org.jspecify.annotations.NonNull;
-import org.kohsuke.stapler.DataBoundConstructor;
+import org.jspecify.annotations.Nullable;
 
 public class FinishReasonContent extends ModelOutput {
-    private @Getter final ModelFinishReason reason;
+    public static final ModelOutputKind<FinishReasonContent> KIND =
+            new ModelOutputKind<>(FinishReasonContent.class, Set.of(ModelCapability.PREMATURE_STOP), Set.of());
 
-    @DataBoundConstructor
+    private @Getter final ModelFinishReason reason;
+    /** The reason exactly as the provider reported it, eg {@code end_turn}, so nothing is lost for {@link ModelFinishReason#OTHER} */
+    private @Getter final @Nullable String providerReason;
+
     public FinishReasonContent(ModelFinishReason reason) {
-        this.reason = reason;
+        this(reason, null);
     }
 
-    @Extension
-    public static class DescriptorImpl extends ModelOutputDescriptor {
-        @Override
-        public Set<ModelCapability> getRequiredCapabilities() {
-            return Set.of(ModelCapability.PREMATURE_STOP);
-        }
+    public FinishReasonContent(ModelFinishReason reason, @Nullable String providerReason) {
+        this.reason = Objects.requireNonNull(reason, "reason");
+        this.providerReason = providerReason;
+    }
 
-        @Override
-        public Set<ModelOutputType> getRequiredOutputTypes() {
-            return Set.of();
-        }
-
-        @Override
-        public @NonNull String getDisplayName() {
-            return "Finish Reason Content";
-        }
+    @Override
+    public ModelOutputKind<FinishReasonContent> getKind() {
+        return KIND;
     }
 }

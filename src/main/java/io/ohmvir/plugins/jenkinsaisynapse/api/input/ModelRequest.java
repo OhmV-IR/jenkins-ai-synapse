@@ -1,18 +1,15 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.input;
 
-import hudson.Extension;
-import hudson.ExtensionPoint;
-import hudson.model.Describable;
-import hudson.model.Descriptor;
 import io.ohmvir.plugins.jenkinsaisynapse.api.ModelContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.ModelConversation;
 import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelRegistry;
+import io.ohmvir.plugins.jenkinsaisynapse.api.models.RegisteredModel;
 import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutputDescriptor;
+import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutputKind;
 import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelResponse;
 import io.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
@@ -22,103 +19,81 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import jenkins.model.Jenkins;
 import lombok.Getter;
 import lombok.Setter;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-public class ModelRequest implements Cloneable, Describable<ModelRequest>, ExtensionPoint {
-    private final Set<Class<? extends ModelOutput>> requestedOutputTypes = new HashSet<>();
+public class ModelRequest implements Cloneable {
+    private static final Logger LOGGER = Logger.getLogger(ModelRequest.class.getName());
+
+    private final Set<ModelOutputKind<?>> requestedOutputs = new LinkedHashSet<>();
+    private final Set<ModelCapability> explicitCapabilities = new LinkedHashSet<>();
     private final @Getter List<ModelInput> modelInputs = new ArrayList<>();
+
+    /**
+     * The id of the model to run this request on, or null to pick the first suitable model in the user's order of
+     * preference.
+     */
+    private @Getter @Setter @Nullable String modelId;
 
     @Setter
     private ModelConversation associatedConversation = null;
 
-    public static Set<ModelInputType> getInputTypesFromClass(Class<? extends ModelInput> inputType) {
-        ModelInputDescriptor desc = (ModelInputDescriptor) Jenkins.get().getDescriptor(inputType);
-        if (desc == null) {
-            throw new IllegalArgumentException(inputType.getName() + " is not a valid input type.");
-        }
-        return desc.getRequiredInputTypes();
-    }
-
-    public static Set<ModelOutputType> getOutputTypesFromClass(Class<? extends ModelOutput> outputType) {
-        ModelOutputDescriptor desc = (ModelOutputDescriptor) Jenkins.get().getDescriptor(outputType);
-        if (desc == null) {
-            throw new IllegalArgumentException(outputType.getName() + " is not a valid output type.");
-        }
-        return desc.getRequiredOutputTypes();
-    }
-
-    public static Set<ModelCapability> getRequiredInputCapabilities(Class<? extends ModelInput> inputType) {
-        ModelInputDescriptor desc = (ModelInputDescriptor) Jenkins.get().getDescriptor(inputType);
-        if (desc == null) {
-            throw new IllegalArgumentException(inputType.getName() + " is not a valid input type.");
-        }
-        return desc.getRequiredCapabilities();
-    }
-
-    public static Set<ModelCapability> getRequiredOutputCapabilities(Class<? extends ModelOutput> outputType) {
-        ModelOutputDescriptor desc = (ModelOutputDescriptor) Jenkins.get().getDescriptor(outputType);
-        if (desc == null) {
-            throw new IllegalArgumentException(outputType.getName() + " is not a valid output type.");
-        }
-        return desc.getRequiredCapabilities();
-    }
-
     public ModelRequest() {}
 
     public Set<ModelInputType> getInputTypes() {
-        return getInputClasses().stream()
-                .map(ModelRequest::getInputTypesFromClass)
+        return modelInputs.stream()
+                .map(ModelInput::getRequiredInputTypes)
                 .flatMap(Set::stream)
                 .collect(Collectors.toSet());
-    }
-
-    private Set<Class<? extends ModelInput>> getInputClasses() {
-        return modelInputs.stream().map(ModelInput::getClass).collect(Collectors.toSet());
     }
 
     public Set<ModelOutputType> getOutputTypes() {
-        return requestedOutputTypes.stream()
-                .map(ModelRequest::getOutputTypesFromClass)
+        return requestedOutputs.stream()
+                .map(ModelOutputKind::requiredOutputTypes)
                 .flatMap(Set::stream)
                 .collect(Collectors.toSet());
     }
 
-    public Set<Class<? extends ModelOutput>> getOutputClasses() {
-        return Collections.unmodifiableSet(requestedOutputTypes);
+    public Set<ModelOutputKind<?>> getRequestedOutputs() {
+        return Collections.unmodifiableSet(requestedOutputs);
     }
 
     public Set<ModelCapability> getRequiredCapabilities() {
         Set<ModelCapability> capabilities = modelInputs.stream()
-                .map(ModelInput::getClass)
-                .map(ModelRequest::getRequiredInputCapabilities)
+                .map(ModelInput::getRequiredCapabilities)
                 .flatMap(Set::stream)
                 .collect(Collectors.toSet());
-        capabilities.addAll(requestedOutputTypes.stream()
-                .map(ModelRequest::getRequiredOutputCapabilities)
-                .flatMap(Set::stream)
-                .toList());
+        requestedOutputs.forEach(kind -> capabilities.addAll(kind.requiredCapabilities()));
+        capabilities.addAll(explicitCapabilities);
         return capabilities;
     }
 
-    public void requestOutputType(Class<? extends ModelOutput> outputType) {
-        requestedOutputTypes.add(outputType);
+    /**
+     * Requires the model to have a capability that no input or requested output implies, eg a provider-defined
+     * capability such as {@code ModelCapability.of("vendor:computer-use")}.
+     */
+    public void requireCapability(ModelCapability capability) {
+        explicitCapabilities.add(Objects.requireNonNull(capability, "capability"));
+    }
+
+    /**
+     * Requires the response to contain at least one output of the given kind, eg {@code OutputImageContent.KIND}.
+     */
+    public void requestOutput(ModelOutputKind<?> outputKind) {
+        requestedOutputs.add(Objects.requireNonNull(outputKind, "outputKind"));
+    }
+
+    public void removeOutputRequest(ModelOutputKind<?> outputKind) {
+        requestedOutputs.remove(outputKind);
+    }
+
+    public void removeOutputTypeRequest(ModelOutputType outputType) {
+        requestedOutputs.removeIf(kind -> kind.requiredOutputTypes().contains(outputType));
     }
 
     public void addInput(ModelInput input) {
         modelInputs.add(input);
-    }
-
-    public void removeOutputTypeRequest(Class<ModelOutput> outputType) {
-        requestedOutputTypes.remove(outputType);
-    }
-
-    public void removeOutputTypeRequest(ModelOutputType outputType) {
-        requestedOutputTypes.removeIf(requestedOutputType ->
-                getOutputTypesFromClass(requestedOutputType).contains(outputType));
     }
 
     public void attachTool(Tool tool) {
@@ -132,9 +107,12 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
         return modelInputs.stream().anyMatch(clazz::isInstance);
     }
 
-    @SuppressWarnings("unchecked")
     public <T> @Nullable T getInput(Class<T> clazz) {
-        return (T) modelInputs.stream().filter(clazz::isInstance).findFirst().get();
+        return modelInputs.stream()
+                .filter(clazz::isInstance)
+                .map(clazz::cast)
+                .findFirst()
+                .orElse(null);
     }
 
     public void attachTool(String toolName) {
@@ -145,40 +123,61 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
         addInput(new InputSkillContent(skill));
     }
 
+    /**
+     * Runs the request on the model named by {@link #getModelId()}, or on the first suitable configured model.
+     */
     public @Nullable ModelResponse execute() {
-        return execute(ModelData.findModelForRequest(this));
+        return execute(ModelRegistry.get());
     }
 
-    public @Nullable ModelResponse execute(ModelData model) {
+    public @Nullable ModelResponse execute(ModelRegistry registry) {
+        RegisteredModel model = registry.findModelForRequest(this);
+        if (model == null) {
+            LOGGER.warning(
+                    modelId != null
+                            ? "Model " + modelId + " is not configured or cannot handle the request"
+                            : "No configured model can handle the request");
+            return null;
+        }
+        return execute(model);
+    }
+
+    public @Nullable ModelResponse execute(RegisteredModel model) {
         try {
-            ModelClient<?, ?> client = model.getClient();
-            if (client == null) {
-                return null;
-            }
-            List<ModelOutput> currentOutputs = new ArrayList<>();
+            ModelClient client = model.createClient();
+            List<ModelInput> turnInputs = new ArrayList<>(modelInputs);
+            List<ModelOutput> outputs = new ArrayList<>();
             List<ModelContent> finalContent = new ArrayList<>(modelInputs);
             while (true) {
-                List<ModelOutput> stepOutputs = client.takeStep(
-                        model, model.getModelConfiguration(), model.getClientConfiguration(), this, modelInputs);
-                if (stepOutputs.isEmpty()) {
-                    break;
-                }
-                currentOutputs.addAll(stepOutputs);
+                List<ModelOutput> stepOutputs = client.takeStep(model.data(), this, List.copyOf(turnInputs));
+                outputs.addAll(stepOutputs);
                 finalContent.addAll(stepOutputs);
                 List<ModelInput> newInputs = generateNewInputsForOutputs(stepOutputs);
+                // The model only needs another step when it is waiting on our tool call responses
+                if (newInputs.isEmpty()) {
+                    break;
+                }
                 finalContent.addAll(newInputs);
-                modelInputs.addAll(newInputs);
+                turnInputs.addAll(newInputs);
             }
-            if (requestedOutputTypes.stream()
-                    .allMatch(requestedType -> currentOutputs.stream().anyMatch(requestedType::isInstance))) {
+            Optional<ModelOutputKind<?>> missingOutput = requestedOutputs.stream()
+                    .filter(kind -> outputs.stream().noneMatch(kind::isKindOf))
+                    .findFirst();
+            if (missingOutput.isPresent()) {
+                LOGGER.warning("Model " + model.getModelId() + " did not produce requested output "
+                        + missingOutput.get().type().getName());
                 return null;
             }
             if (associatedConversation != null) {
                 associatedConversation.addAllContent(finalContent);
             }
-            return new ModelResponse(currentOutputs);
+            return new ModelResponse(outputs);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOGGER.log(Level.WARNING, "Interrupted while executing ModelRequest", e);
+            return null;
         } catch (Exception e) {
-            Logger.getLogger(ModelRequest.class.getName()).log(Level.WARNING, "Failed to execute ModelRequest", e);
+            LOGGER.log(Level.WARNING, "Failed to execute ModelRequest", e);
             return null;
         }
     }
@@ -186,7 +185,7 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
     /**
      * Used within request execution to generate all necessary inputs from anything the model outputs. Namely, executing tool calls.
      * @param stepOutputs The outputs to generate inputs for
-     * Appends the inputs to the internal model inputs list
+     * @return The inputs to send back to the model
      */
     private static List<ModelInput> generateNewInputsForOutputs(List<ModelOutput> stepOutputs) {
         List<ModelInput> newInputs = new ArrayList<>();
@@ -194,15 +193,13 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
             if (modelOutput instanceof ToolCallContent toolCallOutput) {
                 Tool tool = ToolRegistry.getTool(toolCallOutput.getName());
                 if (tool == null) {
-                    Logger.getLogger(ModelResponse.class.getName())
-                            .severe("Failed to find tool model tried to call with name " + toolCallOutput.getName());
+                    LOGGER.severe("Failed to find tool model tried to call with name " + toolCallOutput.getName());
                     newInputs.add(new ToolCallResponseContent(toolCallOutput.getToolUseId(), false, null, null));
                     return;
                 }
                 Optional<String> toolCallResponseStr = tool.callTool(toolCallOutput.getToolArguments());
                 if (toolCallResponseStr.isEmpty()) {
-                    Logger.getLogger(ModelResponse.class.getName())
-                            .severe("Failed to call model tool with name " + toolCallOutput.getName());
+                    LOGGER.severe("Failed to call model tool with name " + toolCallOutput.getName());
                     newInputs.add(new ToolCallResponseContent(toolCallOutput.getToolUseId(), false, null, tool));
                     return;
                 }
@@ -222,13 +219,5 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
     @Override
     public ModelRequest clone() throws CloneNotSupportedException {
         return (ModelRequest) super.clone();
-    }
-
-    @Extension
-    public static class DescriptorImpl extends Descriptor<ModelRequest> {
-        @Override
-        public @NonNull String getDisplayName() {
-            return "Model Request";
-        }
     }
 }

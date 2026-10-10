@@ -1,6 +1,5 @@
 package io.ohmvir.plugins.jenkinsaisynapse.utils;
 
-import hudson.model.Descriptor;
 import java.util.regex.Pattern;
 
 public class MimeTypeUtils {
@@ -11,16 +10,16 @@ public class MimeTypeUtils {
     /**
      * Validates that a MIME type identifies a video format, eg {@code video/mp4} or {@code video/webm; codecs="vp9"}.
      * @param mimeType The MIME type to validate
-     * @param field The form field the MIME type was submitted through
+     * @param field The name of the parameter the MIME type was passed as, used in the error message
      * @return The validated MIME type
-     * @throws Descriptor.FormException If the MIME type is missing or is not a valid video MIME type
+     * @throws IllegalArgumentException If the MIME type is missing or is not a valid video MIME type
      */
-    public static String requireVideoMimeType(String mimeType, String field) throws Descriptor.FormException {
+    public static String requireVideoMimeType(String mimeType, String field) {
         if (mimeType == null || mimeType.isBlank()) {
-            throw new Descriptor.FormException("Video MIME type is required", field);
+            throw new IllegalArgumentException(field + ": video MIME type is required");
         }
         if (!VIDEO_MIME_TYPE.matcher(mimeType).matches()) {
-            throw new Descriptor.FormException("Invalid video MIME type: " + mimeType, field);
+            throw new IllegalArgumentException(field + ": invalid video MIME type: " + mimeType);
         }
         return mimeType;
     }

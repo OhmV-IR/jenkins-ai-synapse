@@ -1,33 +1,19 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.models;
 
-import hudson.Extension;
-import hudson.ExtensionList;
-import hudson.ExtensionPoint;
-import hudson.init.InitMilestone;
-import hudson.init.Initializer;
-import hudson.model.Describable;
-import hudson.model.Descriptor;
-import hudson.util.ListBoxModel;
-import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.TemperatureContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsManagementLink;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.client.ModelClientConfiguration;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.models.*;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
+import io.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import java.util.*;
-import java.util.logging.Logger;
 import lombok.Getter;
 import lombok.Setter;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-public class ModelData implements Describable<ModelData>, ExtensionPoint {
-    private static final Logger LOGGER = Logger.getLogger(ModelData.class.getName());
-    private static final HashMap<String, ModelData> MODEL_DATA = new HashMap<>();
+/**
+ * What a model can do, as reported by its {@link ModelProvider}. Plain data: it can be built and queried without a
+ * running Jenkins.
+ */
+public class ModelData {
     private @Getter @Setter String modelId;
     private @Getter @Setter List<ModelCapability> capabilities;
     private @Getter @Setter List<ModelInputType> inputs;
@@ -39,9 +25,9 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
     private @Getter @Setter long contextWindow;
     private @Getter @Setter @Nullable Double maxTemperature;
 
-    public ModelData(ModelConfiguration config) {
-        this.modelId = config.getModelId();
-        this.providerType = config.getProviderType();
+    public ModelData(String modelId, String providerType) {
+        this.modelId = modelId;
+        this.providerType = providerType;
         this.capabilities = new ArrayList<>();
         this.inputs = new ArrayList<>();
         this.outputs = new ArrayList<>();
@@ -49,117 +35,17 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
         this.contextWindow = 0L;
     }
 
-    @Initializer(after = InitMilestone.PLUGINS_STARTED)
-    public static void initializeModelDataCache() {
-        LOGGER.info("Prefetching model data");
-        for (ModelConfiguration config : ModelsManagementLink.get().getModelConfigurations()) {
-            LOGGER.info("Prefetching model data for " + config.getModelId());
-            initializeModelDataForConfig(config);
-        }
-    }
-
-    public static void initializeModelDataForConfig(ModelConfiguration config) {
-        if (MODEL_DATA.containsKey(config.getModelId())) {
-            return;
-        }
-        MODEL_DATA.put(
-                config.getModelId(),
-                ExtensionList.lookup(ModelDataRetriever.class).stream()
-                        .map(retriever -> retriever.retrieveFromConfigurationGen(config))
-                        .filter(Objects::nonNull)
-                        .findFirst()
-                        .orElseThrow());
-    }
-
-    public static ModelData get(String modelId) {
-        return ModelData.MODEL_DATA.get(modelId);
-    }
-
-    public static ModelClient<?, ?> getClient(ModelConfiguration config) {
-        Optional<ModelClient> client = ExtensionList.lookup(ModelClient.class).stream()
-                .filter(obj -> {
-                    Type genericSuper = obj.getClass().getGenericSuperclass();
-                    if (genericSuper instanceof ParameterizedType parameterizedSuper) {
-                        return parameterizedSuper.getActualTypeArguments()[0].equals(config.getClass());
-                    } else {
-                        return false;
-                    }
-                })
-                .findFirst();
-        return client.orElse(null);
-    }
-
-    public ModelClient<?, ?> getClient() {
-        return getClient(getModelConfiguration());
-    }
-
-    public ModelConfiguration getModelConfiguration() {
-        return ModelsManagementLink.get().getModelConfigurations().stream()
-                .filter(modelCfg -> Objects.equals(modelCfg.getModelId(), modelId))
-                .findFirst()
-                .orElse(null);
-    }
-
-    public ModelClientConfiguration getClientConfiguration() {
-        Type genericSuper = getClient().getClass().getGenericSuperclass();
-        if (genericSuper instanceof ParameterizedType parameterizedSuper) {
-            return ExtensionList.lookup(ModelClientConfiguration.class).stream()
-                    .filter(obj -> obj.getClass().equals(parameterizedSuper.getActualTypeArguments()[1]))
-                    .findFirst()
-                    .orElse(null);
-        }
-        return null;
-    }
-
-    /**
-     * Tries to find a model that will accommodate your request.
-     *
-     * @param request The model request you want to execute.
-     * @return null if no models are capable of fulfilling that request or a model client that can fulfill the request.
-     */
-    public static @Nullable ModelClient<?, ?> createClientForRequest(ModelRequest request) {
-        ModelData supportedModel = ModelData.findModelForRequest(request);
-        if (supportedModel == null) {
-            return null;
-        }
-        return supportedModel.getClient();
-    }
-
-    public static ListBoxModel getAllModelsListBox() {
-        ListBoxModel items = new ListBoxModel();
-        MODEL_DATA.forEach(
-                (key, value) -> items.add(key, value.getModelConfiguration().getModelIdDisplayName()));
-        return items;
-    }
-
-    /**
-     * Returns the highest max temperature reported by any configured model that supports a custom temperature.
-     *
-     * @return null if no such model reports a max temperature, otherwise the highest reported max temperature.
-     */
-    public static @Nullable Double getHighestMaxTemperature() {
-        return MODEL_DATA.values().stream()
-                .filter(modelData -> modelData.hasCapability(ModelCapability.CUSTOM_TEMPERATURE))
-                .map(ModelData::getMaxTemperature)
-                .filter(Objects::nonNull)
-                .max(Double::compare)
-                .orElse(null);
-    }
-
-    public static @Nullable ModelData findModelForRequest(ModelRequest request) {
-        Optional<ModelData> supportedModel = MODEL_DATA.values().stream()
-                .filter(modelData -> modelData.supportsRequest(request))
-                .findFirst();
-        return supportedModel.orElse(null);
+    public ModelData(ModelConfiguration config) {
+        this(config.getModelId(), config.getProviderType());
     }
 
     public boolean supportsRequest(ModelRequest request) {
-        Optional<ModelInput> thinkingLevel = request.getModelInputs().stream()
-                .filter(modelInput -> modelInput instanceof ThinkingLevelContent)
+        Optional<ThinkingLevelContent> thinkingLevel = request.getModelInputs().stream()
+                .filter(ThinkingLevelContent.class::isInstance)
+                .map(ThinkingLevelContent.class::cast)
                 .findFirst();
         if (thinkingLevel.isPresent()
-                && thinkingLevel.get() instanceof ThinkingLevelContent thinkingLevelContent
-                && !supportsThinkingLevel(thinkingLevelContent.getThinkingLevel())) {
+                && resolveThinkingLevel(thinkingLevel.get().getThinkingLevel()).isEmpty()) {
             return false;
         }
         if (request.getModelInputs().stream()
@@ -191,8 +77,21 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
         return outputs.contains(output);
     }
 
+    /**
+     * Maps a requested thinking level to the nearest one this model supports. Clients should send the resolved level
+     * rather than the requested one.
+     *
+     * @see ModelThinkingLevel#resolveAgainst(Collection)
+     */
+    public Optional<ModelThinkingLevel> resolveThinkingLevel(ModelThinkingLevel requested) {
+        return requested.resolveAgainst(supportedThinkingLevels);
+    }
+
+    /**
+     * @return true if the requested level, or a nearby one, can be used with this model.
+     */
     public boolean supportsThinkingLevel(ModelThinkingLevel input) {
-        return supportedThinkingLevels.contains(input);
+        return resolveThinkingLevel(input).isPresent();
     }
 
     public boolean supportsTemperature(double temperature) {
@@ -200,14 +99,6 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
     }
 
     public boolean supportsThinking() {
-        return !supportedThinkingLevels.isEmpty();
-    }
-
-    @Extension
-    public static class DescriptorImpl extends Descriptor<ModelData> {
-        @Override
-        public @NonNull String getDisplayName() {
-            return "Model Data";
-        }
+        return supportedThinkingLevels.stream().anyMatch(level -> level != ModelThinkingLevel.OFF);
     }
 }
