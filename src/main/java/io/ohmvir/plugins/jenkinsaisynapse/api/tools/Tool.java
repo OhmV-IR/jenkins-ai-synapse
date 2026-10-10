@@ -1,6 +1,6 @@
 package io.ohmvir.plugins.jenkinsaisynapse.api.tools;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
 import hudson.Extension;
 import hudson.ExtensionPoint;
 import hudson.model.Describable;
@@ -49,7 +49,7 @@ public abstract class Tool implements Describable<Tool>, ExtensionPoint {
      */
     public abstract List<ToolArgumentDescription> getArguments();
 
-    public Optional<String> callTool(JsonObject toolCallParameters) {
+    public Optional<String> callTool(JsonNode toolCallParameters) {
         try {
             Object returnValue = toolMethod.invoke(
                     this,
@@ -58,17 +58,17 @@ public abstract class Tool implements Describable<Tool>, ExtensionPoint {
                                 var jsonArg = toolCallParameters.get(argument.getName());
                                 Class<?> tt = argument.getType();
                                 if (tt.equals(double.class)) {
-                                    return jsonArg.getAsDouble();
+                                    return jsonArg.asDouble();
                                 } else if (tt.equals(int.class)) {
-                                    return jsonArg.getAsInt();
+                                    return jsonArg.asInt();
                                 } else if (tt.equals(boolean.class)) {
-                                    return jsonArg.getAsBoolean();
+                                    return jsonArg.asBoolean();
                                 } else if (tt.equals(String.class)) {
-                                    return jsonArg.getAsString();
+                                    return jsonArg.asText();
                                 } else if (tt.equals(long.class)) {
-                                    return jsonArg.getAsLong();
+                                    return jsonArg.asLong();
                                 } else if (tt.equals(float.class)) {
-                                    return jsonArg.getAsFloat();
+                                    return (float) jsonArg.asDouble();
                                 } else {
                                     logger.severe(
                                             "Tool " + getClass().getName() + " had an argument of type " + tt.getName()
