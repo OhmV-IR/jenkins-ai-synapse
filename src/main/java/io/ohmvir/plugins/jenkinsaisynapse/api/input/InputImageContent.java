@@ -3,35 +3,31 @@ package io.ohmvir.plugins.jenkinsaisynapse.api.input;
 import hudson.Extension;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.Base64;
+import java.util.Locale;
 import java.util.Set;
-import javax.imageio.ImageIO;
 import lombok.Getter;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 public class InputImageContent extends ModelInput {
-    private @Getter final BufferedImage image;
+    private @Getter final byte[] imageData;
+    private @Getter final String mimeType; // MIME type identifying the encoding, e.g. image/png or image/jpeg
 
     @DataBoundConstructor
-    public InputImageContent(BufferedImage image) {
-        this.image = image;
+    public InputImageContent(byte[] imageData, String mimeType) {
+        if (mimeType == null || !mimeType.toLowerCase(Locale.ROOT).startsWith("image/")) {
+            throw new IllegalArgumentException("Image MIME type must be an image/* type, got: " + mimeType);
+        }
+        this.imageData = imageData;
+        this.mimeType = mimeType;
     }
 
-    public String getImageBase64() {
-        if (image == null) {
+    public String getImageDataUri() {
+        if (imageData == null || imageData.length == 0) {
             return null;
         }
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            ImageIO.write(image, "png", baos);
-            byte[] bytes = baos.toByteArray();
-            return "data:image/png;base64," + Base64.getEncoder().encodeToString(bytes);
-        } catch (IOException e) {
-            return null;
-        }
+        return "data:" + mimeType + ";base64," + Base64.getEncoder().encodeToString(imageData);
     }
 
     @Extension
