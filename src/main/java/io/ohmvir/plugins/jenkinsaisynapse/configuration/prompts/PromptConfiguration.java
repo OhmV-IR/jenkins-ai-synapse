@@ -5,7 +5,7 @@ import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.BasePromptsManagementLink;
+import io.ohmvir.plugins.jenkinsaisynapse.configuration.PromptsConfiguration;
 import lombok.Getter;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -32,7 +32,7 @@ public abstract class PromptConfiguration implements Describable<PromptConfigura
             if (value.trim().isEmpty()) {
                 return FormValidation.error("Prompt id cannot be empty");
             }
-            if (BasePromptsManagementLink.get().getPrompts().stream()
+            if (PromptsConfiguration.get().getPrompts().stream()
                             .filter(config -> config.getPromptId().equals(value))
                             .count()
                     > 1) {

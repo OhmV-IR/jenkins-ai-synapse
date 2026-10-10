@@ -2,11 +2,16 @@ package io.ohmvir.plugins.jenkinsaisynapse.api.input;
 
 import hudson.Extension;
 import hudson.ExtensionPoint;
+import hudson.model.Computer;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
+import hudson.security.ACL;
+import hudson.security.ACLContext;
 import io.ohmvir.plugins.jenkinsaisynapse.api.ModelContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.ModelConversation;
 import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
+import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelRequestException;
+import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelRequestListener;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
@@ -18,7 +23,13 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import io.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
 import io.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolRegistry;
+import io.ohmvir.plugins.jenkinsaisynapse.configuration.client.ModelClientConfiguration;
+import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -27,8 +38,10 @@ import lombok.Getter;
 import lombok.Setter;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
+import org.springframework.security.core.Authentication;
 
 public class ModelRequest implements Cloneable, Describable<ModelRequest>, ExtensionPoint {
+    private static final Logger LOGGER = Logger.getLogger(ModelRequest.class.getName());
     private final Set<Class<? extends ModelOutput>> requestedOutputTypes = new HashSet<>();
     private final @Getter List<ModelInput> modelInputs = new ArrayList<>();
 
@@ -146,47 +159,148 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
     }
 
     public @Nullable ModelResponse execute() {
-        return execute(ModelData.findModelForRequest(this));
+        ModelData model = ModelData.findModelForRequest(this);
+        if (model == null) {
+            LOGGER.warning("No configured model supports this ModelRequest");
+            return null;
+        }
+        return execute(model);
     }
 
+    /**
+     * Executes the request, logging and returning null on failure. Use
+     * {@link #executeOrThrow(ModelData, ModelRequestListener)} to get the reason for a failure and to support
+     * cancellation.
+     */
     public @Nullable ModelResponse execute(ModelData model) {
         try {
-            ModelClient<?, ?> client = model.getClient();
-            if (client == null) {
-                return null;
-            }
-            List<ModelOutput> currentOutputs = new ArrayList<>();
-            List<ModelContent> finalContent = new ArrayList<>(modelInputs);
-            while (true) {
-                List<ModelOutput> stepOutputs = client.takeStep(
-                        model, model.getModelConfiguration(), model.getClientConfiguration(), this, modelInputs);
-                if (stepOutputs.isEmpty()) {
-                    break;
-                }
-                currentOutputs.addAll(stepOutputs);
-                finalContent.addAll(stepOutputs);
-                List<ModelInput> newInputs = generateNewInputsForOutputs(stepOutputs);
-                finalContent.addAll(newInputs);
-                modelInputs.addAll(newInputs);
-            }
-            if (requestedOutputTypes.stream()
-                    .allMatch(requestedType -> currentOutputs.stream().anyMatch(requestedType::isInstance))) {
-                return null;
-            }
-            if (associatedConversation != null) {
-                associatedConversation.addAllContent(finalContent);
-            }
-            return new ModelResponse(currentOutputs);
-        } catch (Exception e) {
-            Logger.getLogger(ModelRequest.class.getName()).log(Level.WARNING, "Failed to execute ModelRequest", e);
+            return executeOrThrow(model, null);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOGGER.log(Level.FINE, "Interrupted while executing ModelRequest", e);
             return null;
+        } catch (ModelRequestException | RuntimeException e) {
+            LOGGER.log(Level.WARNING, "Failed to execute ModelRequest", e);
+            return null;
+        }
+    }
+
+    /**
+     * Executes the request against the given model, running any tools the model calls, until the model stops calling
+     * tools. The request itself is not modified, so it can be executed again or concurrently.
+     * <p>
+     * The whole exchange is bounded by the client configuration's {@link ModelClientConfiguration#getTimeoutSeconds()}.
+     * Interrupting the calling thread cancels the request.
+     *
+     * @param listener Notified of progress as the request executes, may be null
+     * @throws InterruptedException if the calling thread was interrupted
+     * @throws ModelRequestException if the request failed, timed out, or did not produce the requested output types
+     */
+    public ModelResponse executeOrThrow(ModelData model, @Nullable ModelRequestListener listener)
+            throws InterruptedException, ModelRequestException {
+        ModelClient<?, ?> client = model.getClient();
+        if (client == null) {
+            throw new ModelRequestException("No client is installed for model " + model.getModelId());
+        }
+        ModelRequestListener events = listener == null ? ModelRequestListener.NOOP : listener;
+        ModelClientConfiguration clientConfiguration = model.getClientConfiguration();
+        long timeoutSeconds = clientConfiguration == null ? 0 : clientConfiguration.getTimeoutSeconds();
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeoutSeconds);
+
+        List<ModelInput> turnInputs = new ArrayList<>(modelInputs);
+        List<ModelOutput> outputs = new ArrayList<>();
+        List<ModelContent> transcript = new ArrayList<>(modelInputs);
+        while (true) {
+            if (Thread.interrupted()) {
+                throw new InterruptedException();
+            }
+            List<ModelOutput> stepOutputs = takeStep(
+                    client,
+                    model,
+                    clientConfiguration,
+                    Collections.unmodifiableList(new ArrayList<>(turnInputs)),
+                    events,
+                    timeoutSeconds,
+                    deadline);
+            if (stepOutputs == null || stepOutputs.isEmpty()) {
+                break;
+            }
+            events.onStepCompleted(stepOutputs);
+            outputs.addAll(stepOutputs);
+            transcript.addAll(stepOutputs);
+            List<ModelInput> newInputs = generateNewInputsForOutputs(stepOutputs);
+            if (newInputs.isEmpty()) {
+                // The model did not call any tools, so there is nothing more to send back to it.
+                break;
+            }
+            for (ModelInput input : newInputs) {
+                if (input instanceof ToolCallResponseContent toolResult) {
+                    events.onToolResult(toolResult);
+                }
+            }
+            transcript.addAll(newInputs);
+            turnInputs.addAll(newInputs);
+        }
+        List<String> missingOutputTypes = requestedOutputTypes.stream()
+                .filter(requestedType -> outputs.stream().noneMatch(requestedType::isInstance))
+                .map(Class::getSimpleName)
+                .sorted()
+                .toList();
+        if (!missingOutputTypes.isEmpty()) {
+            throw new ModelRequestException("Model " + model.getModelId()
+                    + " did not produce the requested output types: " + String.join(", ", missingOutputTypes));
+        }
+        if (associatedConversation != null) {
+            try {
+                associatedConversation.addAllContent(transcript);
+            } catch (IOException e) {
+                LOGGER.log(
+                        Level.WARNING, "Failed to save conversation " + associatedConversation.getConversationId(), e);
+            }
+        }
+        return new ModelResponse(outputs);
+    }
+
+    private List<ModelOutput> takeStep(
+            ModelClient<?, ?> client,
+            ModelData model,
+            ModelClientConfiguration clientConfiguration,
+            List<ModelInput> turnInputs,
+            ModelRequestListener events,
+            long timeoutSeconds,
+            long deadline)
+            throws InterruptedException, ModelRequestException {
+        // Run the client as the caller rather than as the pool's SYSTEM identity.
+        Authentication authentication = Jenkins.getAuthentication2();
+        Future<List<ModelOutput>> step = Computer.threadPoolForRemoting.submit(() -> {
+            try (ACLContext ignored = ACL.as2(authentication)) {
+                return client.takeStep(
+                        model, model.getModelConfiguration(), clientConfiguration, this, turnInputs, events);
+            }
+        });
+        try {
+            if (timeoutSeconds <= 0) {
+                return step.get();
+            }
+            return step.get(deadline - System.nanoTime(), TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            step.cancel(true);
+            throw e;
+        } catch (TimeoutException e) {
+            step.cancel(true);
+            throw new ModelRequestException(
+                    "Request to model " + model.getModelId() + " timed out after " + timeoutSeconds + " seconds");
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause() == null ? e : e.getCause();
+            throw new ModelRequestException(
+                    "Client for model " + model.getModelId() + " failed: " + cause.getMessage(), cause);
         }
     }
 
     /**
      * Used within request execution to generate all necessary inputs from anything the model outputs. Namely, executing tool calls.
      * @param stepOutputs The outputs to generate inputs for
-     * Appends the inputs to the internal model inputs list
+     * @return The inputs to send back to the model, such as tool results
      */
     private static List<ModelInput> generateNewInputsForOutputs(List<ModelOutput> stepOutputs) {
         List<ModelInput> newInputs = new ArrayList<>();

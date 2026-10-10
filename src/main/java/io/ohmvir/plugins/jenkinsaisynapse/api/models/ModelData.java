@@ -13,12 +13,13 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.TemperatureContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsManagementLink;
+import io.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsConfiguration;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.client.ModelClientConfiguration;
 import io.ohmvir.plugins.jenkinsaisynapse.configuration.models.*;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import lombok.Getter;
 import lombok.Setter;
@@ -27,7 +28,7 @@ import org.jspecify.annotations.Nullable;
 
 public class ModelData implements Describable<ModelData>, ExtensionPoint {
     private static final Logger LOGGER = Logger.getLogger(ModelData.class.getName());
-    private static final HashMap<String, ModelData> MODEL_DATA = new HashMap<>();
+    private static final Map<String, ModelData> MODEL_DATA = new ConcurrentHashMap<>();
     private @Getter @Setter String modelId;
     private @Getter @Setter List<ModelCapability> capabilities;
     private @Getter @Setter List<ModelInputType> inputs;
@@ -52,7 +53,7 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
     @Initializer(after = InitMilestone.PLUGINS_STARTED)
     public static void initializeModelDataCache() {
         LOGGER.info("Prefetching model data");
-        for (ModelConfiguration config : ModelsManagementLink.get().getModelConfigurations()) {
+        for (ModelConfiguration config : ModelsConfiguration.get().getModels()) {
             LOGGER.info("Prefetching model data for " + config.getModelId());
             initializeModelDataForConfig(config);
         }
@@ -69,6 +70,10 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
                         .filter(Objects::nonNull)
                         .findFirst()
                         .orElseThrow());
+    }
+
+    public static Set<String> getModelIds() {
+        return Collections.unmodifiableSet(MODEL_DATA.keySet());
     }
 
     public static ModelData get(String modelId) {
@@ -94,7 +99,7 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
     }
 
     public ModelConfiguration getModelConfiguration() {
-        return ModelsManagementLink.get().getModelConfigurations().stream()
+        return ModelsConfiguration.get().getModels().stream()
                 .filter(modelCfg -> Objects.equals(modelCfg.getModelId(), modelId))
                 .findFirst()
                 .orElse(null);
@@ -127,8 +132,10 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
 
     public static ListBoxModel getAllModelsListBox() {
         ListBoxModel items = new ListBoxModel();
-        MODEL_DATA.forEach(
-                (key, value) -> items.add(key, value.getModelConfiguration().getModelIdDisplayName()));
+        MODEL_DATA.forEach((modelId, modelData) -> {
+            ModelConfiguration config = modelData.getModelConfiguration();
+            items.add(config == null ? modelId : config.getModelIdDisplayName(), modelId);
+        });
         return items;
     }
 

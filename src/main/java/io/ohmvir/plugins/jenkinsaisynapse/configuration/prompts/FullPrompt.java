@@ -11,6 +11,7 @@ import io.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
 import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
 import lombok.Getter;
+import org.jenkinsci.Symbol;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -79,6 +80,7 @@ public class FullPrompt extends SimplePrompt {
     }
 
     @Extension
+    @Symbol("fullPrompt")
     public static class DescriptorImpl extends SimplePrompt.DescriptorImpl {
         @Override
         public @NonNull String getDisplayName() {
