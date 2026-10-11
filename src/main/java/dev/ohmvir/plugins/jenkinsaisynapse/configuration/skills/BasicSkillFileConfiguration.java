@@ -24,7 +24,7 @@ public class BasicSkillFileConfiguration extends SkillConfiguration {
             return List.of(new SkillData(Map.of("SKILL.md", fileContent)));
         } catch (Exception e) {
             LOGGER.severe("Failed to generate SkillData for BasicSkillFileConfiguration due to " + e.getMessage());
-            return null;
+            return List.of();
         }
     }
 
