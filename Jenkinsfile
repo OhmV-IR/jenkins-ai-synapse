@@ -8,67 +8,52 @@ pipeline {
     }
 
     stages {
-        stage('Build matrix') {
-            matrix {
-                axes {
-                    axis {
-                        name 'JDK_VERSION'
-                        values '21', '25'
+        stage('Build') {
+            agent { label 'linux' }
+            tools {
+                jdk '25'
+                maven '3.9.14'
+            }
+
+            stages {
+                stage('Checkout') {
+                    steps {
+                        checkout scm
                     }
                 }
 
-                agent { label 'linux' }
-                tools {
-                    jdk "${JDK_VERSION}"
-                    maven '3.9.14'
+                stage('Build and verify') {
+                    steps {
+                        sh 'mvn --batch-mode -DforkCount=1C clean verify'
+                    }
+                    post {
+                        always {
+                            junit allowEmptyResults: true,
+                                  testResults: '**/target/surefire-reports/*.xml'
+                        }
+                    }
                 }
 
-                environment {
-                    MAVEN_SETTINGS = credentials('nexus-maven-settings-file')
+                stage('Upload artifact') {
+                    steps {
+                        archiveArtifacts artifacts: 'target/jenkinsaisynapse.hpi',
+                                         fingerprint: true
+                    }
                 }
 
-                stages {
-                    stage('Checkout') {
-                        steps {
-                            checkout scm
+                stage('Deploy Snapshot') {
+                    when {
+                        allOf {
+                            branch 'master'
+                            not { buildingTag() }
                         }
                     }
-
-                    stage('Build and verify') {
-                        steps {
-                            sh 'mvn --batch-mode -s "$MAVEN_SETTINGS" -DforkCount=1C clean verify'
-                        }
-                        post {
-                            always {
-                                junit allowEmptyResults: true,
-                                      testResults: '**/target/surefire-reports/*.xml'
-                            }
-                        }
-                    }
-
-                    stage('Upload artifact') {
-                        steps {
-                            sh """
-                                mkdir -p output
-                                cp target/jenkinsaisynapse.hpi output/jenkinsaisynapse-jvm-${JDK_VERSION}.hpi
-                            """
-                            archiveArtifacts artifacts: "output/jenkinsaisynapse-jvm-${JDK_VERSION}.hpi",
-                                             fingerprint: true
-                            sh 'rm -rf output'
-                        }
-                    }
-
-                    stage('Deploy Snapshot') {
-                        when {
-                            allOf {
-                                branch 'master'
-                                not { buildingTag() }
-                                environment name: 'JDK_VERSION', value: '25'
-                            }
-                        }
-                        steps {
+                    steps {
+                        withCredentials([usernamePassword(credentialsId: 'maven-central-token',
+                                                          usernameVariable: 'CENTRAL_TOKEN_USERNAME',
+                                                          passwordVariable: 'CENTRAL_TOKEN_PASSWORD')]) {
                             sh '''
-                                mvn --batch-mode -s "$MAVEN_SETTINGS" \
+                                mvn --batch-mode -s .ci/central-settings.xml \
                                     -Dchangelist="-BUILD-${BUILD_NUMBER}-SNAPSHOT" \
                                     -DskipTests \
                                     clean deploy
@@ -92,9 +77,6 @@ pipeline {
                 jdk '25'
                 maven '3.9.14'
             }
-            environment {
-                MAVEN_SETTINGS = credentials('nexus-maven-settings-file')
-            }
             steps {
                 cleanWs()
                 checkout([
@@ -109,7 +91,14 @@ pipeline {
 
                 withCredentials([usernamePassword(credentialsId: 'ghpat_personal',
                                                   usernameVariable: 'GH_USER',
-                                                  passwordVariable: 'GH_TOKEN')]) {
+                                                  passwordVariable: 'GH_TOKEN'),
+                                 usernamePassword(credentialsId: 'maven-central-token',
+                                                  usernameVariable: 'CENTRAL_TOKEN_USERNAME',
+                                                  passwordVariable: 'CENTRAL_TOKEN_PASSWORD'),
+                                 file(credentialsId: 'maven-gpg-signing-key',
+                                      variable: 'GPG_KEY_FILE'),
+                                 string(credentialsId: 'maven-gpg-passphrase',
+                                        variable: 'MAVEN_GPG_PASSPHRASE')]) {
                     sh '''
                         set -eu
 
@@ -129,6 +118,13 @@ esac
 SCRIPT
                         chmod 700 "$ASKPASS"
                         export GIT_ASKPASS="$ASKPASS"
+
+                        # maven-gpg-plugin's bc signer reads the armored private key from this variable
+                        MAVEN_GPG_KEY="$(cat "$GPG_KEY_FILE")"
+                        export MAVEN_GPG_KEY
+
+                        # Absolute path, because release:perform builds from target/checkout
+                        MAVEN_SETTINGS="$WORKSPACE/.ci/central-settings.xml"
 
                         git fetch --tags --prune --prune-tags origin
 
