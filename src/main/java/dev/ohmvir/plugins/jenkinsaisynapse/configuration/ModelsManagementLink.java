@@ -25,7 +25,7 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 
 @Extension
 public class ModelsManagementLink extends ManagementLink implements Saveable, Loadable {
-    private @Getter List<ModelConfiguration> modelConfigurations = new ArrayList<>();
+    private volatile @Getter List<ModelConfiguration> modelConfigurations = new ArrayList<>();
 
     public ModelsManagementLink() throws IOException {
         load();
@@ -82,8 +82,17 @@ public class ModelsManagementLink extends ManagementLink implements Saveable, Lo
         } finally {
             change.abort();
         }
-        modelConfigurations.forEach(ModelData::initializeModelDataForConfig);
+        ModelData.reload();
         res.sendRedirect2(req.getContextPath() + "/" + getUrlName());
+    }
+
+    /**
+     * Replaces the model configurations, saves them and reloads the model data.
+     */
+    public void setModelConfigurations(List<ModelConfiguration> modelConfigurations) throws IOException {
+        this.modelConfigurations = new ArrayList<>(modelConfigurations);
+        save();
+        ModelData.reload();
     }
 
     protected XmlFile getConfigFile() {

@@ -42,6 +42,6 @@ public class ToolsManagementLink extends ManagementLink {
     }
 
     public List<Tool> getTools() {
-        return ToolRegistry.getTools().values().stream().toList();
+        return List.copyOf(ToolRegistry.getAllTools());
     }
 }

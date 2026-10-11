@@ -12,6 +12,7 @@ import java.util.logging.Logger;
 import org.jspecify.annotations.NonNull;
 
 /**
+ * Annotate your tool class with {@link Extension} so it is registered with Jenkins.
  * Create a method in your class with the tool arguments that returns a String or void.
  * Must have a public no-arg constructor, no arguments should be taken in the tool class.
  * getName() should then match this method name
@@ -30,7 +31,6 @@ public abstract class Tool implements Describable<Tool>, ExtensionPoint {
                                 .map(ToolArgumentDescription::getType)
                                 .toList()
                                 .toArray(new Class<?>[0]));
-        ToolRegistry.register(this);
     }
 
     /**

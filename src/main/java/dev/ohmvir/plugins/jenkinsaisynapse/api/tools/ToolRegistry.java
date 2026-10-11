@@ -1,23 +1,21 @@
 package dev.ohmvir.plugins.jenkinsaisynapse.api.tools;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import lombok.Getter;
+import hudson.ExtensionList;
+import java.util.List;
 import org.jspecify.annotations.Nullable;
 
+/**
+ * Looks up the tools registered as Jenkins extensions.
+ */
 public class ToolRegistry {
-    private static @Getter final Map<String, Tool> tools = new HashMap<>();
-
-    public static void register(Tool tool) {
-        tools.put(tool.getName(), tool);
-    }
-
-    public static Collection<Tool> getAllTools() {
-        return tools.values();
+    public static List<Tool> getAllTools() {
+        return ExtensionList.lookup(Tool.class);
     }
 
     public static @Nullable Tool getTool(String toolName) {
-        return tools.get(toolName);
+        return getAllTools().stream()
+                .filter(tool -> tool.getName().equals(toolName))
+                .findFirst()
+                .orElse(null);
     }
 }
