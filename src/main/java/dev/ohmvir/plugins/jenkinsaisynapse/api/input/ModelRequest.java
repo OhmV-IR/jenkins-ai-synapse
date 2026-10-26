@@ -1,7 +1,6 @@
 package dev.ohmvir.plugins.jenkinsaisynapse.api.input;
 
 import dev.ohmvir.plugins.jenkinsaisynapse.api.ModelContent;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.ModelConversation;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
@@ -25,16 +24,12 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import lombok.Getter;
-import lombok.Setter;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 public class ModelRequest implements Cloneable, Describable<ModelRequest>, ExtensionPoint {
     private final Set<Class<? extends ModelOutput>> requestedOutputTypes = new HashSet<>();
     private final @Getter List<ModelInput> modelInputs = new ArrayList<>();
-
-    @Setter
-    private ModelConversation associatedConversation = null;
 
     public static Set<ModelInputType> getInputTypesFromClass(Class<? extends ModelInput> inputType) {
         ModelInputDescriptor desc = (ModelInputDescriptor) Jenkins.get().getDescriptor(inputType);
@@ -149,6 +144,14 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
         addInput(new InputSkillContent(skill));
     }
 
+    /**
+     * Attach the conversation from a previous response so the model can continue it. Conversations are not stored
+     * anywhere by this plugin, so the caller is responsible for keeping the previous response around.
+     * @param previousResponse The response whose conversation should be continued
+     */
+    public void continueConversation(ModelResponse previousResponse) {
+        addInput(new InputConversationContent(previousResponse));
+    
     public void attachSkill(String skillName) {
         attachSkill(SkillData.getSkillData(skillName));
     }
@@ -165,7 +168,14 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
             }
             expandSkillInputs();
             List<ModelOutput> currentOutputs = new ArrayList<>();
-            List<ModelContent> finalContent = new ArrayList<>(modelInputs);
+            List<ModelContent> conversation = new ArrayList<>();
+            modelInputs.stream()
+                    .filter(InputConversationContent.class::isInstance)
+                    .map(InputConversationContent.class::cast)
+                    .forEach(history -> conversation.addAll(history.getHistory()));
+            modelInputs.stream()
+                    .filter(input -> !(input instanceof InputConversationContent))
+                    .forEach(conversation::add);
             while (true) {
                 List<ModelOutput> stepOutputs = client.takeStep(
                         model, model.getModelConfiguration(), model.getClientConfiguration(), this, modelInputs);
@@ -173,19 +183,16 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
                     break;
                 }
                 currentOutputs.addAll(stepOutputs);
-                finalContent.addAll(stepOutputs);
+                conversation.addAll(stepOutputs);
                 List<ModelInput> newInputs = generateNewInputsForOutputs(stepOutputs);
-                finalContent.addAll(newInputs);
+                conversation.addAll(newInputs);
                 modelInputs.addAll(newInputs);
             }
             if (requestedOutputTypes.stream()
                     .allMatch(requestedType -> currentOutputs.stream().anyMatch(requestedType::isInstance))) {
                 return null;
             }
-            if (associatedConversation != null) {
-                associatedConversation.addAllContent(finalContent);
-            }
-            return new ModelResponse(currentOutputs);
+            return new ModelResponse(currentOutputs, conversation);
         } catch (Exception e) {
             Logger.getLogger(ModelRequest.class.getName()).log(Level.WARNING, "Failed to execute ModelRequest", e);
             return null;
