@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:section title="${%Decision Score Answer Content}" description="${%A decision model's score for a rubric question}">
+        <f:entry title="${%Question Name}" field="questionName">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="${%Score}" field="score">
+            <f:number />
+        </f:entry>
+        <f:entry title="${%Confidence}" field="confidence">
+            <f:number />
+        </f:entry>
+        <f:section title="${%Probability Per Level}">
+            <j:forEach var="entry" items="${instance.probabilities.entrySet()}">
+                <f:entry title="${entry.key}">
+                    <span class="jenkins-text">${entry.value}</span>
+                </f:entry>
+            </j:forEach>
+        </f:section>
+    </f:section>
+</j:jelly>
