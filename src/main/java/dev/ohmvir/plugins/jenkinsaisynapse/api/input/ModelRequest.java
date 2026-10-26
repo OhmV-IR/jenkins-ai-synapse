@@ -11,6 +11,7 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutputDescriptor;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ModelResponse;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.ReadSkillFileTool;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolRegistry;
@@ -142,7 +143,14 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
     }
 
     public void attachSkill(SkillData skill) {
+        if (skill == null) {
+            throw new IllegalArgumentException("skill parameter should not be null");
+        }
         addInput(new InputSkillContent(skill));
+    }
+
+    public void attachSkill(String skillName) {
+        attachSkill(SkillData.getSkillData(skillName));
     }
 
     public @Nullable ModelResponse execute() {
@@ -155,6 +163,7 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
             if (client == null) {
                 return null;
             }
+            expandSkillInputs();
             List<ModelOutput> currentOutputs = new ArrayList<>();
             List<ModelContent> finalContent = new ArrayList<>(modelInputs);
             while (true) {
@@ -180,6 +189,41 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
         } catch (Exception e) {
             Logger.getLogger(ModelRequest.class.getName()).log(Level.WARNING, "Failed to execute ModelRequest", e);
             return null;
+        }
+    }
+
+    /**
+     * Skills are implemented in the core rather than by model providers: replaces every attached skill with a listing
+     * of the skills in the system prompt, and attaches the built-in tool the model uses to read the skills' files.
+     */
+    private void expandSkillInputs() {
+        List<SkillData> skills = modelInputs.stream()
+                .filter(InputSkillContent.class::isInstance)
+                .map(input -> ((InputSkillContent) input).getSkill())
+                .distinct()
+                .toList();
+        if (skills.isEmpty()) {
+            return;
+        }
+        modelInputs.removeIf(InputSkillContent.class::isInstance);
+        String skillsPrompt = ReadSkillFileTool.buildSkillsSystemPrompt(skills);
+        Optional<ModelInput> systemPrompt = modelInputs.stream()
+                .filter(SystemPromptContent.class::isInstance)
+                .findFirst();
+        if (systemPrompt.isPresent()) {
+            String existingPrompt = ((SystemPromptContent) systemPrompt.get()).getSystemPrompt();
+            String combinedPrompt = existingPrompt == null || existingPrompt.isBlank()
+                    ? skillsPrompt
+                    : existingPrompt + "\n\n" + skillsPrompt;
+            modelInputs.set(modelInputs.indexOf(systemPrompt.get()), new SystemPromptContent(combinedPrompt));
+        } else {
+            modelInputs.add(0, new SystemPromptContent(skillsPrompt));
+        }
+        boolean skillToolAttached = modelInputs.stream()
+                .anyMatch(input -> input instanceof InputToolContent toolInput
+                        && ReadSkillFileTool.NAME.equals(toolInput.getTool().getName()));
+        if (!skillToolAttached) {
+            attachTool(ReadSkillFileTool.get());
         }
     }
 

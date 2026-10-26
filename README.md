@@ -24,6 +24,13 @@ Releases are published to Maven Central:
 
 Snapshot builds of `master` are published to `https://central.sonatype.com/repository/maven-snapshots/`.
 
+## Skills
+
+Skills don't need any support from the model provider. When a request with skills attached runs, the plugin lists each
+skill's name and description in the system prompt and attaches the built-in `read_skill_file` tool, which the model
+calls to load a skill's `SKILL.md` and any files it references. Any model with the `TOOLS` and
+`ADJUSTABLE_SYSTEM_PROMPT` capabilities can use skills.
+
 ## Contributing
 
 Refer to our [contribution guidelines](https://github.com/jenkinsci/.github/blob/master/CONTRIBUTING.md)
