@@ -1,0 +1,38 @@
+package dev.ohmvir.plugins.jenkinsaisynapse.configuration.skills;
+
+import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
+import hudson.Extension;
+import hudson.model.Descriptor;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
+import org.jspecify.annotations.NonNull;
+import org.kohsuke.stapler.DataBoundConstructor;
+
+public class BasicSkillFileConfiguration extends SkillConfiguration {
+    public String fileContent;
+    private static final Logger LOGGER = Logger.getLogger(BasicSkillFileConfiguration.class.getName());
+
+    @DataBoundConstructor
+    public BasicSkillFileConfiguration(String fileContent) throws Descriptor.FormException {
+        this.fileContent = fileContent;
+    }
+
+    @Override
+    public List<SkillData> generateSkills() {
+        try {
+            return List.of(new SkillData(Map.of("SKILL.md", fileContent)));
+        } catch (Exception e) {
+            LOGGER.severe("Failed to generate SkillData for BasicSkillFileConfiguration due to " + e.getMessage());
+            return null;
+        }
+    }
+
+    @Extension
+    public static class DescriptorImpl extends SkillConfiguration.DescriptorImpl {
+        @Override
+        public @NonNull String getDisplayName() {
+            return "Basic Skill File Configuration";
+        }
+    }
+}

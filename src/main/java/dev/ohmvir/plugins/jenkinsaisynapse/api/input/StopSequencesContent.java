@@ -1,0 +1,37 @@
+package dev.ohmvir.plugins.jenkinsaisynapse.api.input;
+
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
+import hudson.Extension;
+import java.util.List;
+import java.util.Set;
+import lombok.Getter;
+import org.jspecify.annotations.NonNull;
+import org.kohsuke.stapler.DataBoundConstructor;
+
+public class StopSequencesContent extends ModelInput {
+    private @Getter final List<String> stopPhrases;
+
+    @DataBoundConstructor
+    public StopSequencesContent(List<String> stopPhrases) {
+        this.stopPhrases = stopPhrases;
+    }
+
+    @Extension
+    public static class DescriptorImpl extends ModelInputDescriptor {
+        @Override
+        public Set<ModelCapability> getRequiredCapabilities() {
+            return Set.of(ModelCapability.CUSTOM_STOP_SEQUENCES);
+        }
+
+        @Override
+        public Set<ModelInputType> getRequiredInputTypes() {
+            return Set.of();
+        }
+
+        @Override
+        public @NonNull String getDisplayName() {
+            return "Stop Sequences Content";
+        }
+    }
+}

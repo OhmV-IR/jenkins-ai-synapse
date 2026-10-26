@@ -1,0 +1,44 @@
+package dev.ohmvir.plugins.jenkinsaisynapse.configuration.prompts;
+
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.BasePromptsManagementLink;
+import hudson.ExtensionPoint;
+import hudson.model.Describable;
+import hudson.model.Descriptor;
+import hudson.util.FormValidation;
+import lombok.Getter;
+import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.QueryParameter;
+
+public abstract class PromptConfiguration implements Describable<PromptConfiguration>, ExtensionPoint {
+    private @Getter String promptId = "";
+
+    public abstract ModelRequest createRequest();
+
+    public PromptConfiguration(String promptId) throws Descriptor.FormException {
+        this.promptId = promptId;
+        if (promptId.trim().isEmpty()) {
+            throw new Descriptor.FormException("Prompt id cannot be empty", "promptId");
+        }
+    }
+
+    @DataBoundSetter
+    public void setPromptId(String promptId) {
+        this.promptId = promptId;
+    }
+
+    public static class DescriptorImpl extends Descriptor<PromptConfiguration> {
+        public FormValidation doCheckPromptId(@QueryParameter String value) {
+            if (value.trim().isEmpty()) {
+                return FormValidation.error("Prompt id cannot be empty");
+            }
+            if (BasePromptsManagementLink.get().getPrompts().stream()
+                            .filter(config -> config.getPromptId().equals(value))
+                            .count()
+                    > 1) {
+                return FormValidation.error("Prompt id is the same as another saved value");
+            }
+            return FormValidation.ok();
+        }
+    }
+}
