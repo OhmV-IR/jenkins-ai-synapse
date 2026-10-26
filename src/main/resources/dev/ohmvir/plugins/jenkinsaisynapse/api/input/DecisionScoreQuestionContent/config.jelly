@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:section title="${%Decision Score Question Content}" description="${%A question for a decision model that scores its input against an ordered rubric}">
+        <f:entry title="${%Question Name}" field="name">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="${%Instructions}" field="instructions">
+            <f:textarea />
+        </f:entry>
+        <f:entry title="${%Levels}" field="levels">
+            <ol start="0">
+                <j:forEach var="item" items="${instance.levels}">
+                    <li>${item}</li>
+                </j:forEach>
+            </ol>
+        </f:entry>
+    </f:section>
+</j:jelly>
