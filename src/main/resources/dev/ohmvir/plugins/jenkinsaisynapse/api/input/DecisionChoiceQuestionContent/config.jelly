@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:section title="${%Decision Choice Question Content}" description="${%A question for a decision model that picks one of several options}">
+        <f:entry title="${%Question Name}" field="name">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="${%Instructions}" field="instructions">
+            <f:textarea />
+        </f:entry>
+        <f:section title="${%Options}">
+            <j:forEach var="entry" items="${instance.criteria.entrySet()}">
+                <f:entry title="${entry.key}">
+                    <span class="jenkins-text">${entry.value}</span>
+                </f:entry>
+            </j:forEach>
+        </f:section>
+    </f:section>
+</j:jelly>
