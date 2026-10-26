@@ -6,13 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ToolCallResponseContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.ReadSkillFileTool;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolRegistry;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.skills.SkillConfiguration;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
@@ -62,9 +63,10 @@ public class ReadSkillFileToolTest {
         ObjectNode arguments = new ObjectMapper().createObjectNode();
         arguments.put("skill_name", SKILL.getSkillName());
         arguments.put("file_path", "references/steps.md");
-        assertEquals(
-                Optional.of("Step one"),
-                ToolRegistry.getTool(ReadSkillFileTool.NAME).callTool(arguments));
+        ToolCallResponseContent response = ToolRegistry.getTool(ReadSkillFileTool.NAME)
+                .callTool(new ToolCallContent("call-1", arguments, ReadSkillFileTool.NAME));
+        assertTrue(response.isSuccessful());
+        assertEquals("Step one", response.getResponseContent());
     }
 
     @Test
