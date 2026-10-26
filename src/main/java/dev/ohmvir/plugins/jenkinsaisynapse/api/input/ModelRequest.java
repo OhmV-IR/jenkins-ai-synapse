@@ -1,7 +1,6 @@
 package dev.ohmvir.plugins.jenkinsaisynapse.api.input;
 
 import dev.ohmvir.plugins.jenkinsaisynapse.api.ModelContent;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.ModelConversation;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
@@ -11,6 +10,7 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutputDescriptor;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ModelResponse;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.ReadSkillFileTool;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolRegistry;
@@ -24,16 +24,12 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import lombok.Getter;
-import lombok.Setter;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 public class ModelRequest implements Cloneable, Describable<ModelRequest>, ExtensionPoint {
     private final Set<Class<? extends ModelOutput>> requestedOutputTypes = new HashSet<>();
     private final @Getter List<ModelInput> modelInputs = new ArrayList<>();
-
-    @Setter
-    private ModelConversation associatedConversation = null;
 
     public static Set<ModelInputType> getInputTypesFromClass(Class<? extends ModelInput> inputType) {
         ModelInputDescriptor desc = (ModelInputDescriptor) Jenkins.get().getDescriptor(inputType);
@@ -142,7 +138,23 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
     }
 
     public void attachSkill(SkillData skill) {
+        if (skill == null) {
+            throw new IllegalArgumentException("skill parameter should not be null");
+        }
         addInput(new InputSkillContent(skill));
+    }
+
+    /**
+     * Attach the conversation from a previous response so the model can continue it. Conversations are not stored
+     * anywhere by this plugin, so the caller is responsible for keeping the previous response around.
+     * @param previousResponse The response whose conversation should be continued
+     */
+    public void continueConversation(ModelResponse previousResponse) {
+        addInput(new InputConversationContent(previousResponse));
+    }
+
+    public void attachSkill(String skillName) {
+        attachSkill(SkillData.getSkillData(skillName));
     }
 
     public @Nullable ModelResponse execute() {
@@ -155,8 +167,16 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
             if (client == null) {
                 return null;
             }
+            expandSkillInputs();
             List<ModelOutput> currentOutputs = new ArrayList<>();
-            List<ModelContent> finalContent = new ArrayList<>(modelInputs);
+            List<ModelContent> conversation = new ArrayList<>();
+            modelInputs.stream()
+                    .filter(InputConversationContent.class::isInstance)
+                    .map(InputConversationContent.class::cast)
+                    .forEach(history -> conversation.addAll(history.getHistory()));
+            modelInputs.stream()
+                    .filter(input -> !(input instanceof InputConversationContent))
+                    .forEach(conversation::add);
             while (true) {
                 List<ModelOutput> stepOutputs = client.takeStep(
                         model, model.getModelConfiguration(), model.getClientConfiguration(), this, modelInputs);
@@ -164,22 +184,54 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
                     break;
                 }
                 currentOutputs.addAll(stepOutputs);
-                finalContent.addAll(stepOutputs);
+                conversation.addAll(stepOutputs);
                 List<ModelInput> newInputs = generateNewInputsForOutputs(stepOutputs);
-                finalContent.addAll(newInputs);
+                conversation.addAll(newInputs);
                 modelInputs.addAll(newInputs);
             }
             if (requestedOutputTypes.stream()
                     .allMatch(requestedType -> currentOutputs.stream().anyMatch(requestedType::isInstance))) {
                 return null;
             }
-            if (associatedConversation != null) {
-                associatedConversation.addAllContent(finalContent);
-            }
-            return new ModelResponse(currentOutputs);
+            return new ModelResponse(currentOutputs, conversation);
         } catch (Exception e) {
             Logger.getLogger(ModelRequest.class.getName()).log(Level.WARNING, "Failed to execute ModelRequest", e);
             return null;
+        }
+    }
+
+    /**
+     * Skills are implemented in the core rather than by model providers: replaces every attached skill with a listing
+     * of the skills in the system prompt, and attaches the built-in tool the model uses to read the skills' files.
+     */
+    private void expandSkillInputs() {
+        List<SkillData> skills = modelInputs.stream()
+                .filter(InputSkillContent.class::isInstance)
+                .map(input -> ((InputSkillContent) input).getSkill())
+                .distinct()
+                .toList();
+        if (skills.isEmpty()) {
+            return;
+        }
+        modelInputs.removeIf(InputSkillContent.class::isInstance);
+        String skillsPrompt = ReadSkillFileTool.buildSkillsSystemPrompt(skills);
+        Optional<ModelInput> systemPrompt = modelInputs.stream()
+                .filter(SystemPromptContent.class::isInstance)
+                .findFirst();
+        if (systemPrompt.isPresent()) {
+            String existingPrompt = ((SystemPromptContent) systemPrompt.get()).getSystemPrompt();
+            String combinedPrompt = existingPrompt == null || existingPrompt.isBlank()
+                    ? skillsPrompt
+                    : existingPrompt + "\n\n" + skillsPrompt;
+            modelInputs.set(modelInputs.indexOf(systemPrompt.get()), new SystemPromptContent(combinedPrompt));
+        } else {
+            modelInputs.add(0, new SystemPromptContent(skillsPrompt));
+        }
+        boolean skillToolAttached = modelInputs.stream()
+                .anyMatch(input -> input instanceof InputToolContent toolInput
+                        && ReadSkillFileTool.NAME.equals(toolInput.getTool().getName()));
+        if (!skillToolAttached) {
+            attachTool(ReadSkillFileTool.get());
         }
     }
 

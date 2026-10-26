@@ -5,7 +5,7 @@ import java.util.List;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Looks up the tools registered as Jenkins extensions.
+ * Looks up the tools registered as Jenkins extensions, including the built-in ones.
  */
 public class ToolRegistry {
     public static List<Tool> getAllTools() {

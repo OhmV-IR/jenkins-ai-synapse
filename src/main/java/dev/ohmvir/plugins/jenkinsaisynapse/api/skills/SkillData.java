@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsManagementLink;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.skills.SkillConfiguration;
-import dev.ohmvir.plugins.jenkinsaisynapse.utils.SnapshotCache;
 import hudson.Extension;
 import hudson.ExtensionPoint;
 import hudson.init.InitMilestone;
@@ -18,17 +17,17 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import jenkins.util.Timer;
 import lombok.Getter;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 public class SkillData implements Describable<SkillData>, ExtensionPoint {
-    private static final Logger LOGGER = Logger.getLogger(SkillData.class.getName());
     private @Getter final String skillName;
-    private @Getter final String skillDescription;
+    private @Getter @Nullable final String skillDescription;
     private @Getter @Nullable final String skillLicense;
     private @Getter @Nullable final String skillCompatibility;
-    private @Getter final JsonNode skillMetadata;
+    private @Getter @Nullable final JsonNode skillMetadata;
     private @Getter @Nullable final List<String> allowedTools;
     private @Getter final String skillText;
     private final HashMap<String, String> skillReferences;
@@ -37,11 +36,17 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
         return skillReferences.entrySet();
     }
 
+    private static final Logger LOGGER = Logger.getLogger(SkillData.class.getName());
+
     /**
-     * A map of skill names to SkillData
+     * A map of skill names to SkillData. Replaced wholesale on every reload so readers never see a partial registry.
      */
-    private static final SnapshotCache<SkillData> skillDataCache =
-            new SnapshotCache<>("skill data", SkillData::generateAllSkills);
+    private static volatile Map<String, SkillData> skillDataCache = Map.of();
+
+    /**
+     * Skills that were rejected during the last reload because another skill with the same name was already registered.
+     */
+    private static volatile List<DuplicateSkillRegistration> duplicateSkillRegistrations = List.of();
 
     public String getSkillMetadataPrettyYaml() {
         if (skillMetadata == null) {
@@ -55,45 +60,86 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
      */
     @Initializer(after = InitMilestone.PLUGINS_STARTED, fatal = false)
     public static void initializeSkillDataCache() {
-        skillDataCache.reloadInBackground();
+        Timer.get().execute(() -> {
+            try {
+                reload();
+            } catch (RuntimeException e) {
+                LOGGER.log(Level.WARNING, "Failed to load skills", e);
+            }
+        });
     }
 
     /**
      * Rebuilds the skills from the current skill configurations and swaps them in.
-     * Call this after the skill configurations change.
+     * Call this after the skill configurations change. The configurations are read while holding the lock, so a
+     * reload that started earlier can never overwrite the result of a later one.
      */
-    public static void reload() {
-        skillDataCache.reload();
+    public static synchronized void reload() {
+        reloadSkills(SkillsManagementLink.get().getSkills());
     }
 
-    private static Map<String, SkillData> generateAllSkills() {
+    public static @Nullable SkillData getSkillData(String skillName) {
+        return skillDataCache.get(skillName);
+    }
+
+    public static List<SkillData> getAllSkills() {
+        return List.copyOf(skillDataCache.values());
+    }
+
+    public static List<DuplicateSkillRegistration> getDuplicateSkillRegistrations() {
+        return duplicateSkillRegistrations;
+    }
+
+    /**
+     * Rebuilds the skill registry from the given configurations. When two skills share a name, the first one
+     * registered wins and the later one is rejected, logged and recorded in {@link #getDuplicateSkillRegistrations()}.
+     * A configuration that fails to generate its skills is logged and skipped.
+     */
+    public static synchronized void reloadSkills(List<SkillConfiguration> configs) {
         Map<String, SkillData> skills = new LinkedHashMap<>();
-        for (SkillConfiguration config : SkillsManagementLink.get().getSkills()) {
+        Map<String, String> skillSources = new HashMap<>();
+        List<DuplicateSkillRegistration> duplicates = new ArrayList<>();
+        for (int i = 0; i < configs.size(); i++) {
+            SkillConfiguration config = configs.get(i);
+            String source =
+                    "skill configuration #" + (i + 1) + " (" + config.getClass().getSimpleName() + ")";
             List<SkillData> generated;
             try {
                 generated = config.generateSkills();
             } catch (RuntimeException e) {
-                LOGGER.log(
-                        Level.WARNING,
-                        "Failed to generate skills for " + config.getClass().getName(),
-                        e);
+                LOGGER.log(Level.WARNING, "Failed to generate skills from " + source, e);
                 continue;
             }
             if (generated == null) {
                 continue;
             }
-            generated.forEach(skillData -> skills.put(skillData.getSkillName(), skillData));
+            for (SkillData skillData : generated) {
+                String name = skillData.getSkillName();
+                if (name == null || name.isBlank()) {
+                    LOGGER.warning("Failed to register a skill from " + source + " because it has no name");
+                    continue;
+                }
+                if (skills.containsKey(name)) {
+                    String existingSource = skillSources.get(name);
+                    LOGGER.warning("Failed to register skill '" + name + "' from " + source
+                            + " because a skill with the same name is already registered from " + existingSource);
+                    duplicates.add(new DuplicateSkillRegistration(name, source, existingSource));
+                    continue;
+                }
+                skills.put(name, skillData);
+                skillSources.put(name, source);
+            }
         }
-        return skills;
+        skillDataCache = Collections.unmodifiableMap(skills);
+        duplicateSkillRegistrations = List.copyOf(duplicates);
     }
 
-    public static @Nullable SkillData getSkillData(String skillName) {
-        return skillDataCache.get().get(skillName);
-    }
-
-    public static List<SkillData> getAllSkills() {
-        return List.copyOf(skillDataCache.get().values());
-    }
+    /**
+     * @param skillName the name shared by both skills
+     * @param rejectedSource where the skill that failed to register came from
+     * @param registeredSource where the skill that kept the name came from
+     */
+    public record DuplicateSkillRegistration(String skillName, String rejectedSource, String registeredSource) {}
 
     public Map<String, String> getSkillReferences() {
         return Collections.unmodifiableMap(skillReferences);
@@ -101,10 +147,10 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
 
     public SkillData(
             String skillName,
-            String skillDescription,
+            @Nullable String skillDescription,
             @Nullable String skillLicense,
             @Nullable String skillCompatibility,
-            JsonNode skillMetadata,
+            @Nullable JsonNode skillMetadata,
             @Nullable List<String> allowedTools,
             String skillText,
             Map<String, String> skillReferences) {
@@ -140,16 +186,42 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
         String yamlFileData = matcher.group(1);
         this.skillText = matcher.group(2);
         JsonNode root = YAML_MAPPER.readTree(yamlFileData);
-        this.skillName = root.path("name").asText();
-        this.skillDescription = root.path("description").asText();
-        this.skillLicense = root.path("license").asText();
-        this.skillCompatibility = root.path("compatibility").asText();
-        this.skillMetadata = root.path("metadata");
-        this.allowedTools =
-                Arrays.stream(root.path("allowed-tools").asText().split(" ")).toList();
+        if (root == null || !root.isObject()) {
+            throw new Descriptor.FormException("skillMd frontmatter must be a YAML mapping", "skillMd");
+        }
+        this.skillName = textOrNull(root.get("name"));
+        if (this.skillName == null || this.skillName.isBlank()) {
+            throw new Descriptor.FormException("skillMd frontmatter is missing the required 'name' field", "skillMd");
+        }
+        this.skillDescription = textOrNull(root.get("description"));
+        this.skillLicense = textOrNull(root.get("license"));
+        this.skillCompatibility = textOrNull(root.get("compatibility"));
+        JsonNode metadata = root.get("metadata");
+        this.skillMetadata = metadata == null || metadata.isNull() ? null : metadata;
+        this.allowedTools = parseAllowedTools(root.get("allowed-tools"));
         this.skillReferences = new HashMap<>();
         this.skillReferences.putAll(skillDirectory);
         this.skillReferences.remove("SKILL.md");
+    }
+
+    private static @Nullable String textOrNull(@Nullable JsonNode node) {
+        return node == null || node.isNull() ? null : node.asText();
+    }
+
+    /**
+     * The spec defines allowed-tools as a space-delimited string, but a YAML list is accepted too.
+     */
+    private static @Nullable List<String> parseAllowedTools(@Nullable JsonNode node) {
+        if (node == null || node.isNull()) {
+            return null;
+        }
+        List<String> tools = new ArrayList<>();
+        if (node.isArray()) {
+            node.forEach(tool -> tools.add(tool.asText().trim()));
+        } else {
+            tools.addAll(Arrays.asList(node.asText().trim().split("\\s+")));
+        }
+        return tools.stream().filter(tool -> !tool.isEmpty()).toList();
     }
 
     @Extension
