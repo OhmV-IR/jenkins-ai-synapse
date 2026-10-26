@@ -3,7 +3,6 @@ package dev.ohmvir.plugins.jenkinsaisynapse.api.models;
 public enum ModelCapability {
     STREAMING,
     TOOLS,
-    SKILLS,
     WEB_SEARCH,
     CODE_EXECUTION,
     CITATIONS,
