@@ -30,6 +30,7 @@ public final class ModelCapability extends NamespacedId {
     public static final ModelCapability CUSTOM_STOP_SEQUENCES = wellKnown("CUSTOM_STOP_SEQUENCES");
     public static final ModelCapability TOKEN_USAGE_METRICS = wellKnown("TOKEN_USAGE_METRICS");
     public static final ModelCapability INFILL = wellKnown("INFILL");
+    /** Answers typed questions with probabilities instead of generating text. */
     public static final ModelCapability DECISIONS = wellKnown("DECISIONS");
 
     private ModelCapability(String id) {
