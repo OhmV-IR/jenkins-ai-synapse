@@ -16,5 +16,6 @@ public enum ModelCapability {
     CUSTOM_TOP_P,
     CUSTOM_TOP_K,
     CUSTOM_STOP_SEQUENCES,
-    TOKEN_USAGE_METRICS
+    TOKEN_USAGE_METRICS,
+    INFILL
 }
