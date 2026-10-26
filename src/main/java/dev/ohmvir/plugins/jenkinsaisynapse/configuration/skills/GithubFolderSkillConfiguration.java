@@ -1,8 +1,10 @@
 package dev.ohmvir.plugins.jenkinsaisynapse.configuration.skills;
 
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
-import dev.ohmvir.plugins.jenkinsaisynapse.utils.SecretsUtils;
 import hudson.model.Descriptor;
+import hudson.security.ACL;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -12,7 +14,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jenkins.model.Jenkins;
 import lombok.Getter;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHRepository;
@@ -96,12 +100,27 @@ public class GithubFolderSkillConfiguration extends SkillConfiguration {
     }
 
     private GitHub createGitHubClient(String credentialsId) throws IOException {
-        String oauthTokens = SecretsUtils.getSecretText(credentialsId, null);
+        String oauthTokens = getGlobalSecretText(credentialsId);
         if (oauthTokens != null) {
             return GitHub.connectUsingOAuth(oauthTokens);
         }
         // Fallback to unauthenticated / default client
         return GitHub.connectAnonymously();
+    }
+
+    /**
+     * Skill sources are global configuration, so the token is looked up among the credentials defined at the Jenkins
+     * root, never on behalf of a job.
+     */
+    private static String getGlobalSecretText(String credentialsId) {
+        if (credentialsId == null || credentialsId.isBlank()) {
+            return null;
+        }
+        StringCredentials credential = CredentialsMatchers.firstOrNull(
+                CredentialsProvider.lookupCredentialsInItemGroup(
+                        StringCredentials.class, Jenkins.get(), ACL.SYSTEM2, List.of()),
+                CredentialsMatchers.withId(credentialsId));
+        return credential == null ? null : credential.getSecret().getPlainText();
     }
 
     /**

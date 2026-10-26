@@ -8,6 +8,7 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsManagementLink;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.client.ModelClientConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.*;
+import dev.ohmvir.plugins.jenkinsaisynapse.utils.SnapshotCache;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.ExtensionPoint;
@@ -19,6 +20,7 @@ import hudson.util.ListBoxModel;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import lombok.Getter;
 import lombok.Setter;
@@ -27,7 +29,13 @@ import org.jspecify.annotations.Nullable;
 
 public class ModelData implements Describable<ModelData>, ExtensionPoint {
     private static final Logger LOGGER = Logger.getLogger(ModelData.class.getName());
-    private static final HashMap<String, ModelData> MODEL_DATA = new HashMap<>();
+    /**
+     * Model metadata keyed by model id, in the order the models are configured.
+     * Models whose metadata could not be retrieved are absent and treated as unavailable.
+     */
+    private static final SnapshotCache<ModelData> MODEL_DATA =
+            new SnapshotCache<>("model data", ModelData::retrieveAllModelData);
+
     private @Getter @Setter String modelId;
     private @Getter @Setter List<ModelCapability> capabilities;
     private @Getter @Setter List<ModelInputType> inputs;
@@ -49,33 +57,61 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
         this.contextWindow = 0L;
     }
 
-    @Initializer(after = InitMilestone.PLUGINS_STARTED)
+    /**
+     * Fetches model metadata in the background, so a slow or failing provider cannot hold up Jenkins startup.
+     */
+    @Initializer(after = InitMilestone.PLUGINS_STARTED, fatal = false)
     public static void initializeModelDataCache() {
-        LOGGER.info("Prefetching model data");
+        LOGGER.info("Prefetching model data in the background");
+        MODEL_DATA.reloadInBackground();
+    }
+
+    /**
+     * Rebuilds the model metadata from the current model configurations and swaps it in.
+     * Call this after the model configurations change.
+     */
+    public static void reload() {
+        MODEL_DATA.reload();
+    }
+
+    private static Map<String, ModelData> retrieveAllModelData() {
+        Map<String, ModelData> modelData = new LinkedHashMap<>();
         for (ModelConfiguration config : ModelsManagementLink.get().getModelConfigurations()) {
-            LOGGER.info("Prefetching model data for " + config.getModelId());
-            initializeModelDataForConfig(config);
+            ModelData data = retrieveModelData(config);
+            if (data == null) {
+                LOGGER.warning("No model data available for " + config.getModelId()
+                        + ", the model is unavailable until the model configurations are saved again");
+            } else {
+                modelData.put(config.getModelId(), data);
+            }
+        }
+        return modelData;
+    }
+
+    private static @Nullable ModelData retrieveModelData(ModelConfiguration config) {
+        try {
+            return ExtensionList.lookup(ModelDataRetriever.class).stream()
+                    .map(retriever -> retriever.retrieveFromConfigurationGen(config))
+                    .filter(Objects::nonNull)
+                    .findFirst()
+                    .orElse(null);
+        } catch (RuntimeException e) {
+            LOGGER.log(Level.WARNING, "Failed to retrieve model data for " + config.getModelId(), e);
+            return null;
         }
     }
 
-    public static void initializeModelDataForConfig(ModelConfiguration config) {
-        if (MODEL_DATA.containsKey(config.getModelId())) {
-            return;
+    /**
+     * @return null if the model is not configured or its metadata is unavailable, otherwise the model's metadata.
+     */
+    public static @Nullable ModelData get(String modelId) {
+        return MODEL_DATA.get().get(modelId);
+    }
+
+    public static @Nullable ModelClient<?, ?> getClient(@Nullable ModelConfiguration config) {
+        if (config == null) {
+            return null;
         }
-        MODEL_DATA.put(
-                config.getModelId(),
-                ExtensionList.lookup(ModelDataRetriever.class).stream()
-                        .map(retriever -> retriever.retrieveFromConfigurationGen(config))
-                        .filter(Objects::nonNull)
-                        .findFirst()
-                        .orElseThrow());
-    }
-
-    public static ModelData get(String modelId) {
-        return ModelData.MODEL_DATA.get(modelId);
-    }
-
-    public static ModelClient<?, ?> getClient(ModelConfiguration config) {
         Optional<ModelClient> client = ExtensionList.lookup(ModelClient.class).stream()
                 .filter(obj -> {
                     Type genericSuper = obj.getClass().getGenericSuperclass();
@@ -89,19 +125,23 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
         return client.orElse(null);
     }
 
-    public ModelClient<?, ?> getClient() {
+    public @Nullable ModelClient<?, ?> getClient() {
         return getClient(getModelConfiguration());
     }
 
-    public ModelConfiguration getModelConfiguration() {
+    public @Nullable ModelConfiguration getModelConfiguration() {
         return ModelsManagementLink.get().getModelConfigurations().stream()
                 .filter(modelCfg -> Objects.equals(modelCfg.getModelId(), modelId))
                 .findFirst()
                 .orElse(null);
     }
 
-    public ModelClientConfiguration getClientConfiguration() {
-        Type genericSuper = getClient().getClass().getGenericSuperclass();
+    public @Nullable ModelClientConfiguration getClientConfiguration() {
+        ModelClient<?, ?> client = getClient();
+        if (client == null) {
+            return null;
+        }
+        Type genericSuper = client.getClass().getGenericSuperclass();
         if (genericSuper instanceof ParameterizedType parameterizedSuper) {
             return ExtensionList.lookup(ModelClientConfiguration.class).stream()
                     .filter(obj -> obj.getClass().equals(parameterizedSuper.getActualTypeArguments()[1]))
@@ -127,8 +167,9 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
 
     public static ListBoxModel getAllModelsListBox() {
         ListBoxModel items = new ListBoxModel();
-        MODEL_DATA.forEach(
-                (key, value) -> items.add(key, value.getModelConfiguration().getModelIdDisplayName()));
+        for (ModelConfiguration config : ModelsManagementLink.get().getModelConfigurations()) {
+            items.add(config.getModelIdDisplayName(), config.getModelId());
+        }
         return items;
     }
 
@@ -138,7 +179,7 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
      * @return null if no such model reports a max temperature, otherwise the highest reported max temperature.
      */
     public static @Nullable Double getHighestMaxTemperature() {
-        return MODEL_DATA.values().stream()
+        return MODEL_DATA.get().values().stream()
                 .filter(modelData -> modelData.hasCapability(ModelCapability.CUSTOM_TEMPERATURE))
                 .map(ModelData::getMaxTemperature)
                 .filter(Objects::nonNull)
@@ -147,7 +188,7 @@ public class ModelData implements Describable<ModelData>, ExtensionPoint {
     }
 
     public static @Nullable ModelData findModelForRequest(ModelRequest request) {
-        Optional<ModelData> supportedModel = MODEL_DATA.values().stream()
+        Optional<ModelData> supportedModel = MODEL_DATA.get().values().stream()
                 .filter(modelData -> modelData.supportsRequest(request))
                 .findFirst();
         return supportedModel.orElse(null);

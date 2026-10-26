@@ -8,6 +8,10 @@ import java.util.List;
 
 public abstract class SkillConfiguration implements Describable<SkillConfiguration>, ExtensionPoint {
 
+    /**
+     * @return The skills described by this configuration. Never null: return an empty list if the skills
+     * cannot be generated.
+     */
     public abstract List<SkillData> generateSkills();
 
     public abstract static class DescriptorImpl extends Descriptor<SkillConfiguration> {}
