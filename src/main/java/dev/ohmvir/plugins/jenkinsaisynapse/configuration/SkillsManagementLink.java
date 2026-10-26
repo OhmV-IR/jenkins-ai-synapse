@@ -85,7 +85,7 @@ public class SkillsManagementLink extends ManagementLink implements Saveable, Lo
         } finally {
             change.abort();
         }
-        skillConfigurations.forEach(SkillData::initializeSkillDataForConfig);
+        SkillData.reloadSkills(skillConfigurations);
         res.sendRedirect2(req.getContextPath() + "/" + getUrlName());
     }
 

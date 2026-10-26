@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core">
+    <div class="jenkins-alert jenkins-alert-warning">
+        <p>
+            ${%Some Agent Skills failed to register because a skill with the same name is already registered.}
+            ${%Rename or remove the duplicates in}
+            <a href="${rootURL}/manage/skills">${%Agent Skills}</a>.
+            ${%See the}
+            <a href="${rootURL}/manage/log/all">${%Jenkins logs}</a>
+            ${%for details.}
+        </p>
+        <ul>
+            <j:forEach var="duplicate" items="${it.duplicates}">
+                <li>
+                    <code>${duplicate.skillName()}</code>: ${%rejected from} ${duplicate.rejectedSource()},
+                    ${%already registered from} ${duplicate.registeredSource()}
+                </li>
+            </j:forEach>
+        </ul>
+    </div>
+</j:jelly>
