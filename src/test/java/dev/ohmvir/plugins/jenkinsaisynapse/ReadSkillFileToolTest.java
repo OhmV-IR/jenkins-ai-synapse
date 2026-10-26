@@ -30,12 +30,12 @@ public class ReadSkillFileToolTest {
             Map.of("references/steps.md", "Step one"));
 
     private static void registerSkill() {
-        SkillData.initializeSkillDataForConfig(new SkillConfiguration() {
+        SkillData.reloadSkills(List.of(new SkillConfiguration() {
             @Override
             public List<SkillData> generateSkills() {
                 return List.of(SKILL);
             }
-        });
+        }));
     }
 
     @Test

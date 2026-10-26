@@ -13,9 +13,11 @@ import hudson.init.Initializer;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import jenkins.util.Timer;
 import lombok.Getter;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -53,12 +55,30 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
         return skillMetadata.toPrettyString();
     }
 
-    @Initializer(after = InitMilestone.PLUGINS_STARTED)
+    /**
+     * Generates skills in the background, since some skill configurations fetch them over the network.
+     */
+    @Initializer(after = InitMilestone.PLUGINS_STARTED, fatal = false)
     public static void initializeSkillDataCache() {
+        Timer.get().execute(() -> {
+            try {
+                reload();
+            } catch (RuntimeException e) {
+                LOGGER.log(Level.WARNING, "Failed to load skills", e);
+            }
+        });
+    }
+
+    /**
+     * Rebuilds the skills from the current skill configurations and swaps them in.
+     * Call this after the skill configurations change. The configurations are read while holding the lock, so a
+     * reload that started earlier can never overwrite the result of a later one.
+     */
+    public static synchronized void reload() {
         reloadSkills(SkillsManagementLink.get().getSkills());
     }
 
-    public static SkillData getSkillData(String skillName) {
+    public static @Nullable SkillData getSkillData(String skillName) {
         return skillDataCache.get(skillName);
     }
 
@@ -73,6 +93,7 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
     /**
      * Rebuilds the skill registry from the given configurations. When two skills share a name, the first one
      * registered wins and the later one is rejected, logged and recorded in {@link #getDuplicateSkillRegistrations()}.
+     * A configuration that fails to generate its skills is logged and skipped.
      */
     public static synchronized void reloadSkills(List<SkillConfiguration> configs) {
         Map<String, SkillData> skills = new LinkedHashMap<>();
@@ -82,7 +103,17 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
             SkillConfiguration config = configs.get(i);
             String source =
                     "skill configuration #" + (i + 1) + " (" + config.getClass().getSimpleName() + ")";
-            for (SkillData skillData : config.generateSkills()) {
+            List<SkillData> generated;
+            try {
+                generated = config.generateSkills();
+            } catch (RuntimeException e) {
+                LOGGER.log(Level.WARNING, "Failed to generate skills from " + source, e);
+                continue;
+            }
+            if (generated == null) {
+                continue;
+            }
+            for (SkillData skillData : generated) {
                 String name = skillData.getSkillName();
                 if (name == null || name.isBlank()) {
                     LOGGER.warning("Failed to register a skill from " + source + " because it has no name");

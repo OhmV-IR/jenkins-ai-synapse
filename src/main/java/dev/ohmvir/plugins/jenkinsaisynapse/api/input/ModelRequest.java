@@ -151,7 +151,8 @@ public class ModelRequest implements Cloneable, Describable<ModelRequest>, Exten
      */
     public void continueConversation(ModelResponse previousResponse) {
         addInput(new InputConversationContent(previousResponse));
-    
+    }
+
     public void attachSkill(String skillName) {
         attachSkill(SkillData.getSkillData(skillName));
     }
