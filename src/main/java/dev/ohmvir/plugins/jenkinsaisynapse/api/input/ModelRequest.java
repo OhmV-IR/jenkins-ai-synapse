@@ -18,6 +18,7 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.ReadSkillFileTool;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.RequestsConfiguration;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,6 +33,7 @@ import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import jenkins.model.Jenkins;
 import lombok.Getter;
 import lombok.Setter;
 import org.jspecify.annotations.Nullable;
@@ -39,16 +41,14 @@ import org.jspecify.annotations.Nullable;
 public class ModelRequest {
     private static final Logger LOGGER = Logger.getLogger(ModelRequest.class.getName());
 
-    /** The default for {@link #getMaxSteps()}. */
-    public static final int DEFAULT_MAX_STEPS = 25;
-
     private final Set<ModelOutputKind<?>> requestedOutputs = new LinkedHashSet<>();
     private final Set<ModelCapability> explicitCapabilities = new LinkedHashSet<>();
     private final @Getter List<ModelInput> modelInputs = new ArrayList<>();
     private @Getter @Setter @Nullable String modelId;
     @Setter
     private @Nullable ModelConversation associatedConversation;
-    private int maxSteps = DEFAULT_MAX_STEPS;
+    /** Null until {@link #setMaxSteps(int)} is called, which means the global default applies. */
+    private @Nullable Integer maxSteps;
 
     public ModelRequest() {}
 
@@ -68,12 +68,32 @@ public class ModelRequest {
 
     /**
      * The maximum number of times the model is called while this request runs. Each time the model calls tools, the
-     * tool results are sent back to it in another step.
+     * tool results are sent back to it in another step. Unless {@link #setMaxSteps(int)} was called, this is the
+     * default from the global configuration (Manage Jenkins &gt; System), which is 25 out of the box. A copy of this
+     * request looks the default up when it is asked, not when it is copied.
      */
     public int getMaxSteps() {
-        return maxSteps;
+        return maxSteps != null ? maxSteps : getDefaultMaxSteps();
     }
 
+    /**
+     * The default maximum number of steps from the global configuration. This is
+     * {@link RequestsConfiguration#DEFAULT_MAX_STEPS} when Jenkins is not running or the configuration is not
+     * available, so requests can be used outside Jenkins.
+     */
+    public static int getDefaultMaxSteps() {
+        if (Jenkins.getInstanceOrNull() == null) {
+            return RequestsConfiguration.DEFAULT_MAX_STEPS;
+        }
+        try {
+            return RequestsConfiguration.get().getMaxSteps();
+        } catch (IllegalStateException e) {
+            LOGGER.log(Level.FINE, "The AI requests configuration is not available, using the built-in default", e);
+            return RequestsConfiguration.DEFAULT_MAX_STEPS;
+        }
+    }
+
+    /** Sets the limit for this request, which takes precedence over the global default. */
     public void setMaxSteps(int maxSteps) {
         if (maxSteps <= 0) {
             throw new IllegalArgumentException("maxSteps must be greater than 0");
@@ -284,6 +304,7 @@ public class ModelRequest {
         List<ModelOutput> outputs = new ArrayList<>();
         Map<String, Tool> availableTools = getAvailableTools();
         int steps = 0;
+        int stepLimit = getMaxSteps();
         try {
             while (true) {
                 List<ModelOutput> stepOutputs = client.takeStep(model.data(), this, List.copyOf(turnInputs), listener);
@@ -293,10 +314,11 @@ public class ModelRequest {
                 }
                 outputs.addAll(stepOutputs);
                 finalContent.addAll(stepOutputs);
-                if (steps >= maxSteps && stepOutputs.stream().anyMatch(ToolCallContent.class::isInstance)) {
+                if (steps >= stepLimit && stepOutputs.stream().anyMatch(ToolCallContent.class::isInstance)) {
                     throw new ModelRequestException("Model " + model.getModelId()
-                            + " still wanted to call tools after " + maxSteps + " steps, which is the maximum."
-                            + " Raise it with the maxSteps setting if the request needs more steps.");
+                            + " still wanted to call tools after " + stepLimit + " steps, which is the maximum."
+                            + " Raise it with the maxSteps option of the request, or the maximum steps setting in"
+                            + " the global configuration (Manage Jenkins > System), if it needs more steps.");
                 }
                 List<ModelInput> toolResponses = new ArrayList<>();
                 for (ModelOutput output : stepOutputs) {

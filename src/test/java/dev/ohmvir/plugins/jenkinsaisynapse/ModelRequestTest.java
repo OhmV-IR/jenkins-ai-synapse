@@ -38,6 +38,7 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.ReadSkillFileTool;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolArgumentDescription;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.RequestsConfiguration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -282,15 +283,15 @@ public class ModelRequestTest {
         AtomicInteger steps = new AtomicInteger();
         AtomicInteger toolCalls = new AtomicInteger();
         ModelRequest request = toolRequest();
-        assertEquals(ModelRequest.DEFAULT_MAX_STEPS, request.getMaxSteps());
+        assertEquals(RequestsConfiguration.DEFAULT_MAX_STEPS, request.getMaxSteps());
 
         ModelRequestException e =
                 assertThrows(ModelRequestException.class, () -> runLooping(request, steps, toolCalls));
 
-        assertEquals(ModelRequest.DEFAULT_MAX_STEPS, steps.get());
+        assertEquals(RequestsConfiguration.DEFAULT_MAX_STEPS, steps.get());
         // The tool calls of the last step are not run, as their results could not be sent back
-        assertEquals(ModelRequest.DEFAULT_MAX_STEPS - 1, toolCalls.get());
-        assertTrue(e.getMessage().contains(String.valueOf(ModelRequest.DEFAULT_MAX_STEPS)));
+        assertEquals(RequestsConfiguration.DEFAULT_MAX_STEPS - 1, toolCalls.get());
+        assertTrue(e.getMessage().contains(String.valueOf(RequestsConfiguration.DEFAULT_MAX_STEPS)));
         assertTrue(e.getMessage().contains("maxSteps"));
     }
 
@@ -329,9 +330,22 @@ public class ModelRequestTest {
         ModelRequest request = new ModelRequest();
         assertThrows(IllegalArgumentException.class, () -> request.setMaxSteps(0));
         assertThrows(IllegalArgumentException.class, () -> request.setMaxSteps(-1));
-        assertEquals(ModelRequest.DEFAULT_MAX_STEPS, request.getMaxSteps());
+        assertEquals(RequestsConfiguration.DEFAULT_MAX_STEPS, request.getMaxSteps());
 
         request.setMaxSteps(7);
         assertEquals(7, new ModelRequest(request).getMaxSteps());
+    }
+
+    @Test
+    public void maxStepsDefaultsTo25WithoutJenkinsAndAnExplicitValueWins() {
+        // This test runs without Jenkins, so the default is the built-in one
+        assertEquals(25, ModelRequest.getDefaultMaxSteps());
+        ModelRequest request = new ModelRequest();
+        assertEquals(25, request.getMaxSteps());
+        assertEquals(25, new ModelRequest(request).getMaxSteps());
+
+        request.setMaxSteps(3);
+        assertEquals(3, request.getMaxSteps());
+        assertEquals(3, new ModelRequest(request).getMaxSteps());
     }
 }
