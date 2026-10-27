@@ -68,6 +68,9 @@ import org.springframework.security.core.Authentication;
  */
 @Setter
 public final class AiRequestRunner {
+    /** How long to wait for the request thread to stop after cancelling it. */
+    static final long SHUTDOWN_WAIT_SECONDS = 10;
+
     private @Nullable String prompt;
     private @Nullable String promptId;
     private @Nullable String model;
@@ -149,12 +152,29 @@ public final class AiRequestRunner {
             future.cancel(true);
             throw e;
         } finally {
-            executor.shutdownNow();
+            shutDownAndAwait(executor, logger, SHUTDOWN_WAIT_SECONDS);
         }
         if (run != null) {
             ModelConversationsAction.record(run, conversation);
         }
         return new Result(response, modelData.getModelId(), conversation.getConversationId());
+    }
+
+    /**
+     * Interrupts the request thread and gives it a short time to finish, so that a timed out or aborted request does not
+     * leave work running unnoticed. A tool call that does not respond to interruption can outlast the wait, which is
+     * reported to the build log.
+     */
+    static void shutDownAndAwait(ExecutorService executor, PrintStream logger, long waitSeconds) {
+        executor.shutdownNow();
+        try {
+            if (!executor.awaitTermination(waitSeconds, TimeUnit.SECONDS)) {
+                logger.println("[AI Synapse] Warning: the AI request did not stop within " + waitSeconds
+                        + " seconds of being cancelled. A tool call may still be running.");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     ModelRequest buildRequest() throws AbortException {
