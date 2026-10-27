@@ -3,6 +3,7 @@ package dev.ohmvir.plugins.jenkinsaisynapse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.ohmvir.plugins.jenkinsaisynapse.TestModels.TestConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.TestModels.TestProvider;
@@ -17,6 +18,8 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.RegisteredModel;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
 
@@ -165,6 +168,87 @@ public class ModelRegistryTest {
         assertEquals(
                 List.of("test:a", "test:flaky", "test:b"),
                 registry.getModels().stream().map(RegisteredModel::getModelId).toList());
+    }
+
+    @Test
+    public void slowReloadOfOlderConfigurationDoesNotOverwriteNewerReload() throws Exception {
+        CountDownLatch slowStarted = new CountDownLatch(1);
+        CountDownLatch releaseSlow = new CountDownLatch(1);
+        TestProvider provider = new TestProvider(
+                config -> {
+                    if (config.getModelName().equals("old")) {
+                        slowStarted.countDown();
+                        try {
+                            assertTrue(releaseSlow.await(30, TimeUnit.SECONDS));
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            throw new IllegalStateException(e);
+                        }
+                    }
+                    return TestModels.textModel(config);
+                },
+                CLIENT);
+        ModelRegistry registry = new ModelRegistry();
+        Thread slowReload = new Thread(
+                () -> {
+                    try {
+                        registry.reload(List.of(new TestConfiguration("old")), List.of(provider));
+                    } catch (Exception e) {
+                        throw new IllegalStateException(e);
+                    }
+                },
+                "slow-reload");
+        slowReload.start();
+        assertTrue(slowStarted.await(30, TimeUnit.SECONDS));
+
+        registry.reload(List.of(new TestConfiguration("new")), List.of(provider));
+        assertEquals(
+                List.of("test:new"),
+                registry.getModels().stream().map(RegisteredModel::getModelId).toList());
+
+        releaseSlow.countDown();
+        slowReload.join(30_000);
+        assertEquals(
+                List.of("test:new"),
+                registry.getModels().stream().map(RegisteredModel::getModelId).toList());
+    }
+
+    @Test
+    public void retryFailedDoesNotOverwriteAModelListSetMeanwhile() throws Exception {
+        CountDownLatch retryStarted = new CountDownLatch(1);
+        CountDownLatch releaseRetry = new CountDownLatch(1);
+        AtomicBoolean firstAttempt = new AtomicBoolean(true);
+        TestProvider provider = new TestProvider(
+                config -> {
+                    if (config.getModelName().equals("flaky")) {
+                        if (firstAttempt.getAndSet(false)) {
+                            throw new IllegalStateException("API down");
+                        }
+                        retryStarted.countDown();
+                        try {
+                            assertTrue(releaseRetry.await(30, TimeUnit.SECONDS));
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            throw new IllegalStateException(e);
+                        }
+                    }
+                    return TestModels.textModel(config);
+                },
+                CLIENT);
+        ModelRegistry registry = new ModelRegistry();
+        registry.reload(List.of(new TestConfiguration("a"), new TestConfiguration("flaky")), List.of(provider));
+        Thread retry = new Thread(registry::retryFailed, "retry");
+        retry.start();
+        assertTrue(retryStarted.await(30, TimeUnit.SECONDS));
+
+        RegisteredModel replacement = TestModels.registered("replacement", CLIENT);
+        registry.setModels(List.of(replacement));
+        releaseRetry.countDown();
+        retry.join(30_000);
+
+        assertEquals(List.of(replacement), registry.getModels());
+        registry.retryFailed();
+        assertEquals(List.of(replacement), registry.getModels());
     }
 
     @Test
