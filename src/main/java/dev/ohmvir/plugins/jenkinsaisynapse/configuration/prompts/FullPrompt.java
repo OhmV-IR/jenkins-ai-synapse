@@ -19,6 +19,7 @@ import org.kohsuke.stapler.QueryParameter;
 public class FullPrompt extends SimplePrompt {
     private @Getter String systemPrompt;
     private @Getter double temperature;
+    /** Maximum number of tokens to generate, 0 means not set and leaves the limit to the provider. */
     private @Getter long maxOutputTokensCount;
     private @Getter ModelThinkingLevel thinkingLevel;
 
@@ -42,7 +43,8 @@ public class FullPrompt extends SimplePrompt {
         }
         this.temperature = temperature;
         if (maxOutputTokensCount < 0) {
-            throw new Descriptor.FormException("Max output tokens count cannot be negative", "maxOutputTokensCount");
+            throw new Descriptor.FormException(
+                    "Max output tokens count cannot be negative, use 0 for not set", "maxOutputTokensCount");
         }
         this.maxOutputTokensCount = maxOutputTokensCount;
         if (thinkingLevel == null) {
@@ -73,7 +75,9 @@ public class FullPrompt extends SimplePrompt {
         ModelRequest req = super.createRequest();
         req.addInput(new SystemPromptContent(systemPrompt));
         req.addInput(new TemperatureContent(temperature));
-        req.addInput(new MaxOutputTokensContent(maxOutputTokensCount));
+        if (maxOutputTokensCount > 0) {
+            req.addInput(new MaxOutputTokensContent(maxOutputTokensCount));
+        }
         req.addInput(new ThinkingLevelContent(thinkingLevel));
         return req;
     }
@@ -102,7 +106,8 @@ public class FullPrompt extends SimplePrompt {
 
         public FormValidation doCheckMaxOutputTokensCount(@QueryParameter long value) {
             if (value < 0) {
-                return FormValidation.error("Please enter a number greater than 0");
+                return FormValidation.error(
+                        "Max output tokens cannot be negative, enter a positive number or 0 for not set");
             }
             return FormValidation.ok();
         }

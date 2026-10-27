@@ -28,12 +28,19 @@ public abstract class PromptConfiguration implements Describable<PromptConfigura
     }
 
     public static class DescriptorImpl extends Descriptor<PromptConfiguration> {
+        /**
+         * Validates a prompt id field. The check only receives the value of the field being validated, so it cannot
+         * tell whether the entry is already saved or being added. A saved prompt with the same id is therefore not an
+         * error here, as that would flag every saved prompt as soon as the form loads. A duplicate id is instead
+         * rejected when the form is submitted, see {@link PromptsConfiguration#setPrompts}, which reports the id in
+         * the form error. This check reports ids that are already shared by more than one saved prompt.
+         */
         public FormValidation doCheckPromptId(@QueryParameter String value) {
-            if (value.trim().isEmpty()) {
+            if (value == null || value.trim().isEmpty()) {
                 return FormValidation.error("Prompt id cannot be empty");
             }
             if (PromptsConfiguration.get().getPrompts().stream()
-                            .filter(config -> config.getPromptId().equals(value))
+                            .filter(config -> value.equals(config.getPromptId()))
                             .count()
                     > 1) {
                 return FormValidation.error("Prompt id is the same as another saved value");
