@@ -6,7 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import hudson.BulkChange;
+import hudson.util.FormValidation;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.PromptsConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.RequestsConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.PromptConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.SimplePrompt;
@@ -124,6 +127,43 @@ public class GlobalConfigurationTest {
     @Test
     public void systemConfigurationPageStillSaves(JenkinsRule j) throws Exception {
         j.configRoundtrip();
+    }
+
+    @Test
+    public void maxStepsDefaultsTo25AndIsValidated(JenkinsRule j) {
+        RequestsConfiguration config = RequestsConfiguration.get();
+        assertEquals(25, config.getMaxSteps());
+        assertThrows(IllegalArgumentException.class, () -> config.setMaxSteps(0));
+        assertThrows(IllegalArgumentException.class, () -> config.setMaxSteps(-3));
+        assertEquals(25, config.getMaxSteps());
+        assertEquals(FormValidation.Kind.OK, config.doCheckMaxSteps("10").kind);
+        assertEquals(FormValidation.Kind.ERROR, config.doCheckMaxSteps("0").kind);
+        assertEquals(FormValidation.Kind.ERROR, config.doCheckMaxSteps("").kind);
+        assertEquals(FormValidation.Kind.ERROR, config.doCheckMaxSteps("many").kind);
+    }
+
+    @Test
+    public void maxStepsIsPersistedAndUsedByRequests(JenkinsRule j) throws Exception {
+        RequestsConfiguration config = RequestsConfiguration.get();
+        config.setMaxSteps(12);
+        assertEquals(12, new ModelRequest().getMaxSteps());
+        assertEquals(12, new RequestsConfiguration().getMaxSteps());
+    }
+
+    @Test
+    public void missingOrInvalidStoredMaxStepsFallsBackTo25(JenkinsRule j) throws Exception {
+        File file = new File(j.jenkins.getRootDir(), RequestsConfiguration.class.getName() + ".xml");
+        Files.deleteIfExists(file.toPath());
+        assertEquals(25, new RequestsConfiguration().getMaxSteps());
+
+        Files.writeString(file.toPath(), """
+                <?xml version='1.1' encoding='UTF-8'?>
+                <dev.ohmvir.plugins.jenkinsaisynapse.configuration.RequestsConfiguration>
+                  <maxSteps>0</maxSteps>
+                </dev.ohmvir.plugins.jenkinsaisynapse.configuration.RequestsConfiguration>
+                """);
+        assertEquals(25, new RequestsConfiguration().getMaxSteps());
+        Files.deleteIfExists(file.toPath());
     }
 
     private static List<String> promptIds(PromptsConfiguration config) {

@@ -18,6 +18,7 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.ReadSkillFileTool;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.RequestsConfiguration;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,20 +33,73 @@ import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import jenkins.model.Jenkins;
 import lombok.Getter;
 import lombok.Setter;
 import org.jspecify.annotations.Nullable;
 
-public class ModelRequest implements Cloneable {
+public class ModelRequest {
     private static final Logger LOGGER = Logger.getLogger(ModelRequest.class.getName());
 
     private final Set<ModelOutputKind<?>> requestedOutputs = new LinkedHashSet<>();
     private final Set<ModelCapability> explicitCapabilities = new LinkedHashSet<>();
     private final @Getter List<ModelInput> modelInputs = new ArrayList<>();
-    private final Set<String> expandedSkillsAllowedTools = new LinkedHashSet<>();
     private @Getter @Setter @Nullable String modelId;
     @Setter
     private @Nullable ModelConversation associatedConversation;
+    /** Null until {@link #setMaxSteps(int)} is called, which means the global default applies. */
+    private @Nullable Integer maxSteps;
+
+    public ModelRequest() {}
+
+    /**
+     * Copies another request. The copy owns its own input, output and capability collections, so changing one request
+     * never changes the other. The inputs themselves and the associated conversation are shared.
+     */
+    public ModelRequest(ModelRequest other) {
+        Objects.requireNonNull(other, "other");
+        requestedOutputs.addAll(other.requestedOutputs);
+        explicitCapabilities.addAll(other.explicitCapabilities);
+        modelInputs.addAll(other.modelInputs);
+        modelId = other.modelId;
+        associatedConversation = other.associatedConversation;
+        maxSteps = other.maxSteps;
+    }
+
+    /**
+     * The maximum number of times the model is called while this request runs. Each time the model calls tools, the
+     * tool results are sent back to it in another step. Unless {@link #setMaxSteps(int)} was called, this is the
+     * default from the global configuration (Manage Jenkins &gt; System), which is 25 out of the box. A copy of this
+     * request looks the default up when it is asked, not when it is copied.
+     */
+    public int getMaxSteps() {
+        return maxSteps != null ? maxSteps : getDefaultMaxSteps();
+    }
+
+    /**
+     * The default maximum number of steps from the global configuration. This is
+     * {@link RequestsConfiguration#DEFAULT_MAX_STEPS} when Jenkins is not running or the configuration is not
+     * available, so requests can be used outside Jenkins.
+     */
+    public static int getDefaultMaxSteps() {
+        if (Jenkins.getInstanceOrNull() == null) {
+            return RequestsConfiguration.DEFAULT_MAX_STEPS;
+        }
+        try {
+            return RequestsConfiguration.get().getMaxSteps();
+        } catch (IllegalStateException e) {
+            LOGGER.log(Level.FINE, "The AI requests configuration is not available, using the built-in default", e);
+            return RequestsConfiguration.DEFAULT_MAX_STEPS;
+        }
+    }
+
+    /** Sets the limit for this request, which takes precedence over the global default. */
+    public void setMaxSteps(int maxSteps) {
+        if (maxSteps <= 0) {
+            throw new IllegalArgumentException("maxSteps must be greater than 0");
+        }
+        this.maxSteps = maxSteps;
+    }
 
     public Set<ModelInputType> getInputTypes() {
         return modelInputs.stream()
@@ -120,8 +174,8 @@ public class ModelRequest implements Cloneable {
     }
 
     /**
-     * Converts attached skills to a system prompt and the built-in skill-file tool. This prepares a fresh request
-     * before model selection and keeps the skill tool restrictions attached to this request.
+     * Converts attached skills to a system prompt and a skill-file tool that serves only those skills. This prepares a
+     * fresh request before model selection. Calling it again once the skills are expanded has no effect.
      */
     public void expandSkills() {
         List<SkillData> skills = modelInputs.stream()
@@ -132,12 +186,6 @@ public class ModelRequest implements Cloneable {
         if (skills.isEmpty()) {
             return;
         }
-        skills.stream()
-                .map(SkillData::getAllowedTools)
-                .filter(Objects::nonNull)
-                .flatMap(List::stream)
-                .filter(name -> !name.isBlank())
-                .forEach(expandedSkillsAllowedTools::add);
         modelInputs.removeIf(InputSkillContent.class::isInstance);
         String skillPrompt = ReadSkillFileTool.buildSkillsSystemPrompt(skills);
         Optional<ModelInput> systemPrompt = modelInputs.stream()
@@ -150,34 +198,54 @@ public class ModelRequest implements Cloneable {
         } else {
             modelInputs.add(0, new SystemPromptContent(skillPrompt));
         }
-        boolean hasSkillTool = modelInputs.stream()
+        attachSkillTool(skills);
+    }
+
+    /**
+     * Attaches a skill-file tool that serves the given skills and the skills already served by one attached to this
+     * request. The tool is replaced rather than changed, as copies of this request share the tool instance.
+     */
+    private void attachSkillTool(List<SkillData> skills) {
+        boolean hasOtherSkillTool = modelInputs.stream()
                 .filter(InputToolContent.class::isInstance)
                 .map(input -> ((InputToolContent) input).getTool())
-                .anyMatch(tool -> ReadSkillFileTool.NAME.equals(tool.getName()));
-        if (!hasSkillTool) {
-            attachTool(ReadSkillFileTool.get());
+                .anyMatch(tool ->
+                        ReadSkillFileTool.NAME.equals(tool.getName()) && !(tool instanceof ReadSkillFileTool));
+        if (hasOtherSkillTool) {
+            return;
+        }
+        Map<String, SkillData> served = new LinkedHashMap<>();
+        int toolIndex = -1;
+        for (int i = 0; i < modelInputs.size(); i++) {
+            if (modelInputs.get(i) instanceof InputToolContent toolInput
+                    && toolInput.getTool() instanceof ReadSkillFileTool skillTool) {
+                skillTool.getSkills().forEach(skill -> served.put(skill.getSkillName(), skill));
+                if (toolIndex < 0) {
+                    toolIndex = i;
+                } else {
+                    modelInputs.remove(i--);
+                }
+            }
+        }
+        skills.forEach(skill -> served.put(skill.getSkillName(), skill));
+        InputToolContent updatedTool = new InputToolContent(ReadSkillFileTool.forSkills(served.values()));
+        if (toolIndex < 0) {
+            modelInputs.add(updatedTool);
+        } else {
+            modelInputs.set(toolIndex, updatedTool);
         }
     }
 
     /**
-     * The tools attached to this request, restricted by any {@code allowed-tools} declarations on its skills.
+     * The tools attached to this request. A skill's {@code allowed-tools} list names tools the skill may use without
+     * asking, so it never removes a tool the caller attached.
      */
     public Map<String, Tool> getAvailableTools() {
         Map<String, Tool> tools = new LinkedHashMap<>();
-        Set<String> allowedTools = new LinkedHashSet<>(expandedSkillsAllowedTools);
         for (ModelInput input : modelInputs) {
             if (input instanceof InputToolContent toolInput && toolInput.getTool() != null) {
                 tools.putIfAbsent(toolInput.getTool().getName(), toolInput.getTool());
-            } else if (input instanceof InputSkillContent skillInput && skillInput.getSkill() != null) {
-                List<String> skillTools = skillInput.getSkill().getAllowedTools();
-                if (skillTools != null) {
-                    skillTools.stream().filter(name -> !name.isBlank()).forEach(allowedTools::add);
-                }
             }
-        }
-        if (!allowedTools.isEmpty()) {
-            allowedTools.add(ReadSkillFileTool.NAME);
-            tools.keySet().retainAll(allowedTools);
         }
         return Collections.unmodifiableMap(tools);
     }
@@ -187,6 +255,8 @@ public class ModelRequest implements Cloneable {
     }
 
     public @Nullable ModelResponse execute(ModelRegistry registry) {
+        // Expanded first so models are selected by what the client receives, not by the SKILLS capability
+        expandSkills();
         RegisteredModel model = registry.findModelForRequest(this);
         if (model == null) {
             return null;
@@ -211,7 +281,7 @@ public class ModelRequest implements Cloneable {
     }
 
     /**
-     * Executes this request and runs only tool calls explicitly attached to it (and permitted by its skills).
+     * Executes this request and runs only tool calls explicitly attached to it.
      * Callers in Jenkins should provide a tool executor that supplies the build's authentication and a listener that
      * writes progress to the build log.
      */
@@ -223,6 +293,7 @@ public class ModelRequest implements Cloneable {
         Objects.requireNonNull(model, "model");
         Objects.requireNonNull(listener, "listener");
         Objects.requireNonNull(toolExecutor, "toolExecutor");
+        expandSkills();
         ModelClient client = model.createClient();
         if (client == null) {
             throw new ModelRequestException("No client is available for model " + model.getModelId());
@@ -232,18 +303,32 @@ public class ModelRequest implements Cloneable {
         List<ModelContent> finalContent = new ArrayList<>(modelInputs);
         List<ModelOutput> outputs = new ArrayList<>();
         Map<String, Tool> availableTools = getAvailableTools();
+        int steps = 0;
+        int stepLimit = getMaxSteps();
         try {
             while (true) {
                 List<ModelOutput> stepOutputs = client.takeStep(model.data(), this, List.copyOf(turnInputs), listener);
+                steps++;
                 if (stepOutputs == null) {
                     throw new ModelRequestException("Model client returned no outputs");
                 }
                 outputs.addAll(stepOutputs);
                 finalContent.addAll(stepOutputs);
+                if (steps >= stepLimit && stepOutputs.stream().anyMatch(ToolCallContent.class::isInstance)) {
+                    throw new ModelRequestException("Model " + model.getModelId()
+                            + " still wanted to call tools after " + stepLimit + " steps, which is the maximum."
+                            + " Raise it with the maxSteps option of the request, or the maximum steps setting in"
+                            + " the global configuration (Manage Jenkins > System), if it needs more steps.");
+                }
                 List<ModelInput> toolResponses = new ArrayList<>();
                 for (ModelOutput output : stepOutputs) {
                     if (!(output instanceof ToolCallContent toolCall)) {
                         continue;
+                    }
+                    // A cancelled request must not start further tool calls, as they could still change state
+                    if (Thread.currentThread().isInterrupted()) {
+                        throw new InterruptedException(
+                                "Request cancelled before calling tool '" + toolCall.getName() + "'");
                     }
                     Tool tool = availableTools.get(toolCall.getName());
                     ToolCallResponseContent response;
@@ -286,10 +371,5 @@ public class ModelRequest implements Cloneable {
             associatedConversation.addAllContent(finalContent);
         }
         return new ModelResponse(outputs);
-    }
-
-    @Override
-    public ModelRequest clone() throws CloneNotSupportedException {
-        return (ModelRequest) super.clone();
     }
 }

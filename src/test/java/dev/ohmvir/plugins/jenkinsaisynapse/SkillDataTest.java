@@ -52,6 +52,69 @@ public class SkillDataTest {
         assertThrows(Descriptor.FormException.class, () -> parse("description: no name"));
     }
 
+    private static SkillData parseFile(String skillMd) throws Exception {
+        return new SkillData(Map.of("SKILL.md", skillMd));
+    }
+
+    @Test
+    public void textBeforeFrontmatterMeansNoFrontmatter(JenkinsRule j) {
+        assertThrows(
+                Descriptor.FormException.class,
+                () -> parseFile("Some intro\n---\nname: my-skill\n---\nSkill body"));
+    }
+
+    @Test
+    public void horizontalRuleInBodyWithoutFrontmatterIsNotFrontmatter(JenkinsRule j) {
+        assertThrows(
+                Descriptor.FormException.class,
+                () -> parseFile("# Title\n\n---\n\nname: my-skill\n\n---\n\nMore text"));
+    }
+
+    @Test
+    public void horizontalRuleInBodyIsKeptInSkillText(JenkinsRule j) throws Exception {
+        SkillData skill = parseFile("---\nname: my-skill\n---\nFirst\n\n---\n\nSecond");
+        assertEquals("my-skill", skill.getSkillName());
+        assertEquals("First\n\n---\n\nSecond", skill.getSkillText());
+    }
+
+    @Test
+    public void delimiterInsideFrontmatterValueIsNotTheClosingDelimiter(JenkinsRule j) throws Exception {
+        SkillData skill = parseFile("---\nname: my-skill\ndescription: \"a---b\"\n---\nSkill body");
+        assertEquals("my-skill", skill.getSkillName());
+        assertEquals("a---b", skill.getSkillDescription());
+        assertEquals("Skill body", skill.getSkillText());
+    }
+
+    @Test
+    public void crlfLineEndingsAreSupported(JenkinsRule j) throws Exception {
+        SkillData skill = parseFile("---\r\nname: my-skill\r\ndescription: crlf\r\n---\r\nSkill body\r\n");
+        assertEquals("my-skill", skill.getSkillName());
+        assertEquals("crlf", skill.getSkillDescription());
+        assertEquals("Skill body\r\n", skill.getSkillText());
+    }
+
+    @Test
+    public void byteOrderMarkBeforeFrontmatterIsTolerated(JenkinsRule j) throws Exception {
+        SkillData skill = parseFile("\uFEFF---\nname: my-skill\n---\nSkill body");
+        assertEquals("my-skill", skill.getSkillName());
+        assertEquals("Skill body", skill.getSkillText());
+    }
+
+    @Test
+    public void emptyFrontmatterBlockIsParsedAndRejectedForMissingName(JenkinsRule j) {
+        // The block is recognised as frontmatter (not reported as an invalid file) but holds no mapping with a name
+        Descriptor.FormException e =
+                assertThrows(Descriptor.FormException.class, () -> parseFile("---\n---\nSkill body"));
+        assertTrue(e.getMessage().contains("YAML mapping"), e.getMessage());
+    }
+
+    @Test
+    public void trailingWhitespaceOnDelimiterLinesIsTolerated(JenkinsRule j) throws Exception {
+        SkillData skill = parseFile("---  \nname: my-skill\n---\t\nSkill body");
+        assertEquals("my-skill", skill.getSkillName());
+        assertEquals("Skill body", skill.getSkillText());
+    }
+
     @Test
     public void duplicateSkillNamesAreRejectedAndReported(JenkinsRule j) throws Exception {
         DuplicateSkillNameMonitor monitor = ExtensionList.lookupSingleton(DuplicateSkillNameMonitor.class);

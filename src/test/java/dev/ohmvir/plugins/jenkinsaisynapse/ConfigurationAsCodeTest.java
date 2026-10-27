@@ -6,8 +6,10 @@ import hudson.model.Descriptor;
 import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
 import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
 import io.jenkins.plugins.casc.misc.junit.jupiter.WithJenkinsConfiguredWithCode;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.PromptsConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.RequestsConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.SimplePrompt;
@@ -34,6 +36,21 @@ public class ConfigurationAsCodeTest {
                 (BasicSkillConfiguration) SkillsConfiguration.get().getSkills().get(0);
         assertEquals("reviewer", skill.skillName);
 
+    }
+
+    @Test
+    @ConfiguredWithCode("configuration-as-code.yml")
+    public void configuresTheDefaultMaximumSteps(JenkinsConfiguredWithCodeRule j) {
+        assertEquals(40, RequestsConfiguration.get().getMaxSteps());
+        assertEquals(40, ModelRequest.getDefaultMaxSteps());
+
+        ModelRequest request = new ModelRequest();
+        assertEquals(40, request.getMaxSteps());
+        assertEquals(40, new ModelRequest(request).getMaxSteps());
+
+        request.setMaxSteps(5);
+        assertEquals(5, request.getMaxSteps());
+        assertEquals(5, new ModelRequest(request).getMaxSteps());
     }
 
     public static class CascModelConfiguration extends ModelConfiguration {
