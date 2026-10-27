@@ -4,6 +4,8 @@ unclassified:
       - cascModel:
           modelName: "large"
           modelDisplayName: "Large model"
+  aiRequests:
+    maxSteps: 40
   aiPrompts:
     prompts:
       - simplePrompt:

@@ -49,7 +49,7 @@ import org.kohsuke.stapler.StaplerRequest2;
  * <pre>
  * def answer = aiRequest 'Summarize the changes in this build'
  * def details = aiRequest(promptId: 'review', prompt: diff, model: 'anthropic:claude-opus-5-5',
- *                         tools: ['readFile'], skills: ['code-review'], returnDetails: true)
+ *                         tools: ['readFile'], skills: ['code-review'], maxSteps: 10, returnDetails: true)
  * echo details.text
  *
  * node {
@@ -76,6 +76,7 @@ public class AiRequestStep extends Step {
     private List<String> outputTypes = new ArrayList<>();
     private @Nullable String outputDir;
     private @Nullable Integer timeout;
+    private @Nullable Integer maxSteps;
     private boolean returnDetails;
     private boolean quiet;
     private boolean expandEnvVars;
@@ -215,6 +216,20 @@ public class AiRequestStep extends Step {
     }
 
     /**
+     * The maximum number of times the model may be called, which limits how many rounds of tool calls it can make.
+     * The request fails when the model still wants to call tools after that many steps. When not set, the default
+     * maximum number of steps from the global configuration (Manage Jenkins &gt; System &gt; AI Requests) applies,
+     * which is 25 until it is changed.
+     */
+    @DataBoundSetter
+    public void setMaxSteps(@Nullable Integer maxSteps) {
+        if (maxSteps != null && maxSteps <= 0) {
+            throw new IllegalArgumentException("maxSteps must be greater than 0");
+        }
+        this.maxSteps = maxSteps;
+    }
+
+    /**
      * Expand references to environment variables such as {@code ${BUILD_NUMBER}} in the prompt, system prompt, files
      * and output directory. Groovy string interpolation already does this for double-quoted strings.
      */
@@ -295,6 +310,7 @@ public class AiRequestStep extends Step {
                     .toList());
         }
         runner.setTimeoutSeconds(timeout == null ? 0 : timeout);
+        runner.setMaxSteps(maxSteps);
         runner.setQuiet(quiet);
         return runner;
     }
@@ -379,7 +395,7 @@ public class AiRequestStep extends Step {
         public Step newInstance(@Nullable StaplerRequest2 req, @NonNull JSONObject formData)
                 throws Descriptor.FormException {
             // The snippet generator submits empty number fields as "", which cannot be bound to a Double or Long.
-            for (String field : List.of("temperature", "maxOutputTokens", "topP", "topK", "timeout")) {
+            for (String field : List.of("temperature", "maxOutputTokens", "topP", "topK", "timeout", "maxSteps")) {
                 if (Util.fixEmptyAndTrim(formData.optString(field)) == null) {
                     formData.remove(field);
                 }
