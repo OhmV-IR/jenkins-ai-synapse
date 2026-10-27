@@ -9,6 +9,8 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputFileContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputImageContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputTextContent;
 import hudson.AbortException;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputFileContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputImageContent;
 import hudson.FilePath;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -80,5 +82,10 @@ public class WorkspaceFilesTest {
         }
         Files.write(new File(dir, "a.pdf").toPath(), new byte[] {'%', 'P', 'D', 'F'});
         assertInstanceOf(InputFileContent.class, WorkspaceFiles.readAttachment(new FilePath(dir), "a.pdf"));
+    }
+        for (String name : new String[] {"a.svg", "a.bmp", "a.tif"}) {
+            Files.write(new File(dir, name).toPath(), new byte[] {1, 2, 3});
+            assertInstanceOf(InputFileContent.class, WorkspaceFiles.readAttachment(new FilePath(dir), name));
+        }
     }
 }
