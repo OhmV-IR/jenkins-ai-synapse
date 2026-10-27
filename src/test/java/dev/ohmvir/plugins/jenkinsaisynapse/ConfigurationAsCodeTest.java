@@ -14,6 +14,7 @@ import dev.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.SimplePrompt;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.skills.BasicSkillConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.skills.GithubFolderSkillConfiguration;
 import org.jenkinsci.Symbol;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.TestExtension;
@@ -51,6 +52,16 @@ public class ConfigurationAsCodeTest {
         request.setMaxSteps(5);
         assertEquals(5, request.getMaxSteps());
         assertEquals(5, new ModelRequest(request).getMaxSteps());
+    }
+
+    @Test
+    @ConfiguredWithCode("github-folder-skill.yml")
+    public void configuresGithubFolderSkill(JenkinsConfiguredWithCodeRule j) {
+        GithubFolderSkillConfiguration skill =
+                (GithubFolderSkillConfiguration) SkillsConfiguration.get().getSkills().get(0);
+        assertEquals("https://github.com/example/skills", skill.getRepositoryUrl());
+        assertEquals("skills", skill.getFolderPath());
+        assertEquals("github-token", skill.getAuthenticationTokenCredentialsId());
     }
 
     public static class CascModelConfiguration extends ModelConfiguration {

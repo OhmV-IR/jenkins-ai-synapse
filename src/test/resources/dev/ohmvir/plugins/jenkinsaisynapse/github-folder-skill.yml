@@ -1,0 +1,7 @@
+unclassified:
+  aiSkills:
+    skills:
+      - githubFolder:
+          repositoryUrl: "https://github.com/example/skills"
+          folderPath: "skills"
+          authenticationTokenCredentialsId: "github-token"
