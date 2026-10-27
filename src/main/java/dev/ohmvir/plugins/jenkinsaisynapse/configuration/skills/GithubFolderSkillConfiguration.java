@@ -7,6 +7,7 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.security.ACL;
+import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,6 +18,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import jenkins.model.Jenkins;
 import lombok.Getter;
 import org.jenkinsci.Symbol;
@@ -27,12 +30,23 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.verb.POST;
 
 public class GithubFolderSkillConfiguration extends SkillConfiguration {
     private @Getter final String folderPath;
     private @Getter final String repositoryUrl;
     private @Getter final String authenticationTokenCredentialsId;
     private static final Logger LOGGER = Logger.getLogger(GithubFolderSkillConfiguration.class.getName());
+
+    /**
+     * Accepts https/http (with or without "www.") and SSH forms of a github.com repository URL, with an optional
+     * trailing ".git" and slash. Group 1 is the owner and group 2 the repository name. GitHub Enterprise hosts are not
+     * accepted because the client is always connected to github.com.
+     */
+    private static final Pattern REPOSITORY_URL_PATTERN = Pattern.compile(
+            "^(?:https?://(?:www\\.)?github\\.com/|git@github\\.com:|ssh://git@github\\.com/)"
+                    + "([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\\.git)?/?$",
+            Pattern.CASE_INSENSITIVE);
 
     @DataBoundConstructor
     public GithubFolderSkillConfiguration(
@@ -50,6 +64,9 @@ public class GithubFolderSkillConfiguration extends SkillConfiguration {
         try {
             GitHub github = createGitHubClient(this.authenticationTokenCredentialsId);
             String repoName = extractRepoName(this.repositoryUrl);
+            if (repoName == null) {
+                throw new IOException("Invalid GitHub repository URL: " + this.repositoryUrl);
+            }
             GHRepository repository = github.getRepository(repoName);
 
             // Fetch top-level items in the base folder path
@@ -131,14 +148,25 @@ public class GithubFolderSkillConfiguration extends SkillConfiguration {
     }
 
     /**
-     * Helper to extract "owner/repo" from full URLs like "https://github.com/owner/repo.git"
+     * Extracts "owner/repo" from a github.com repository URL such as "https://github.com/owner/repo.git". Only a
+     * trailing ".git" and slash are stripped, so names like "owner.github.io" are preserved.
+     *
+     * @return the "owner/repo" name, or null if the URL is not a supported GitHub repository URL
      */
-    private String extractRepoName(String url) {
-        String cleaned = url.replace("https://github.com/", "").replace(".git", "");
-        if (cleaned.endsWith("/")) {
-            cleaned = cleaned.substring(0, cleaned.length() - 1);
+    public static String extractRepoName(String url) {
+        if (url == null) {
+            return null;
         }
-        return cleaned;
+        Matcher matcher = REPOSITORY_URL_PATTERN.matcher(url.trim());
+        if (!matcher.matches()) {
+            return null;
+        }
+        String owner = matcher.group(1);
+        String repo = matcher.group(2);
+        if (owner.equals(".") || owner.equals("..") || repo.equals(".") || repo.equals("..")) {
+            return null;
+        }
+        return owner + "/" + repo;
     }
 
     @Extension
@@ -147,6 +175,19 @@ public class GithubFolderSkillConfiguration extends SkillConfiguration {
         @Override
         public @NonNull String getDisplayName() {
             return "Github Skill Folder";
+        }
+
+        @POST
+        public FormValidation doCheckRepositoryUrl(@QueryParameter String value) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            if (value == null || value.isBlank()) {
+                return FormValidation.error("Repository URL is required");
+            }
+            if (extractRepoName(value) == null) {
+                return FormValidation.error(
+                        "Not a valid github.com repository URL, expected https://github.com/owner/repo");
+            }
+            return FormValidation.ok();
         }
 
         public ListBoxModel doFillAuthenticationTokenCredentialsIdItems(
