@@ -3,6 +3,7 @@ package dev.ohmvir.plugins.jenkinsaisynapse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -53,6 +54,7 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -66,11 +68,15 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 @WithJenkins
 public class AiRequestStepTest {
+    /** The number of requests the fake provider has answered. */
+    private static final AtomicInteger REQUESTS = new AtomicInteger();
+
     private JenkinsRule j;
 
     @BeforeEach
     public void setUp(JenkinsRule rule) throws Exception {
         j = rule;
+        REQUESTS.set(0);
         ModelsConfiguration.get().setModels(List.of(new FakeModelConfiguration("echo")));
     }
 
@@ -246,6 +252,57 @@ public class AiRequestStepTest {
     }
 
     @Test
+    public void pipelineStepChecksTheWorkspaceBeforeSendingTheRequest() throws Exception {
+        WorkflowJob p = j.createProject(WorkflowJob.class, "p");
+        p.setDefinition(
+                new CpsFlowDefinition("aiRequest(prompt: 'draw', outputTypes: ['image'], outputDir: 'out')", true));
+        WorkflowRun b = j.buildAndAssertStatus(Result.FAILURE, p);
+        j.assertLogContains("aiRequest needs a workspace for outputDir", b);
+        j.assertLogNotContains("[AI] Sending request", b);
+        assertEquals(0, REQUESTS.get());
+        assertNull(b.getAction(ModelConversationsAction.class));
+    }
+
+    @Test
+    public void pipelineStepRejectsOutputDirOutsideTheWorkspaceBeforeSendingTheRequest() throws Exception {
+        WorkflowJob p = j.createProject(WorkflowJob.class, "p");
+        String script = """
+                node {
+                    aiRequest(prompt: 'draw', outputTypes: ['image'], outputDir: '../elsewhere')
+                }
+                """;
+        p.setDefinition(new CpsFlowDefinition(script, true));
+        j.assertLogContains(
+                "outputDir must be a path inside the workspace: ../elsewhere",
+                j.buildAndAssertStatus(Result.FAILURE, p));
+        assertEquals(0, REQUESTS.get());
+
+        script = """
+                node {
+                    aiRequest(prompt: 'draw', outputTypes: ['image'], outputDir: '/tmp/elsewhere')
+                }
+                """;
+        p.setDefinition(new CpsFlowDefinition(script, true));
+        j.assertLogContains(
+                "outputDir must be a path inside the workspace: /tmp/elsewhere",
+                j.buildAndAssertStatus(Result.FAILURE, p));
+        assertEquals(0, REQUESTS.get());
+    }
+
+    @Test
+    public void pipelineStepAcceptsAnAbsoluteOutputDirInsideTheWorkspace() throws Exception {
+        WorkflowJob p = j.createProject(WorkflowJob.class, "p");
+        String script = """
+                node {
+                    aiRequest(prompt: 'draw', outputTypes: ['image'], outputDir: "${pwd()}/out")
+                    echo "saved=${fileExists('out/image-1.png')}"
+                }
+                """;
+        p.setDefinition(new CpsFlowDefinition(script, true));
+        j.assertLogContains("saved=true", j.buildAndAssertSuccess(p));
+    }
+
+    @Test
     public void pipelineStepRejectsNullAndBlankFileEntries() throws Exception {
         WorkflowJob p = j.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition("aiRequest(prompt: 'hi', files: ['a.txt', null])", true));
@@ -404,6 +461,7 @@ public class AiRequestStepTest {
         @Override
         protected ModelClient createClient(FakeModelConfiguration configuration) {
             return (modelData, request, turnInputs) -> {
+                REQUESTS.incrementAndGet();
                 for (ModelInput input : turnInputs) {
                     if (input instanceof ToolCallResponseContent toolResult) {
                         return List.of(new OutputTextContent("tool said " + toolResult.getResponseContent()));

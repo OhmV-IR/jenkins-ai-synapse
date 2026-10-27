@@ -27,6 +27,7 @@ import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -116,6 +117,9 @@ final class WorkspaceFiles {
             "application/sql",
             "application/x-sh",
             "image/svg+xml");
+
+    /** A Windows drive, such as {@code C:} or {@code C:/dir}, at the start of a path with forward slashes. */
+    private static final Pattern WINDOWS_DRIVE = Pattern.compile("[A-Za-z]:(/.*)?");
 
     /** Device names that cannot be used as a file name on Windows, with or without an extension. */
     private static final Pattern WINDOWS_DEVICE_NAME =
@@ -396,6 +400,26 @@ final class WorkspaceFiles {
             end--;
         }
         return directory.substring(0, end);
+    }
+
+    /**
+     * Checks that an output directory, as returned by {@link #normalizeDirectory}, stays inside the workspace: it must
+     * not contain {@code ..} segments, and an absolute path must be below the workspace. An empty directory is the
+     * workspace itself.
+     *
+     * @throws AbortException If the directory is outside the workspace
+     */
+    static void requireInsideWorkspace(FilePath workspace, String directory) throws AbortException {
+        String path = directory.replace('\\', '/');
+        boolean escapes = Arrays.asList(path.split("/")).contains("..");
+        boolean absolute = path.startsWith("/") || WINDOWS_DRIVE.matcher(path).matches();
+        if (!escapes && absolute) {
+            String root = normalizeDirectory(workspace.getRemote()).replace('\\', '/');
+            escapes = !path.startsWith(root + "/") && !path.equals(root);
+        }
+        if (escapes) {
+            throw new AbortException("outputDir must be a path inside the workspace: " + directory);
+        }
     }
 
     /**
