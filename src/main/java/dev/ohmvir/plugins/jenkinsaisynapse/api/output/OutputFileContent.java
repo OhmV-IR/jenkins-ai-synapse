@@ -1,7 +1,7 @@
 package dev.ohmvir.plugins.jenkinsaisynapse.api.output;
 
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
-import jakarta.servlet.http.HttpServletResponse;
+import dev.ohmvir.plugins.jenkinsaisynapse.utils.FileDownloadUtils;
 import java.io.IOException;
 import java.util.Set;
 import lombok.Getter;
@@ -23,15 +23,7 @@ public class OutputFileContent extends ModelOutput {
     }
 
     public void doDownload(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException {
-        if (fileData == null || fileData.length == 0) {
-            rsp.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return;
-        }
-
-        rsp.setContentType(contentType);
-        rsp.setContentLength(fileData.length);
-        rsp.setHeader("Content-Disposition", "attachment; filename=\"" + fileId + "\"");
-        rsp.getOutputStream().write(fileData);
+        FileDownloadUtils.serveAttachment(rsp, fileId, fileData);
     }
 
     @Override

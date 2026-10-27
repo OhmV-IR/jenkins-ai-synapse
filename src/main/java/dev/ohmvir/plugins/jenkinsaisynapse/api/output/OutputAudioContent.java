@@ -1,7 +1,7 @@
 package dev.ohmvir.plugins.jenkinsaisynapse.api.output;
 
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
-import jakarta.servlet.http.HttpServletResponse;
+import dev.ohmvir.plugins.jenkinsaisynapse.utils.FileDownloadUtils;
 import java.io.IOException;
 import java.util.Locale;
 import java.util.Set;
@@ -30,13 +30,7 @@ public class OutputAudioContent extends ModelOutput {
     }
 
     public void doAudio(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException {
-        if (audioData == null || audioData.length == 0) {
-            rsp.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return;
-        }
-        rsp.setContentType(mimeType);
-        rsp.setContentLength(audioData.length);
-        rsp.getOutputStream().write(audioData);
+        FileDownloadUtils.serveInlineMedia(rsp, mimeType, audioData);
     }
 
     @Override

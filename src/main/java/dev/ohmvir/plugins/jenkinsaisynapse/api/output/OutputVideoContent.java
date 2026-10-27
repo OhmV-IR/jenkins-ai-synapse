@@ -1,8 +1,8 @@
 package dev.ohmvir.plugins.jenkinsaisynapse.api.output;
 
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
+import dev.ohmvir.plugins.jenkinsaisynapse.utils.FileDownloadUtils;
 import dev.ohmvir.plugins.jenkinsaisynapse.utils.MimeTypeUtils;
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Set;
 import lombok.Getter;
@@ -23,14 +23,7 @@ public class OutputVideoContent extends ModelOutput {
     }
 
     public void doVideo(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException {
-        if (videoData == null || videoData.length == 0) {
-            rsp.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return;
-        }
-        rsp.setContentType(mimeType);
-        rsp.setHeader("X-Content-Type-Options", "nosniff");
-        rsp.setContentLength(videoData.length);
-        rsp.getOutputStream().write(videoData);
+        FileDownloadUtils.serveInlineMedia(rsp, mimeType, videoData);
     }
 
     @Override
