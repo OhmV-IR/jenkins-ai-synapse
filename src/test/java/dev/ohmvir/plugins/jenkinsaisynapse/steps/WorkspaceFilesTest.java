@@ -99,6 +99,27 @@ for (String name : new String[] {"a.svg", "a.bmp", "a.tif"}) {
     }
 
     @Test
+    public void attachmentsTogetherCannotExceedTheTotalLimit() throws Exception {
+        WorkspaceFiles.AttachmentBudget budget = new WorkspaceFiles.AttachmentBudget(10);
+        budget.add("a.txt", 4);
+        budget.add("b.txt", 6);
+        AbortException e = assertThrows(AbortException.class, () -> budget.add("c.txt", 1));
+        assertTrue(e.getMessage().contains("in total"), e.getMessage());
+        assertTrue(e.getMessage().contains("c.txt"), e.getMessage());
+    }
+
+    @Test
+    public void aFileThatWouldExceedTheTotalLimitIsRefusedBeforeItIsRead(@TempDir File dir) throws Exception {
+        Files.write(new File(dir, "a.bin").toPath(), new byte[] {1, 0, 2});
+        Files.write(new File(dir, "b.bin").toPath(), new byte[] {1, 0, 2});
+        WorkspaceFiles.AttachmentBudget budget = new WorkspaceFiles.AttachmentBudget(5);
+        assertInstanceOf(InputFileContent.class, WorkspaceFiles.readAttachment(new FilePath(dir), "a.bin", budget));
+        AbortException e = assertThrows(
+                AbortException.class, () -> WorkspaceFiles.readAttachment(new FilePath(dir), "b.bin", budget));
+        assertTrue(e.getMessage().contains("b.bin"), e.getMessage());
+    }
+
+    @Test
     public void textFilesAreAttachedAsTextAndBinaryDocumentsAsFiles(@TempDir File dir) throws Exception {
         for (String name : new String[] {"a.md", "a.txt", "a.json", "a.yaml", "a.yml", "a.csv", "a.xml", "a.svg"}) {
             Files.writeString(new File(dir, name).toPath(), "content of " + name);
