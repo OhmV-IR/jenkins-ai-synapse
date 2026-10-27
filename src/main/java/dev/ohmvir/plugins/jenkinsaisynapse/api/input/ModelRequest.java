@@ -42,7 +42,6 @@ public class ModelRequest {
     private final Set<ModelOutputKind<?>> requestedOutputs = new LinkedHashSet<>();
     private final Set<ModelCapability> explicitCapabilities = new LinkedHashSet<>();
     private final @Getter List<ModelInput> modelInputs = new ArrayList<>();
-    private final Set<String> expandedSkillsAllowedTools = new LinkedHashSet<>();
     private @Getter @Setter @Nullable String modelId;
     @Setter
     private @Nullable ModelConversation associatedConversation;
@@ -50,15 +49,14 @@ public class ModelRequest {
     public ModelRequest() {}
 
     /**
-     * Copies another request. The copy owns its own input, output, capability and skill-tool collections, so changing
-     * one request never changes the other. The inputs themselves and the associated conversation are shared.
+     * Copies another request. The copy owns its own input, output and capability collections, so changing one request
+     * never changes the other. The inputs themselves and the associated conversation are shared.
      */
     public ModelRequest(ModelRequest other) {
         Objects.requireNonNull(other, "other");
         requestedOutputs.addAll(other.requestedOutputs);
         explicitCapabilities.addAll(other.explicitCapabilities);
         modelInputs.addAll(other.modelInputs);
-        expandedSkillsAllowedTools.addAll(other.expandedSkillsAllowedTools);
         modelId = other.modelId;
         associatedConversation = other.associatedConversation;
     }
@@ -137,8 +135,7 @@ public class ModelRequest {
 
     /**
      * Converts attached skills to a system prompt and the built-in skill-file tool. This prepares a fresh request
-     * before model selection and keeps the skill tool restrictions attached to this request. Calling it again once the
-     * skills are expanded has no effect.
+     * before model selection. Calling it again once the skills are expanded has no effect.
      */
     public void expandSkills() {
         List<SkillData> skills = modelInputs.stream()
@@ -149,12 +146,6 @@ public class ModelRequest {
         if (skills.isEmpty()) {
             return;
         }
-        skills.stream()
-                .map(SkillData::getAllowedTools)
-                .filter(Objects::nonNull)
-                .flatMap(List::stream)
-                .filter(name -> !name.isBlank())
-                .forEach(expandedSkillsAllowedTools::add);
         modelInputs.removeIf(InputSkillContent.class::isInstance);
         String skillPrompt = ReadSkillFileTool.buildSkillsSystemPrompt(skills);
         Optional<ModelInput> systemPrompt = modelInputs.stream()
@@ -177,24 +168,15 @@ public class ModelRequest {
     }
 
     /**
-     * The tools attached to this request, restricted by any {@code allowed-tools} declarations on its skills.
+     * The tools attached to this request. A skill's {@code allowed-tools} list names tools the skill may use without
+     * asking, so it never removes a tool the caller attached.
      */
     public Map<String, Tool> getAvailableTools() {
         Map<String, Tool> tools = new LinkedHashMap<>();
-        Set<String> allowedTools = new LinkedHashSet<>(expandedSkillsAllowedTools);
         for (ModelInput input : modelInputs) {
             if (input instanceof InputToolContent toolInput && toolInput.getTool() != null) {
                 tools.putIfAbsent(toolInput.getTool().getName(), toolInput.getTool());
-            } else if (input instanceof InputSkillContent skillInput && skillInput.getSkill() != null) {
-                List<String> skillTools = skillInput.getSkill().getAllowedTools();
-                if (skillTools != null) {
-                    skillTools.stream().filter(name -> !name.isBlank()).forEach(allowedTools::add);
-                }
             }
-        }
-        if (!allowedTools.isEmpty()) {
-            allowedTools.add(ReadSkillFileTool.NAME);
-            tools.keySet().retainAll(allowedTools);
         }
         return Collections.unmodifiableMap(tools);
     }
@@ -230,7 +212,7 @@ public class ModelRequest {
     }
 
     /**
-     * Executes this request and runs only tool calls explicitly attached to it (and permitted by its skills).
+     * Executes this request and runs only tool calls explicitly attached to it.
      * Callers in Jenkins should provide a tool executor that supplies the build's authentication and a listener that
      * writes progress to the build log.
      */

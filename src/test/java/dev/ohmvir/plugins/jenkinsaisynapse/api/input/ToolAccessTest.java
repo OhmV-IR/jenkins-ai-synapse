@@ -77,16 +77,16 @@ public class ToolAccessTest {
     }
 
     @Test
-    public void skillAllowedToolsRestrictAttachedTools() throws Exception {
+    public void skillAllowedToolsDoNotRemoveAttachedTools() throws Exception {
         ModelRequest request = new ModelRequest();
         request.attachTool(new AlphaTool());
         request.attachTool(new BetaTool());
         request.attachSkill(skill(List.of("betaTool", "unattachedTool")));
-        assertEquals(Set.of("betaTool"), request.getAvailableTools().keySet());
+        assertEquals(Set.of("alphaTool", "betaTool"), request.getAvailableTools().keySet());
     }
 
     @Test
-    public void skillWithoutAllowedToolsDoesNotRestrict() throws Exception {
+    public void skillWithoutAllowedToolsKeepsAttachedTools() throws Exception {
         ModelRequest request = new ModelRequest();
         request.attachTool(new AlphaTool());
         request.attachSkill(skill(null));
@@ -95,19 +95,7 @@ public class ToolAccessTest {
     }
 
     @Test
-    public void skillToolStaysAvailableWhenSkillsRestrictTools() throws Exception {
-        ModelRequest request = new ModelRequest();
-        request.attachTool(new AlphaTool());
-        request.attachTool(new BetaTool());
-        request.attachTool(new ReadSkillFileTool());
-        request.attachSkill(skill(List.of("alphaTool")));
-        assertEquals(
-                Set.of("alphaTool", ReadSkillFileTool.NAME),
-                request.getAvailableTools().keySet());
-    }
-
-    @Test
-    public void skillRestrictionSurvivesSkillExpansion() throws Exception {
+    public void attachedToolsSurviveSkillExpansion() throws Exception {
         ModelRequest request = new ModelRequest();
         request.attachTool(new AlphaTool());
         request.attachTool(new BetaTool());
@@ -117,12 +105,12 @@ public class ToolAccessTest {
         request.expandSkills();
         assertTrue(request.getModelInputs().stream().noneMatch(InputSkillContent.class::isInstance));
         assertEquals(
-                Set.of("alphaTool", ReadSkillFileTool.NAME),
+                Set.of("alphaTool", "betaTool", ReadSkillFileTool.NAME),
                 request.getAvailableTools().keySet());
     }
 
     @Test
-    public void skillToolIsAvailableAfterExpansionWithoutRestriction() throws Exception {
+    public void skillToolIsAvailableAfterExpansion() throws Exception {
         ModelRequest request = new ModelRequest();
         request.attachTool(new AlphaTool());
         request.attachTool(new ReadSkillFileTool());
