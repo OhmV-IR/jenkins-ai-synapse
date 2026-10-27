@@ -36,7 +36,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.jspecify.annotations.Nullable;
 
-public class ModelRequest implements Cloneable {
+public class ModelRequest {
     private static final Logger LOGGER = Logger.getLogger(ModelRequest.class.getName());
 
     private final Set<ModelOutputKind<?>> requestedOutputs = new LinkedHashSet<>();
@@ -46,6 +46,22 @@ public class ModelRequest implements Cloneable {
     private @Getter @Setter @Nullable String modelId;
     @Setter
     private @Nullable ModelConversation associatedConversation;
+
+    public ModelRequest() {}
+
+    /**
+     * Copies another request. The copy owns its own input, output, capability and skill-tool collections, so changing
+     * one request never changes the other. The inputs themselves and the associated conversation are shared.
+     */
+    public ModelRequest(ModelRequest other) {
+        Objects.requireNonNull(other, "other");
+        requestedOutputs.addAll(other.requestedOutputs);
+        explicitCapabilities.addAll(other.explicitCapabilities);
+        modelInputs.addAll(other.modelInputs);
+        expandedSkillsAllowedTools.addAll(other.expandedSkillsAllowedTools);
+        modelId = other.modelId;
+        associatedConversation = other.associatedConversation;
+    }
 
     public Set<ModelInputType> getInputTypes() {
         return modelInputs.stream()
@@ -290,10 +306,5 @@ public class ModelRequest implements Cloneable {
             associatedConversation.addAllContent(finalContent);
         }
         return new ModelResponse(outputs);
-    }
-
-    @Override
-    public ModelRequest clone() throws CloneNotSupportedException {
-        return (ModelRequest) super.clone();
     }
 }
