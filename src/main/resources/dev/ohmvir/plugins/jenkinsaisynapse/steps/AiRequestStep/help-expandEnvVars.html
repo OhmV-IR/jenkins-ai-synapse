@@ -1,5 +1,6 @@
 <div>
-    Expand references to environment variables such as <code>${BUILD_NUMBER}</code> in the prompt, system prompt,
-    files and output directory. Groovy already does this for double-quoted strings, so this is only needed for
-    single-quoted strings or text read from elsewhere.
+    Expand references to environment variables such as <code>${BUILD_NUMBER}</code> in the prompt, prompt id, model,
+    system prompt, stop sequences, files and output directory. Stop sequences that expand to nothing are left out.
+    Groovy already does this for double-quoted strings, so this is only needed for single-quoted strings or text read
+    from elsewhere.
 </div>

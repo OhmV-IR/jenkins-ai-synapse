@@ -28,6 +28,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.Getter;
@@ -242,6 +243,7 @@ public class AiRequestStep extends Step {
     }
 
     /**
+<<<<<<< HEAD
      * The maximum number of times the model may be called, which limits how many rounds of tool calls it can make.
      * The request fails when the model still wants to call tools after that many steps. When not set, the default
      * maximum number of steps from the global configuration (Manage Jenkins &gt; System &gt; AI Requests) applies,
@@ -256,8 +258,9 @@ public class AiRequestStep extends Step {
     }
 
     /**
-     * Expand references to environment variables such as {@code ${BUILD_NUMBER}} in the prompt, system prompt, files
-     * and output directory. Groovy string interpolation already does this for double-quoted strings.
+     * Expand references to environment variables such as {@code ${BUILD_NUMBER}} in the prompt, prompt id, model,
+     * system prompt, stop sequences, files and output directory. Groovy string interpolation already does this for
+     * double-quoted strings.
      */
     @DataBoundSetter
     public void setExpandEnvVars(boolean expandEnvVars) {
@@ -318,15 +321,15 @@ public class AiRequestStep extends Step {
     AiRequestRunner createRunner(@Nullable EnvVars env, List<ModelInput> attachments) {
         AiRequestRunner runner = new AiRequestRunner();
         runner.setPrompt(expand(env, prompt));
-        runner.setPromptId(promptId);
-        runner.setModel(model);
+        runner.setPromptId(expandAndTrim(env, promptId));
+        runner.setModel(expandAndTrim(env, model));
         runner.setSystemPrompt(expand(env, systemPrompt));
         runner.setTemperature(temperature);
         runner.setMaxOutputTokens(maxOutputTokens);
         runner.setThinkingLevel(thinkingLevel == null ? null : parseThinkingLevel(thinkingLevel));
         runner.setTopP(topP);
         runner.setTopK(topK);
-        runner.setStopSequences(List.copyOf(stopSequences));
+        runner.setStopSequences(expandAll(env, stopSequences));
         runner.setTools(List.copyOf(tools));
         runner.setSkills(List.copyOf(skills));
         runner.setAttachments(List.copyOf(attachments));
@@ -348,6 +351,20 @@ public class AiRequestStep extends Step {
     @Nullable
     String expand(@Nullable EnvVars env, @Nullable String value) {
         return expandEnvVars ? EnvVarExpansion.expand(env, value) : value;
+    }
+
+    /**
+     * @return The values with their environment variables expanded when {@link #isExpandEnvVars()} is set, leaving out
+     *         those that are then empty
+     */
+    List<String> expandAll(@Nullable EnvVars env, List<String> values) {
+        if (!expandEnvVars) {
+            return List.copyOf(values);
+        }
+        return values.stream()
+                .map(value -> EnvVarExpansion.expand(env, value))
+                .filter(Objects::nonNull)
+                .toList();
     }
 
     /** Like {@link #expand(EnvVars, String)}, for values such as paths that must not have surrounding whitespace. */
