@@ -12,6 +12,7 @@ import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.ListBoxModel;
 import dev.ohmvir.plugins.jenkinsaisynapse.steps.AiRequestRunner;
+import dev.ohmvir.plugins.jenkinsaisynapse.steps.EnvVarExpansion;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -102,23 +103,19 @@ public class ModelRequestExecutionStep extends Builder implements SimpleBuildSte
     public void perform(@NonNull Run<?, ?> run, @NonNull EnvVars env, @NonNull TaskListener listener)
             throws InterruptedException, IOException {
         AiRequestRunner runner = new AiRequestRunner();
-        runner.setPrompt(expand(env, prompt));
-        runner.setPromptId(Util.fixEmptyAndTrim(expand(env, promptId)));
-        runner.setModel(Util.fixEmptyAndTrim(expand(env, model)));
-        runner.setSystemPrompt(expand(env, systemPrompt));
-        runner.setTemperature(parseDouble("temperature", Util.fixEmptyAndTrim(expand(env, temperature))));
-        runner.setMaxOutputTokens(parseLong("maxOutputTokens", Util.fixEmptyAndTrim(expand(env, maxOutputTokens))));
-        runner.setTools(splitNames(expand(env, tools)));
-        runner.setSkills(splitNames(expand(env, skills)));
+        runner.setPrompt(EnvVarExpansion.expand(env, prompt));
+        runner.setPromptId(EnvVarExpansion.expandAndTrim(env, promptId));
+        runner.setModel(EnvVarExpansion.expandAndTrim(env, model));
+        runner.setSystemPrompt(EnvVarExpansion.expand(env, systemPrompt));
+        runner.setTemperature(parseDouble("temperature", EnvVarExpansion.expandAndTrim(env, temperature)));
+        runner.setMaxOutputTokens(parseLong("maxOutputTokens", EnvVarExpansion.expandAndTrim(env, maxOutputTokens)));
+        runner.setTools(splitNames(EnvVarExpansion.expand(env, tools)));
+        runner.setSkills(splitNames(EnvVarExpansion.expand(env, skills)));
         runner.setQuiet(quiet);
         AiRequestRunner.Result result = runner.execute(run, listener);
         if (quiet) {
             listener.getLogger().println(result.getText());
         }
-    }
-
-    private static @Nullable String expand(EnvVars env, @Nullable String value) {
-        return value == null ? null : Util.fixEmpty(env.expand(value));
     }
 
     private static @Nullable Double parseDouble(String field, @Nullable String value) throws AbortException {
