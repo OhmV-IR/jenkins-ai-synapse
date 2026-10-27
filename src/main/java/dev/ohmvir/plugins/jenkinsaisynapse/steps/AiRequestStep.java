@@ -259,7 +259,8 @@ public class AiRequestStep extends Step {
 
     /**
      * Expand references to environment variables such as {@code ${BUILD_NUMBER}} in the prompt, prompt id, model,
-     * system prompt, stop sequences, files and output directory. Groovy string interpolation already does this for double-quoted strings.
+     * system prompt, stop sequences, files and output directory. Groovy string interpolation already does this for
+     * double-quoted strings.
      */
     @DataBoundSetter
     public void setExpandEnvVars(boolean expandEnvVars) {
