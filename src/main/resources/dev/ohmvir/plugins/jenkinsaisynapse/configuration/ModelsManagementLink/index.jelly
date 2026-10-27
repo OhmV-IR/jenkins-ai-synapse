@@ -13,7 +13,7 @@
             <f:form action="configSubmit" method="post" name="config">
                 <f:section title="${%Models Registry}">
                     <f:entry title="${%Registered Models}">
-                        <f:hetero-list name="modelConfigurations" hasHeader="true" descriptors="${it.modelDescriptors}" items="${it.modelConfigurations}"
+                        <f:hetero-list name="modelConfigurations" hasHeader="true" descriptors="${it.modelDescriptors}" items="${it.models}"
                                        addCaption="Add new Model" />
                     </f:entry>
                 </f:section>

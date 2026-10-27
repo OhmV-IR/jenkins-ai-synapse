@@ -3,10 +3,11 @@ package dev.ohmvir.plugins.jenkinsaisynapse.api.skills;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolArgumentDescription;
 import hudson.Extension;
-import hudson.ExtensionList;
 import hudson.model.Descriptor;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.NonNull;
 
@@ -14,18 +15,53 @@ import org.jspecify.annotations.NonNull;
  * Built-in tool that lets any model with tool support use skills. The attached skills are listed by name and description
  * in the system prompt (see {@link #buildSkillsSystemPrompt(Collection)}), and the model calls this tool to load a
  * skill's SKILL.md and any of its reference files on demand.
+ *
+ * <p>A tool instance only serves the skills it was created with. The instance registered as a Jenkins extension serves
+ * none, so each request gets its own instance from {@link #forSkills(Collection)} (see
+ * {@code ModelRequest#expandSkills()}) and a model can never read a skill that is not attached to its request.
  */
 @Extension
 public class ReadSkillFileTool extends Tool {
     public static final String NAME = "read_skill_file";
     public static final String SKILL_FILE = "SKILL.md";
 
+    private final Map<String, SkillData> skills;
+
+    /**
+     * Creates the tool Jenkins registers as an extension, which serves no skills.
+     */
     public ReadSkillFileTool() throws NoSuchMethodException {
         super();
+        skills = Map.of();
     }
 
-    public static ReadSkillFileTool get() {
-        return ExtensionList.lookupSingleton(ReadSkillFileTool.class);
+    private ReadSkillFileTool(Collection<SkillData> skills) throws NoSuchMethodException {
+        super();
+        Map<String, SkillData> byName = new LinkedHashMap<>();
+        for (SkillData skill : skills) {
+            byName.put(skill.getSkillName(), skill);
+        }
+        this.skills = Map.copyOf(byName);
+    }
+
+    /**
+     * @param skills The skills attached to a request. A later skill replaces an earlier one with the same name.
+     * @return A new tool that serves exactly these skills
+     */
+    public static ReadSkillFileTool forSkills(Collection<SkillData> skills) {
+        try {
+            return new ReadSkillFileTool(skills);
+        } catch (NoSuchMethodException e) {
+            // The tool method is declared on this class, so it is always found
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /**
+     * @return The skills this tool serves
+     */
+    public Collection<SkillData> getSkills() {
+        return skills.values();
     }
 
     @Override
@@ -53,13 +89,13 @@ public class ReadSkillFileTool extends Tool {
     }
 
     public String read_skill_file(String skillName, String filePath) {
-        SkillData skill = SkillData.getSkillData(skillName);
+        SkillData skill = skillName == null ? null : skills.get(skillName);
         if (skill == null) {
-            return "No skill named '" + skillName + "' exists. Available skills: "
-                    + SkillData.getAllSkills().stream()
-                            .map(SkillData::getSkillName)
-                            .sorted()
-                            .collect(Collectors.joining(", "));
+            if (skills.isEmpty()) {
+                return "No skills are available to this request.";
+            }
+            return "No skill named '" + skillName + "' is available to this request. Available skills: "
+                    + skills.keySet().stream().sorted().collect(Collectors.joining(", "));
         }
         String path = normalizePath(filePath);
         if (path.isEmpty() || path.equals(SKILL_FILE)) {

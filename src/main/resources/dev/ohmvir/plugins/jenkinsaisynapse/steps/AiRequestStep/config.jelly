@@ -24,7 +24,7 @@
             <f:textbox />
         </f:entry>
         <f:entry title="${%Thinking level}" field="thinkingLevel">
-            <f:textbox />
+            <f:select />
         </f:entry>
         <f:entry title="${%Top P}" field="topP">
             <f:textbox />
@@ -36,6 +36,9 @@
             <f:textbox />
         </f:entry>
         <f:entry title="${%Timeout (seconds)}" field="timeout">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="${%Maximum steps}" field="maxSteps">
             <f:textbox />
         </f:entry>
         <f:entry field="expandEnvVars">

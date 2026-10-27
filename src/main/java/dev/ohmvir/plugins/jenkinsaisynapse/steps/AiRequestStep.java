@@ -49,7 +49,7 @@ import org.kohsuke.stapler.StaplerRequest2;
  * <pre>
  * def answer = aiRequest 'Summarize the changes in this build'
  * def details = aiRequest(promptId: 'review', prompt: diff, model: 'anthropic:claude-opus-5-5',
- *                         tools: ['readFile'], skills: ['code-review'], returnDetails: true)
+ *                         skills: ['code-review'], maxSteps: 10, returnDetails: true)
  * echo details.text
  *
  * node {
@@ -76,6 +76,7 @@ public class AiRequestStep extends Step {
     private List<String> outputTypes = new ArrayList<>();
     private @Nullable String outputDir;
     private @Nullable Integer timeout;
+    private @Nullable Integer maxSteps;
     private boolean returnDetails;
     private boolean quiet;
     private boolean expandEnvVars;
@@ -121,6 +122,10 @@ public class AiRequestStep extends Step {
 
     @DataBoundSetter
     public void setTemperature(@Nullable Double temperature) {
+        // The upper bound differs between providers, so only values no provider accepts are rejected here.
+        if (temperature != null && (temperature.isNaN() || temperature.isInfinite() || temperature < 0)) {
+            throw new IllegalArgumentException("temperature must be a finite number that is not negative");
+        }
         this.temperature = temperature;
     }
 
@@ -156,11 +161,17 @@ public class AiRequestStep extends Step {
 
     @DataBoundSetter
     public void setTopP(@Nullable Double topP) {
+        if (topP != null && !(topP > 0 && topP <= 1)) {
+            throw new IllegalArgumentException("topP must be greater than 0 and at most 1");
+        }
         this.topP = topP;
     }
 
     @DataBoundSetter
     public void setTopK(@Nullable Integer topK) {
+        if (topK != null && topK < 1) {
+            throw new IllegalArgumentException("topK must be at least 1");
+        }
         this.topK = topK;
     }
 
@@ -203,8 +214,8 @@ public class AiRequestStep extends Step {
     }
 
     /**
-     * The maximum number of seconds the whole request may take. The timeout configured for the model's provider still
-     * applies when it is shorter.
+     * The maximum number of seconds the whole request may take. When set, it replaces the timeout configured for the
+     * model's provider, even if it is longer. Without it the provider's timeout applies.
      */
     @DataBoundSetter
     public void setTimeout(@Nullable Integer timeout) {
@@ -212,6 +223,20 @@ public class AiRequestStep extends Step {
             throw new IllegalArgumentException("timeout must not be negative");
         }
         this.timeout = timeout == null || timeout == 0 ? null : timeout;
+    }
+
+    /**
+     * The maximum number of times the model may be called, which limits how many rounds of tool calls it can make.
+     * The request fails when the model still wants to call tools after that many steps. When not set, the default
+     * maximum number of steps from the global configuration (Manage Jenkins &gt; System &gt; AI Requests) applies,
+     * which is 25 until it is changed.
+     */
+    @DataBoundSetter
+    public void setMaxSteps(@Nullable Integer maxSteps) {
+        if (maxSteps != null && maxSteps <= 0) {
+            throw new IllegalArgumentException("maxSteps must be greater than 0");
+        }
+        this.maxSteps = maxSteps;
     }
 
     /**
@@ -295,13 +320,24 @@ public class AiRequestStep extends Step {
                     .toList());
         }
         runner.setTimeoutSeconds(timeout == null ? 0 : timeout);
+        runner.setMaxSteps(maxSteps);
         runner.setQuiet(quiet);
         return runner;
     }
 
+    /**
+     * @return The value with its environment variables expanded when {@link #isExpandEnvVars()} is set, or
+     *         {@code null} when that leaves it empty
+     */
     @Nullable
     String expand(@Nullable EnvVars env, @Nullable String value) {
-        return expandEnvVars && env != null && value != null ? env.expand(value) : value;
+        return expandEnvVars ? EnvVarExpansion.expand(env, value) : value;
+    }
+
+    /** Like {@link #expand(EnvVars, String)}, for values such as paths that must not have surrounding whitespace. */
+    @Nullable
+    String expandAndTrim(@Nullable EnvVars env, @Nullable String value) {
+        return expandEnvVars ? EnvVarExpansion.expandAndTrim(env, value) : value;
     }
 
     @Override
@@ -327,10 +363,14 @@ public class AiRequestStep extends Step {
             EnvVars env = getContext().get(EnvVars.class);
             List<ModelInput> attachments = new ArrayList<>();
             for (String path : step.getFiles()) {
-                attachments.add(WorkspaceFiles.readAttachment(requireWorkspace("files"), step.expand(env, path)));
+                String expandedPath = step.expandAndTrim(env, path);
+                if (expandedPath == null) {
+                    throw new AbortException("The file path '" + path + "' is empty after expanding variables");
+                }
+                attachments.add(WorkspaceFiles.readAttachment(requireWorkspace("files"), expandedPath));
             }
             AiRequestRunner.Result result = step.createRunner(env, attachments).execute(run, listener);
-            String outputDir = step.expand(env, step.getOutputDir());
+            String outputDir = step.expandAndTrim(env, step.getOutputDir());
             List<Map<String, Object>> files = WorkspaceFiles.saveOutputs(
                     result.getResponse(),
                     outputDir == null ? null : requireWorkspace("outputDir").child(outputDir),
@@ -379,7 +419,7 @@ public class AiRequestStep extends Step {
         public Step newInstance(@Nullable StaplerRequest2 req, @NonNull JSONObject formData)
                 throws Descriptor.FormException {
             // The snippet generator submits empty number fields as "", which cannot be bound to a Double or Long.
-            for (String field : List.of("temperature", "maxOutputTokens", "topP", "topK", "timeout")) {
+            for (String field : List.of("temperature", "maxOutputTokens", "topP", "topK", "timeout", "maxSteps")) {
                 if (Util.fixEmptyAndTrim(formData.optString(field)) == null) {
                     formData.remove(field);
                 }
@@ -393,6 +433,15 @@ public class AiRequestStep extends Step {
 
         public ListBoxModel doFillPromptIdItems(@AncestorInPath @Nullable Item item) {
             return AiRequestRunner.fillPromptIdItems(item);
+        }
+
+        public ListBoxModel doFillThinkingLevelItems() {
+            ListBoxModel items = new ListBoxModel();
+            items.add("(Not set)", "");
+            for (ModelThinkingLevel level : ModelThinkingLevel.values()) {
+                items.add(level.name().toLowerCase(Locale.ROOT));
+            }
+            return items;
         }
     }
 }

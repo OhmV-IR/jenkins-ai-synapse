@@ -1,0 +1,7 @@
+<div>
+    The default maximum number of times the model may be called for one <code>aiRequest</code>. Each time the model
+    calls tools, the results are sent back to it in another step. The request fails when the model still wants to call
+    tools after this many steps, which stops a model that keeps calling tools from running up cost. The
+    <code>maxSteps</code> option of the <code>aiRequest</code> step overrides this value for that step. The default is
+    25.
+</div>

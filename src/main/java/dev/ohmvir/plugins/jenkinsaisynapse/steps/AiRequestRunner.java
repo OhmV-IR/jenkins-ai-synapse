@@ -68,6 +68,9 @@ import org.springframework.security.core.Authentication;
  */
 @Setter
 public final class AiRequestRunner {
+    /** How long to wait for the request thread to stop after cancelling it. */
+    static final long SHUTDOWN_WAIT_SECONDS = 10;
+
     private @Nullable String prompt;
     private @Nullable String promptId;
     private @Nullable String model;
@@ -84,8 +87,16 @@ public final class AiRequestRunner {
     private List<ModelInput> attachments = List.of();
     /** The outputs the response must contain. Text by default. */
     private List<ModelOutputKind<?>> outputs = List.of(OutputTextContent.KIND);
-    /** Bounds the whole request in seconds, on top of the timeout of the model's provider. 0 means no extra bound. */
+    /**
+     * Bounds the whole request in seconds, replacing the timeout of the model's provider. 0 means the provider's
+     * timeout applies.
+     */
     private long timeoutSeconds;
+    /**
+     * The maximum number of model calls, including the ones that return tool results. Null uses the default from the
+     * global configuration.
+     */
+    private @Nullable Integer maxSteps;
 
     private boolean quiet;
 
@@ -107,7 +118,8 @@ public final class AiRequestRunner {
         request.setAssociatedConversation(conversation);
         Authentication toolAuthentication = getToolAuthentication(run);
         ModelRequestListener requestListener = quiet ? ModelRequestListener.NOOP : new BuildLogListener(logger);
-        long timeoutSeconds = effectiveTimeout(modelData.getRequestTimeoutSeconds(), this.timeoutSeconds);
+        long providerTimeoutSeconds = modelData.getRequestTimeoutSeconds();
+        long timeoutSeconds = effectiveTimeout(providerTimeoutSeconds, this.timeoutSeconds);
         ExecutorService executor = Executors.newSingleThreadExecutor(task -> {
             Thread thread = new Thread(task, "jenkins-ai-model-request");
             thread.setDaemon(true);
@@ -122,7 +134,7 @@ public final class AiRequestRunner {
             response = timeoutSeconds == 0 ? future.get() : future.get(timeoutSeconds, TimeUnit.SECONDS);
         } catch (TimeoutException e) {
             future.cancel(true);
-            throw new AbortException("AI request timed out after " + timeoutSeconds + " seconds");
+            throw new AbortException(timeoutMessage(providerTimeoutSeconds, this.timeoutSeconds));
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             if (cause instanceof InterruptedException interrupted) {
@@ -140,12 +152,29 @@ public final class AiRequestRunner {
             future.cancel(true);
             throw e;
         } finally {
-            executor.shutdownNow();
+            shutDownAndAwait(executor, logger, SHUTDOWN_WAIT_SECONDS);
         }
         if (run != null) {
             ModelConversationsAction.record(run, conversation);
         }
         return new Result(response, modelData.getModelId(), conversation.getConversationId());
+    }
+
+    /**
+     * Interrupts the request thread and gives it a short time to finish, so that a timed out or aborted request does not
+     * leave work running unnoticed. A tool call that does not respond to interruption can outlast the wait, which is
+     * reported to the build log.
+     */
+    static void shutDownAndAwait(ExecutorService executor, PrintStream logger, long waitSeconds) {
+        executor.shutdownNow();
+        try {
+            if (!executor.awaitTermination(waitSeconds, TimeUnit.SECONDS)) {
+                logger.println("[AI Synapse] Warning: the AI request did not stop within " + waitSeconds
+                        + " seconds of being cancelled. A tool call may still be running.");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     ModelRequest buildRequest() throws AbortException {
@@ -203,21 +232,37 @@ public final class AiRequestRunner {
         }
         request.expandSkills();
         request.setModelId(model);
+        if (maxSteps != null) {
+            request.setMaxSteps(maxSteps);
+        }
         outputs.forEach(request::requestOutput);
         return request;
     }
 
     /**
-     * @return The shorter of the two timeouts, where 0 means no timeout.
+     * The step's timeout, when it is set, bounds the whole request even if it is longer than the provider's timeout, so
+     * that long agentic runs can be given more time. Otherwise the provider's timeout bounds it.
+     *
+     * @return The number of seconds the whole request may take, where 0 means no timeout.
      */
     static long effectiveTimeout(long providerTimeoutSeconds, long stepTimeoutSeconds) {
-        if (providerTimeoutSeconds <= 0) {
-            return Math.max(stepTimeoutSeconds, 0);
+        if (stepTimeoutSeconds > 0) {
+            return stepTimeoutSeconds;
         }
-        if (stepTimeoutSeconds <= 0) {
-            return providerTimeoutSeconds;
+        return Math.max(providerTimeoutSeconds, 0);
+    }
+
+    /**
+     * @return The failure message for a request that ran into {@link #effectiveTimeout}, naming the limit that applied.
+     */
+    static String timeoutMessage(long providerTimeoutSeconds, long stepTimeoutSeconds) {
+        long timeoutSeconds = effectiveTimeout(providerTimeoutSeconds, stepTimeoutSeconds);
+        if (stepTimeoutSeconds > 0) {
+            return "AI request timed out after " + timeoutSeconds + " seconds (limit: the step's timeout of "
+                    + timeoutSeconds + " seconds)";
         }
-        return Math.min(providerTimeoutSeconds, stepTimeoutSeconds);
+        return "AI request timed out after " + timeoutSeconds + " seconds (limit: the provider's timeout of "
+                + timeoutSeconds + " seconds, set the step's timeout to allow more time)";
     }
 
     private RegisteredModel selectModel(ModelRequest request) throws AbortException {

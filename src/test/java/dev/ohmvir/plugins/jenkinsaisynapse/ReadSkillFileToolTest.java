@@ -1,6 +1,7 @@
 package dev.ohmvir.plugins.jenkinsaisynapse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -30,11 +31,14 @@ public class ReadSkillFileToolTest {
             "Follow references/steps.md",
             Map.of("references/steps.md", "Step one"));
 
-    private static void registerSkill() {
+    private static final SkillData OTHER_SKILL = new SkillData(
+            "read-skill-file-other", "A skill that is not attached", null, null, null, null, "Other text", Map.of());
+
+    private static void registerSkills() {
         SkillData.reloadSkills(List.of(new SkillConfiguration() {
             @Override
             public List<SkillData> generateSkills() {
-                return List.of(SKILL);
+                return List.of(SKILL, OTHER_SKILL);
             }
         }));
     }
@@ -46,8 +50,8 @@ public class ReadSkillFileToolTest {
 
     @Test
     public void readsSkillFiles(JenkinsRule j) {
-        registerSkill();
-        ReadSkillFileTool tool = ReadSkillFileTool.get();
+        registerSkills();
+        ReadSkillFileTool tool = ReadSkillFileTool.forSkills(List.of(SKILL));
         String skillMd = tool.read_skill_file(SKILL.getSkillName(), ReadSkillFileTool.SKILL_FILE);
         assertTrue(skillMd.startsWith("Follow references/steps.md"));
         assertTrue(skillMd.contains("<skill_files>\nreferences/steps.md\n</skill_files>"));
@@ -58,12 +62,31 @@ public class ReadSkillFileToolTest {
     }
 
     @Test
+    public void refusesConfiguredSkillsThatAreNotAttached(JenkinsRule j) {
+        registerSkills();
+        ReadSkillFileTool tool = ReadSkillFileTool.forSkills(List.of(SKILL));
+        String refused = tool.read_skill_file(OTHER_SKILL.getSkillName(), ReadSkillFileTool.SKILL_FILE);
+        assertTrue(refused.startsWith("No skill"));
+        assertFalse(refused.contains("Other text"));
+        // Only the attached skills are reported, not every configured skill
+        assertTrue(refused.endsWith("Available skills: " + SKILL.getSkillName()));
+    }
+
+    @Test
+    public void registeredToolServesNoSkills(JenkinsRule j) {
+        registerSkills();
+        ReadSkillFileTool tool = (ReadSkillFileTool) ToolRegistry.getTool(ReadSkillFileTool.NAME);
+        assertTrue(tool.read_skill_file(SKILL.getSkillName(), ReadSkillFileTool.SKILL_FILE)
+                .startsWith("No skills are available"));
+    }
+
+    @Test
     public void callsToolFromModelArguments(JenkinsRule j) {
-        registerSkill();
+        registerSkills();
         ObjectNode arguments = new ObjectMapper().createObjectNode();
         arguments.put("skill_name", SKILL.getSkillName());
         arguments.put("file_path", "references/steps.md");
-        ToolCallResponseContent response = ToolRegistry.getTool(ReadSkillFileTool.NAME)
+        ToolCallResponseContent response = ReadSkillFileTool.forSkills(List.of(SKILL))
                 .callTool(new ToolCallContent("call-1", arguments, ReadSkillFileTool.NAME));
         assertTrue(response.isSuccessful());
         assertEquals("Step one", response.getResponseContent());

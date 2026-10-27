@@ -141,8 +141,13 @@ public class SkillData {
         this.skillReferences.putAll(skillReferences);
     }
 
+    /**
+     * The frontmatter must start the file (after an optional byte order mark) and both {@code ---} delimiters must be
+     * on their own lines. Group 1 is the YAML (absent when the block is empty), group 2 is the body (absent when the
+     * file ends right after the closing delimiter).
+     */
     private static final Pattern YAML_DATA_PATTERN =
-            Pattern.compile("---\\s*(.*?)\\s*---\\s*(.*)\\s*", Pattern.DOTALL | Pattern.MULTILINE);
+            Pattern.compile("\\A\\uFEFF?---[ \\t]*\\R(?:(.*?)\\R)??---[ \\t]*(?:\\R\\s*(.*))?\\z", Pattern.DOTALL);
     private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
 
     /**
@@ -159,8 +164,8 @@ public class SkillData {
         if (!matcher.find()) {
             throw new Descriptor.FormException("skillMd file is invalid", "skillMd");
         }
-        String yamlFileData = matcher.group(1);
-        this.skillText = matcher.group(2);
+        String yamlFileData = matcher.group(1) == null ? "" : matcher.group(1);
+        this.skillText = matcher.group(2) == null ? "" : matcher.group(2);
         JsonNode root = YAML_MAPPER.readTree(yamlFileData);
         if (root == null || !root.isObject()) {
             throw new Descriptor.FormException("skillMd frontmatter must be a YAML mapping", "skillMd");

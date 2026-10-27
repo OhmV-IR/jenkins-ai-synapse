@@ -18,7 +18,8 @@ public abstract class ModelClientConfiguration extends GlobalConfiguration {
     public static final long DEFAULT_TIMEOUT_SECONDS = 300;
 
     /**
-     * Maximum time a whole request, including all tool call round trips, may take. 0 means no timeout.
+     * Maximum time a whole request, including all tool call round trips, may take. 0 means no timeout. A request
+     * that sets its own timeout, such as the {@code timeout} of {@code aiRequest}, uses that instead.
      */
     private @Getter long timeoutSeconds = DEFAULT_TIMEOUT_SECONDS;
 
