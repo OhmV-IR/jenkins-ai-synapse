@@ -325,6 +325,11 @@ public class ModelRequest {
                     if (!(output instanceof ToolCallContent toolCall)) {
                         continue;
                     }
+                    // A cancelled request must not start further tool calls, as they could still change state
+                    if (Thread.currentThread().isInterrupted()) {
+                        throw new InterruptedException(
+                                "Request cancelled before calling tool '" + toolCall.getName() + "'");
+                    }
                     Tool tool = availableTools.get(toolCall.getName());
                     ToolCallResponseContent response;
                     if (tool == null) {

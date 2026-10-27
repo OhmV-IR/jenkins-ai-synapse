@@ -326,6 +326,53 @@ public class ModelRequestTest {
     }
 
     @Test
+    public void interruptedRequestDoesNotStartToolCalls() throws Exception {
+        AtomicInteger steps = new AtomicInteger();
+        AtomicInteger toolCalls = new AtomicInteger();
+        ModelRequest request = toolRequest();
+
+        Thread.currentThread().interrupt();
+        try {
+            InterruptedException e =
+                    assertThrows(InterruptedException.class, () -> runLooping(request, steps, toolCalls));
+            assertTrue(e.getMessage().contains("cancelled"), e.getMessage());
+            assertTrue(e.getMessage().contains("echo"), e.getMessage());
+            assertTrue(Thread.currentThread().isInterrupted());
+        } finally {
+            Thread.interrupted();
+        }
+
+        assertEquals(1, steps.get());
+        assertEquals(0, toolCalls.get());
+    }
+
+    @Test
+    public void cancellationBetweenToolCallsSkipsTheRemainingOnes() throws Exception {
+        ObjectNode arguments = new ObjectMapper().createObjectNode().put("text", "ping");
+        ModelClient client = (model, modelRequest, inputs) -> List.of(
+                new ToolCallContent("call-1", arguments, "echo"), new ToolCallContent("call-2", arguments, "echo"));
+        AtomicInteger toolCalls = new AtomicInteger();
+        ModelRequest request = toolRequest();
+        RegisteredModel registered = TestModels.registered("m", client, ModelCapability.TOOLS);
+
+        try {
+            assertThrows(
+                    InterruptedException.class,
+                    () -> request.executeOrThrow(registered, ModelRequestListener.NOOP, (tool, toolCall) -> {
+                        toolCalls.incrementAndGet();
+                        // The build is aborted while the first tool call runs
+                        Thread.currentThread().interrupt();
+                        return tool.callTool(toolCall);
+                    }));
+            assertTrue(Thread.currentThread().isInterrupted());
+        } finally {
+            Thread.interrupted();
+        }
+
+        assertEquals(1, toolCalls.get());
+    }
+
+    @Test
     public void maxStepsMustBePositiveAndIsCopied() {
         ModelRequest request = new ModelRequest();
         assertThrows(IllegalArgumentException.class, () -> request.setMaxSteps(0));
