@@ -24,7 +24,7 @@
             <f:textbox />
         </f:entry>
         <f:entry title="${%Thinking level}" field="thinkingLevel">
-            <f:textbox />
+            <f:select />
         </f:entry>
         <f:entry title="${%Top P}" field="topP">
             <f:textbox />

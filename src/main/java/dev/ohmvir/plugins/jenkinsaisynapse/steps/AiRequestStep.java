@@ -420,5 +420,14 @@ public class AiRequestStep extends Step {
         public ListBoxModel doFillPromptIdItems(@AncestorInPath @Nullable Item item) {
             return AiRequestRunner.fillPromptIdItems(item);
         }
+
+        public ListBoxModel doFillThinkingLevelItems() {
+            ListBoxModel items = new ListBoxModel();
+            items.add("(Not set)", "");
+            for (ModelThinkingLevel level : ModelThinkingLevel.values()) {
+                items.add(level.name().toLowerCase(Locale.ROOT));
+            }
+            return items;
+        }
     }
 }
