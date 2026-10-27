@@ -3,6 +3,7 @@ package dev.ohmvir.plugins.jenkinsaisynapse.steps;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputAudioContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputFileContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputImageContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputTextContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputVideoContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
@@ -17,6 +18,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -34,6 +36,7 @@ final class WorkspaceFiles {
     static final long MAX_ATTACHMENT_BYTES = 32L * 1024 * 1024;
 
     private static final Map<String, String> CONTENT_TYPES_BY_EXTENSION = Map.ofEntries(
+            Map.entry("txt", "text/plain"),
             Map.entry("md", "text/markdown"),
             Map.entry("json", "application/json"),
             Map.entry("yaml", "application/yaml"),
@@ -41,6 +44,7 @@ final class WorkspaceFiles {
             Map.entry("xml", "application/xml"),
             Map.entry("csv", "text/csv"),
             Map.entry("html", "text/html"),
+            Map.entry("svg", "image/svg+xml"),
             Map.entry("pdf", "application/pdf"),
             Map.entry("png", "image/png"),
             Map.entry("jpg", "image/jpeg"),
@@ -57,11 +61,23 @@ final class WorkspaceFiles {
     /** The only image types providers accept as image input, other images such as SVG or BMP are attached as files. */
     private static final Set<String> IMAGE_CONTENT_TYPES = Set.of("image/png", "image/jpeg", "image/gif", "image/webp");
 
+    /** Textual types that do not start with {@code text/}, they are sent as text rather than as a file. */
+    private static final Set<String> TEXTUAL_APPLICATION_TYPES = Set.of(
+            "application/json",
+            "application/yaml",
+            "application/x-yaml",
+            "application/xml",
+            "application/toml",
+            "application/javascript",
+            "application/sql",
+            "application/x-sh",
+            "image/svg+xml");
+
     private WorkspaceFiles() {}
 
     /**
-     * Reads a workspace file as the input matching its content type: a PNG, JPEG, GIF or WebP image, audio, video, or
-     * any other file.
+     * Reads a workspace file as the input matching its content type: a PNG, JPEG, GIF or WebP image, audio, video,
+     * text (including JSON, YAML, XML and SVG) headed by the file name, or any other file such as a PDF.
      *
      * @param path The path of the file, relative to the workspace
      */
@@ -90,7 +106,17 @@ final class WorkspaceFiles {
         if (contentType.startsWith("video/")) {
             return new InputVideoContent(data, contentType);
         }
+        if (isTextual(contentType)) {
+            return new InputTextContent("File " + file.getName() + ":\n" + new String(data, StandardCharsets.UTF_8));
+        }
         return new InputFileContent(file.getName(), data, contentType);
+    }
+
+    private static boolean isTextual(String contentType) {
+        return contentType.startsWith("text/")
+                || TEXTUAL_APPLICATION_TYPES.contains(contentType)
+                || contentType.endsWith("+json")
+                || contentType.endsWith("+xml");
     }
 
     static String guessContentType(String fileName, byte[] data) {

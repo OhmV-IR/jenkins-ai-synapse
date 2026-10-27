@@ -182,8 +182,8 @@ public class AiRequestStep extends Step {
     }
 
     /**
-     * Workspace files to attach to the request. PNG, JPEG, GIF and WebP images, audio and video are sent as such,
-     * anything else as a file.
+     * Workspace files to attach to the request. PNG, JPEG, GIF and WebP images, audio and video are sent as such, text
+     * files (including JSON, YAML, XML and SVG) as text headed by the file name, anything else as a file.
      */
     @DataBoundSetter
     public void setFiles(@Nullable List<String> files) {
