@@ -2,11 +2,13 @@ package dev.ohmvir.plugins.jenkinsaisynapse.steps;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputFileContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputImageContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputTextContent;
+import hudson.AbortException;
 import hudson.FilePath;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -55,6 +57,15 @@ public class WorkspaceFilesTest {
         for (String name : new String[] {"a.bmp", "a.tif"}) {
             Files.write(new File(dir, name).toPath(), new byte[] {1, 0, 2});
             assertInstanceOf(InputFileContent.class, WorkspaceFiles.readAttachment(new FilePath(dir), name));
+        }
+    }
+
+    @Test
+    public void missingOrBlankAttachmentPathsAreRejectedWithAMessage(@TempDir File dir) {
+        for (String path : new String[] {null, "", "  "}) {
+            AbortException e = assertThrows(
+                    AbortException.class, () -> WorkspaceFiles.readAttachment(new FilePath(dir), path));
+            assertTrue(e.getMessage().contains("has no path"), e.getMessage());
         }
     }
 
