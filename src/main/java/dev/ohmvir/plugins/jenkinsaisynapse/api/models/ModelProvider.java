@@ -57,7 +57,7 @@ public abstract class ModelProvider<C extends ModelConfiguration> implements Ext
 
     /**
      * Maximum duration of a request handled by this model, including tool round trips. Override to use a
-     * provider-specific setting. Return 0 for no timeout.
+     * provider-specific setting. Return 0 for no timeout. A request that sets its own timeout uses that instead.
      */
     protected long getTimeoutSeconds(C configuration) {
         return ModelClientConfiguration.DEFAULT_TIMEOUT_SECONDS;

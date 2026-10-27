@@ -204,8 +204,8 @@ public class AiRequestStep extends Step {
     }
 
     /**
-     * The maximum number of seconds the whole request may take. The timeout configured for the model's provider still
-     * applies when it is shorter.
+     * The maximum number of seconds the whole request may take. When set, it replaces the timeout configured for the
+     * model's provider, even if it is longer. Without it the provider's timeout applies.
      */
     @DataBoundSetter
     public void setTimeout(@Nullable Integer timeout) {
