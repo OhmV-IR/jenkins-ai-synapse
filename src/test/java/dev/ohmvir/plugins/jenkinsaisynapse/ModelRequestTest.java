@@ -5,11 +5,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelRequestException;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelRequestListener;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputImageContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputSkillContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputTextContent;
@@ -39,6 +42,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 public class ModelRequestTest {
@@ -251,5 +255,83 @@ public class ModelRequestTest {
         assertTrue(original.hasInputType(InputSkillContent.class));
         assertFalse(original.getRequiredCapabilities().contains(ModelCapability.ADJUSTABLE_SYSTEM_PROMPT));
         assertFalse(copy.hasInputType(InputSkillContent.class));
+    }
+
+    private static ModelRequest toolRequest() throws Exception {
+        ModelRequest request = new ModelRequest();
+        request.addInput(new InputTextContent("use the tool"));
+        request.attachTool(new EchoTool());
+        return request;
+    }
+
+    /** Runs the request against a model that calls the echo tool every time it is asked for a step. */
+    private static ModelResponse runLooping(ModelRequest request, AtomicInteger steps, AtomicInteger toolCalls)
+            throws Exception {
+        ObjectNode arguments = new ObjectMapper().createObjectNode().put("text", "ping");
+        ModelClient client = (model, modelRequest, inputs) ->
+                List.of(new ToolCallContent("call-" + steps.incrementAndGet(), arguments, "echo"));
+        RegisteredModel registered = TestModels.registered("m", client, ModelCapability.TOOLS);
+        return request.executeOrThrow(registered, ModelRequestListener.NOOP, (tool, toolCall) -> {
+            toolCalls.incrementAndGet();
+            return tool.callTool(toolCall);
+        });
+    }
+
+    @Test
+    public void toolLoopStopsAtTheDefaultStepLimit() throws Exception {
+        AtomicInteger steps = new AtomicInteger();
+        AtomicInteger toolCalls = new AtomicInteger();
+        ModelRequest request = toolRequest();
+        assertEquals(ModelRequest.DEFAULT_MAX_STEPS, request.getMaxSteps());
+
+        ModelRequestException e =
+                assertThrows(ModelRequestException.class, () -> runLooping(request, steps, toolCalls));
+
+        assertEquals(ModelRequest.DEFAULT_MAX_STEPS, steps.get());
+        // The tool calls of the last step are not run, as their results could not be sent back
+        assertEquals(ModelRequest.DEFAULT_MAX_STEPS - 1, toolCalls.get());
+        assertTrue(e.getMessage().contains(String.valueOf(ModelRequest.DEFAULT_MAX_STEPS)));
+        assertTrue(e.getMessage().contains("maxSteps"));
+    }
+
+    @Test
+    public void toolLoopStepLimitIsConfigurable() throws Exception {
+        AtomicInteger steps = new AtomicInteger();
+        AtomicInteger toolCalls = new AtomicInteger();
+        ModelRequest request = toolRequest();
+        request.setMaxSteps(3);
+
+        assertThrows(ModelRequestException.class, () -> runLooping(request, steps, toolCalls));
+
+        assertEquals(3, steps.get());
+        assertEquals(2, toolCalls.get());
+    }
+
+    @Test
+    public void finalAnswerOnTheLastStepIsNotAnError() throws Exception {
+        AtomicInteger steps = new AtomicInteger();
+        ObjectNode arguments = new ObjectMapper().createObjectNode().put("text", "ping");
+        ModelClient client = (model, modelRequest, inputs) -> {
+            int step = steps.incrementAndGet();
+            return step < 3
+                    ? List.of(new ToolCallContent("call-" + step, arguments, "echo"))
+                    : List.of(new OutputTextContent("done"));
+        };
+        ModelRequest request = toolRequest();
+        request.setMaxSteps(3);
+
+        assertNotNull(request.execute(TestModels.registered("m", client, ModelCapability.TOOLS)));
+        assertEquals(3, steps.get());
+    }
+
+    @Test
+    public void maxStepsMustBePositiveAndIsCopied() {
+        ModelRequest request = new ModelRequest();
+        assertThrows(IllegalArgumentException.class, () -> request.setMaxSteps(0));
+        assertThrows(IllegalArgumentException.class, () -> request.setMaxSteps(-1));
+        assertEquals(ModelRequest.DEFAULT_MAX_STEPS, request.getMaxSteps());
+
+        request.setMaxSteps(7);
+        assertEquals(7, new ModelRequest(request).getMaxSteps());
     }
 }

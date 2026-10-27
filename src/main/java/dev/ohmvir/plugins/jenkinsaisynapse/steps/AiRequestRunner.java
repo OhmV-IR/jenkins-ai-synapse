@@ -86,6 +86,8 @@ public final class AiRequestRunner {
     private List<ModelOutputKind<?>> outputs = List.of(OutputTextContent.KIND);
     /** Bounds the whole request in seconds, on top of the timeout of the model's provider. 0 means no extra bound. */
     private long timeoutSeconds;
+    /** The maximum number of model calls, including the ones that return tool results. Null keeps the default. */
+    private @Nullable Integer maxSteps;
 
     private boolean quiet;
 
@@ -203,6 +205,9 @@ public final class AiRequestRunner {
         }
         request.expandSkills();
         request.setModelId(model);
+        if (maxSteps != null) {
+            request.setMaxSteps(maxSteps);
+        }
         outputs.forEach(request::requestOutput);
         return request;
     }

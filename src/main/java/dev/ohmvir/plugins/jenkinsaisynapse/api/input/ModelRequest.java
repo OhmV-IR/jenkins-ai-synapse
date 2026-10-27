@@ -39,12 +39,16 @@ import org.jspecify.annotations.Nullable;
 public class ModelRequest {
     private static final Logger LOGGER = Logger.getLogger(ModelRequest.class.getName());
 
+    /** The default for {@link #getMaxSteps()}. */
+    public static final int DEFAULT_MAX_STEPS = 25;
+
     private final Set<ModelOutputKind<?>> requestedOutputs = new LinkedHashSet<>();
     private final Set<ModelCapability> explicitCapabilities = new LinkedHashSet<>();
     private final @Getter List<ModelInput> modelInputs = new ArrayList<>();
     private @Getter @Setter @Nullable String modelId;
     @Setter
     private @Nullable ModelConversation associatedConversation;
+    private int maxSteps = DEFAULT_MAX_STEPS;
 
     public ModelRequest() {}
 
@@ -59,6 +63,22 @@ public class ModelRequest {
         modelInputs.addAll(other.modelInputs);
         modelId = other.modelId;
         associatedConversation = other.associatedConversation;
+        maxSteps = other.maxSteps;
+    }
+
+    /**
+     * The maximum number of times the model is called while this request runs. Each time the model calls tools, the
+     * tool results are sent back to it in another step.
+     */
+    public int getMaxSteps() {
+        return maxSteps;
+    }
+
+    public void setMaxSteps(int maxSteps) {
+        if (maxSteps <= 0) {
+            throw new IllegalArgumentException("maxSteps must be greater than 0");
+        }
+        this.maxSteps = maxSteps;
     }
 
     public Set<ModelInputType> getInputTypes() {
@@ -263,14 +283,21 @@ public class ModelRequest {
         List<ModelContent> finalContent = new ArrayList<>(modelInputs);
         List<ModelOutput> outputs = new ArrayList<>();
         Map<String, Tool> availableTools = getAvailableTools();
+        int steps = 0;
         try {
             while (true) {
                 List<ModelOutput> stepOutputs = client.takeStep(model.data(), this, List.copyOf(turnInputs), listener);
+                steps++;
                 if (stepOutputs == null) {
                     throw new ModelRequestException("Model client returned no outputs");
                 }
                 outputs.addAll(stepOutputs);
                 finalContent.addAll(stepOutputs);
+                if (steps >= maxSteps && stepOutputs.stream().anyMatch(ToolCallContent.class::isInstance)) {
+                    throw new ModelRequestException("Model " + model.getModelId()
+                            + " still wanted to call tools after " + maxSteps + " steps, which is the maximum."
+                            + " Raise it with the maxSteps setting if the request needs more steps.");
+                }
                 List<ModelInput> toolResponses = new ArrayList<>();
                 for (ModelOutput output : stepOutputs) {
                     if (!(output instanceof ToolCallContent toolCall)) {
