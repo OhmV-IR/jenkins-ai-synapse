@@ -300,11 +300,13 @@ public class ModelRequest {
         }
 
         List<ModelInput> turnInputs = new ArrayList<>(modelInputs);
-        List<ModelContent> finalContent = new ArrayList<>(modelInputs);
         List<ModelOutput> outputs = new ArrayList<>();
         Map<String, Tool> availableTools = getAvailableTools();
         int steps = 0;
         int stepLimit = getMaxSteps();
+        // The conversation is filled as the request goes, so a request that fails part way still shows what was
+        // exchanged until then
+        record(modelInputs);
         try {
             while (true) {
                 List<ModelOutput> stepOutputs = client.takeStep(model.data(), this, List.copyOf(turnInputs), listener);
@@ -314,6 +316,7 @@ public class ModelRequest {
                 }
                 outputs.addAll(stepOutputs);
                 finalContent.addAll(stepOutputs);
+                record(stepOutputs);
                 if (steps >= stepLimit && stepOutputs.stream().anyMatch(ToolCallContent.class::isInstance)) {
                     throw new ModelRequestException("Model " + model.getModelId()
                             + " still wanted to call tools after " + stepLimit + " steps, which is the maximum."
@@ -343,12 +346,12 @@ public class ModelRequest {
                         }
                     }
                     listener.onToolResult(response);
+                    record(List.of(response));
                     toolResponses.add(response);
                 }
                 if (toolResponses.isEmpty()) {
                     break;
                 }
-                finalContent.addAll(toolResponses);
                 turnInputs.addAll(toolResponses);
             }
         } catch (InterruptedException e) {
@@ -367,9 +370,12 @@ public class ModelRequest {
             throw new ModelRequestException("Model " + model.getModelId() + " did not produce requested output "
                     + missingOutput.get().type().getName());
         }
-        if (associatedConversation != null) {
-            associatedConversation.addAllContent(finalContent);
-        }
         return new ModelResponse(outputs);
+    }
+
+    private void record(List<? extends ModelContent> content) {
+        if (associatedConversation != null) {
+            associatedConversation.addAllContent(content);
+        }
     }
 }

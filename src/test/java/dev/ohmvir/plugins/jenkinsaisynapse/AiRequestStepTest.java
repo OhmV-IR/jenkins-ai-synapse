@@ -49,6 +49,7 @@ import dev.ohmvir.plugins.jenkinsaisynapse.configuration.client.ModelClientConfi
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.steps.AiRequestStep;
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
@@ -160,6 +161,58 @@ public class AiRequestStepTest {
         WorkflowJob p = j.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition("aiRequest 'sleep'", true));
         j.assertLogContains("timed out after 1 seconds", j.buildAndAssertStatus(Result.FAILURE, p));
+    }
+
+    @Test
+    public void failedRequestsAreRecordedWithTheFailure() throws Exception {
+        WorkflowJob p = j.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition("aiRequest 'fail'", true));
+        WorkflowRun b = j.buildAndAssertStatus(Result.FAILURE, p);
+        j.assertLogContains("AI request failed", b);
+
+        List<ConversationEntry> entries = onlyConversation(b).getEntries();
+        assertEquals("InputTextContent", entries.get(0).getType());
+        assertEquals("fail", entries.get(0).getText());
+        ConversationEntry last = entries.get(entries.size() - 1);
+        assertEquals(ConversationEntry.TYPE_REQUEST_FAILURE, last.getType());
+        assertEquals(Boolean.FALSE, last.getSuccessful());
+        assertTrue(
+                last.getText().startsWith("Request failed: Failed to execute request on model fake:echo"),
+                last.getText());
+        j.createWebClient().getPage(b, "ai-conversations");
+    }
+
+    @Test
+    public void timedOutRequestsAreRecordedWithTheFailure() throws Exception {
+        ExtensionList.lookupSingleton(FakeClientConfiguration.class).setTimeoutSeconds(1);
+        WorkflowJob p = j.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition("aiRequest 'sleep'", true));
+        WorkflowRun b = j.buildAndAssertStatus(Result.FAILURE, p);
+
+        List<ConversationEntry> entries = onlyConversation(b).getEntries();
+        ConversationEntry last = entries.get(entries.size() - 1);
+        assertEquals(ConversationEntry.TYPE_REQUEST_FAILURE, last.getType());
+        assertTrue(last.getText().contains("timed out after 1 seconds"), last.getText());
+    }
+
+    @Test
+    public void successfulRequestsAreRecordedWithoutAFailure() throws Exception {
+        WorkflowJob p = j.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition("aiRequest 'hello'", true));
+        WorkflowRun b = j.buildAndAssertSuccess(p);
+
+        List<String> types =
+                onlyConversation(b).getEntries().stream().map(ConversationEntry::getType).toList();
+        assertEquals("InputTextContent", types.get(0));
+        assertTrue(types.contains("OutputTextContent"), types.toString());
+        assertFalse(types.contains(ConversationEntry.TYPE_REQUEST_FAILURE), types.toString());
+    }
+
+    private static ModelConversation onlyConversation(Run<?, ?> build) {
+        List<ModelConversation> conversations =
+                build.getAction(ModelConversationsAction.class).getConversations();
+        assertEquals(1, conversations.size());
+        return conversations.get(0);
     }
 
     @Test
@@ -474,6 +527,9 @@ public class AiRequestStepTest {
                 if (request.getAvailableTools().containsKey("shout")) {
                     return List.of(new ToolCallContent(
                             "call-1", JsonNodeFactory.instance.objectNode().put("text", text), "shout"));
+                }
+                if (text.equals("fail")) {
+                    throw new IOException("connection reset");
                 }
                 if (text.equals("sleep")) {
                     Thread.sleep(TimeUnit.MINUTES.toMillis(5));

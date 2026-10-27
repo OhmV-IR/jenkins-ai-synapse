@@ -135,14 +135,18 @@ public final class AiRequestRunner {
                 requestListener,
                 (tool, toolCall) -> executeTool(tool, toolCall, toolAuthentication, listener)));
         ModelResponse response;
+        // Why the request failed, for the conversation that is recorded in the finally block
+        String failure = null;
         try {
             response = timeoutSeconds == 0 ? future.get() : future.get(timeoutSeconds, TimeUnit.SECONDS);
         } catch (TimeoutException e) {
             future.cancel(true);
-            throw new AbortException(timeoutMessage(providerTimeoutSeconds, this.timeoutSeconds));
+            failure = timeoutMessage(providerTimeoutSeconds, this.timeoutSeconds);
+            throw new AbortException(failure);
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             if (cause instanceof InterruptedException interrupted) {
+                failure = "the request was cancelled";
                 Thread.currentThread().interrupt();
                 throw interrupted;
             }
@@ -152,17 +156,45 @@ public final class AiRequestRunner {
             String message = cause instanceof ModelRequestException requestException
                     ? requestException.getMessage()
                     : cause == null ? "unknown failure" : cause.getMessage();
+            failure = message == null ? "unknown failure" : message;
             throw new AbortException("AI request failed: " + message);
         } catch (InterruptedException e) {
+            failure = "the request was cancelled";
             future.cancel(true);
             throw e;
         } finally {
             shutDownAndAwait(executor, logger, SHUTDOWN_WAIT_SECONDS);
-        }
-        if (run != null) {
-            ModelConversationsAction.record(run, conversation);
+            recordConversation(run, conversation, failure, logger);
         }
         return new Result(response, modelData.getModelId(), conversation.getConversationId());
+    }
+
+    /**
+     * Records the conversation on the build, with the reason as its last entry when the request failed, so that the
+     * exchange of a failed request can be inspected. A problem with recording is logged and never replaces the outcome
+     * of the request.
+     */
+    private static void recordConversation(
+            @Nullable Run<?, ?> run, ModelConversation conversation, @Nullable String failure, PrintStream logger) {
+        if (run == null) {
+            return;
+        }
+        // Saving the build fails while the thread is interrupted, which is the case when the build was aborted
+        boolean interrupted = Thread.interrupted();
+        try {
+            if (failure != null) {
+                conversation.addFailure(failure);
+            }
+            if (!conversation.getEntries().isEmpty()) {
+                ModelConversationsAction.record(run, conversation);
+            }
+        } catch (IOException | RuntimeException e) {
+            logger.println("[AI Synapse] Warning: could not record the AI conversation: " + e);
+        } finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     /**

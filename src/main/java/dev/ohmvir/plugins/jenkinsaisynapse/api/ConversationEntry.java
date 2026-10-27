@@ -51,6 +51,9 @@ public class ConversationEntry {
     public static final String DIRECTION_INPUT = "input";
     public static final String DIRECTION_OUTPUT = "output";
 
+    /** The {@link #type} of the entry that records why a request failed. */
+    public static final String TYPE_REQUEST_FAILURE = "RequestFailure";
+
     /** {@link #DIRECTION_INPUT} for content sent to the model, {@link #DIRECTION_OUTPUT} for content it produced. */
     private String direction;
     /** Simple name of the content class, for example {@code OutputTextContent}. */
@@ -127,6 +130,18 @@ public class ConversationEntry {
             default -> {}
         }
         entry.secrets = null;
+        return entry;
+    }
+
+    /**
+     * @return An entry recording that the request failed, which ends the conversation of a failed request.
+     */
+    public static ConversationEntry failure(String reason) {
+        ConversationEntry entry = new ConversationEntry();
+        entry.direction = DIRECTION_OUTPUT;
+        entry.type = TYPE_REQUEST_FAILURE;
+        entry.successful = false;
+        entry.setText("Request failed: " + reason);
         return entry;
     }
 
