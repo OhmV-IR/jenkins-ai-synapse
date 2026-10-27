@@ -8,6 +8,10 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.ConversationEntry;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.ModelConversation;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputImageContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputTextContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.StopSequencesContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.TopKContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.TopPContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.CitationContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputTextContent;
 import hudson.model.Run;
 import java.util.List;
@@ -40,6 +44,27 @@ public class ModelConversationTest {
         assertEquals(ConversationEntry.DIRECTION_OUTPUT, entries.get(2).getDirection());
         assertEquals("OutputTextContent", entries.get(2).getType());
         assertTrue(loaded.getConversation().isEmpty());
+    }
+
+    @Test
+    public void samplingParametersAreRecordedAsText() {
+        assertEquals("0.9", ConversationEntry.from(new TopPContent(0.9)).getText());
+        assertEquals("40.0", ConversationEntry.from(new TopKContent(40)).getText());
+        assertEquals(
+                "[END, STOP]",
+                ConversationEntry.from(new StopSequencesContent(List.of("END", "STOP")))
+                        .getText());
+    }
+
+    @Test
+    public void citationsAreRecordedAsText() {
+        ConversationEntry entry =
+                ConversationEntry.from(new CitationContent("the sky is blue", 1, "Facts", 25, "file-1", 10));
+        assertEquals(ConversationEntry.DIRECTION_OUTPUT, entry.getDirection());
+        assertEquals("the sky is blue\ndocument 1 (Facts), file file-1, characters 10-25", entry.getText());
+
+        ConversationEntry untitled = ConversationEntry.from(new CitationContent("quote", 0, null, 5, null, 0));
+        assertEquals("quote\ndocument 0, characters 0-5", untitled.getText());
     }
 
     @Test

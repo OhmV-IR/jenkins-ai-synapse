@@ -10,10 +10,14 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputToolContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputVideoContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.MaxOutputTokensContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.StopSequencesContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.SystemPromptContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.TemperatureContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ToolCallResponseContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.TopKContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.TopPContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.CitationContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.FinishReasonContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputAudioContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputFileContent;
@@ -65,6 +69,9 @@ public class ConversationEntry {
             case TemperatureContent c -> entry.setText(String.valueOf(c.getTemperature()));
             case MaxOutputTokensContent c -> entry.setText(String.valueOf(c.getMaxOutputTokens()));
             case ThinkingLevelContent c -> entry.setText(String.valueOf(c.getThinkingLevel()));
+            case TopPContent c -> entry.setText(String.valueOf(c.getTopP()));
+            case TopKContent c -> entry.setText(String.valueOf(c.getTopK()));
+            case StopSequencesContent c -> entry.setText(String.valueOf(c.getStopPhrases()));
             case InputToolContent c ->
                 entry.toolName = c.getTool() == null ? null : c.getTool().getName();
             case InputSkillContent c ->
@@ -91,6 +98,11 @@ public class ConversationEntry {
                 entry.setText("input tokens: " + c.getInputTokensUsed() + ", output tokens: " + c.getOutputTokensUsed()
                         + ", cached tokens: " + c.getCachedTokensUsed());
             case FinishReasonContent c -> entry.setText(String.valueOf(c.getReason()));
+            case CitationContent c ->
+                entry.setText(c.getCitedText() + "\ndocument " + c.getDocumentIndex()
+                        + (c.getDocumentTitle() == null ? "" : " (" + c.getDocumentTitle() + ")")
+                        + (c.getFileId() == null ? "" : ", file " + c.getFileId())
+                        + ", characters " + c.getStartCharIndex() + "-" + c.getEndCharIndex());
             case OutputImageContent c -> entry.setBinary(c.getMimeType(), c.getImageData());
             case OutputAudioContent c -> entry.setBinary(c.getMimeType(), c.getAudioData());
             case OutputVideoContent c -> entry.setBinary(c.getMimeType(), c.getVideoData());
