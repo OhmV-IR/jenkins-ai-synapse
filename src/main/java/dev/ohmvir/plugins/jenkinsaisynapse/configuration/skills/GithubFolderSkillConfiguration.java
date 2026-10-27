@@ -2,9 +2,12 @@ package dev.ohmvir.plugins.jenkinsaisynapse.configuration.skills;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
+import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.security.ACL;
+import hudson.util.ListBoxModel;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -16,11 +19,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import lombok.Getter;
+import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
 
 public class GithubFolderSkillConfiguration extends SkillConfiguration {
     private @Getter final String folderPath;
@@ -28,6 +34,7 @@ public class GithubFolderSkillConfiguration extends SkillConfiguration {
     private @Getter final String authenticationTokenCredentialsId;
     private static final Logger LOGGER = Logger.getLogger(GithubFolderSkillConfiguration.class.getName());
 
+    @DataBoundConstructor
     public GithubFolderSkillConfiguration(
             String folderPath, String repositoryUrl, String authenticationTokenCredentialsId)
             throws Descriptor.FormException {
@@ -134,10 +141,28 @@ public class GithubFolderSkillConfiguration extends SkillConfiguration {
         return cleaned;
     }
 
+    @Extension
+    @Symbol("githubFolder")
     public static class DescriptorImpl extends SkillConfiguration.DescriptorImpl {
         @Override
         public @NonNull String getDisplayName() {
             return "Github Skill Folder";
+        }
+
+        public ListBoxModel doFillAuthenticationTokenCredentialsIdItems(
+                @QueryParameter String authenticationTokenCredentialsId) {
+            StandardListBoxModel items = new StandardListBoxModel();
+            if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
+                return items.includeCurrentValue(authenticationTokenCredentialsId);
+            }
+            return items.includeEmptyValue()
+                    .includeMatchingAs(
+                            ACL.SYSTEM2,
+                            Jenkins.get(),
+                            StringCredentials.class,
+                            List.of(),
+                            CredentialsMatchers.always())
+                    .includeCurrentValue(authenticationTokenCredentialsId);
         }
     }
 }
