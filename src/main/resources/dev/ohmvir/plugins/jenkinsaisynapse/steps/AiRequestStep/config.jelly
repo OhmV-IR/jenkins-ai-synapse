@@ -23,6 +23,24 @@
         <f:entry title="${%Max output tokens}" field="maxOutputTokens">
             <f:textbox />
         </f:entry>
+        <f:entry title="${%Thinking level}" field="thinkingLevel">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="${%Top P}" field="topP">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="${%Top K}" field="topK">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="${%Output directory}" field="outputDir">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="${%Timeout (seconds)}" field="timeout">
+            <f:textbox />
+        </f:entry>
+        <f:entry field="expandEnvVars">
+            <f:checkbox title="${%Expand environment variables}" />
+        </f:entry>
         <f:entry field="quiet">
             <f:checkbox title="${%Do not log the request's progress}" />
         </f:entry>

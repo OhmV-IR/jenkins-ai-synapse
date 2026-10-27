@@ -52,8 +52,23 @@ echo review.text
 echo "Used ${review.usage?.outputTokens} output tokens"
 ```
 
-With `returnDetails: true` the step returns a map with `text`, `thinking`, `toolCalls`, `finishReason`, `usage`,
-`model` and `conversationId`. Other options are `systemPrompt`, `temperature`, `maxOutputTokens` and `quiet`.
+With `returnDetails: true` the step returns a map with `text`, `thinking`, `toolCalls`, `citations`, `files`,
+`finishReason`, `usage`, `model` and `conversationId`. Other options are `systemPrompt`, `temperature`,
+`maxOutputTokens`, `thinkingLevel`, `topP`, `topK`, `stopSequences`, `timeout`, `expandEnvVars` and `quiet`.
+
+Inside a `node` block the step can also attach workspace files and save what the model produces:
+
+```groovy
+node {
+    def result = aiRequest(
+        prompt: 'Draw a diagram of this design',
+        files: ['design.md'],                 // images, audio and video are sent as such, anything else as a file
+        outputTypes: ['text', 'image'],       // only models that can produce all of these are used
+        outputDir: 'ai-output',               // images, audio, video and files the model produces are saved here
+        returnDetails: true)
+    echo "Saved ${result.files*.path}"
+}
+```
 
 ### Freestyle
 

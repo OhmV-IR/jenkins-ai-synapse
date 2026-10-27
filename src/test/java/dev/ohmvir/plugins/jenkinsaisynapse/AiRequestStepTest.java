@@ -20,17 +20,24 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.ModelConversation;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.ModelConversationsAction;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelRequestListener;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputFileContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputTextContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.StopSequencesContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ToolCallResponseContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.TopKContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.TopPContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelProvider;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelRegistry;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.RegisteredModel;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputImageContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputTextContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.TokenUtilizationContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
@@ -40,6 +47,7 @@ import dev.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.client.ModelClientConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Locale;
@@ -198,6 +206,83 @@ public class AiRequestStepTest {
     }
 
     @Test
+    public void pipelineStepPassesGenerationOptions() throws Exception {
+        WorkflowJob p = j.createProject(WorkflowJob.class, "p");
+        String script = """
+                def answer = aiRequest(prompt: 'options', thinkingLevel: 'medium', topP: 0.5, topK: 10,
+                        stopSequences: ['END'])
+                echo "answer=${answer}"
+                """;
+        p.setDefinition(new CpsFlowDefinition(script, true));
+        WorkflowRun b = j.buildAndAssertSuccess(p);
+        j.assertLogContains("answer=thinking=MEDIUM topP=0.5 topK=10.0 stop=[END]", b);
+    }
+
+    @Test
+    public void pipelineStepRejectsInvalidOptions() throws Exception {
+        WorkflowJob p = j.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition("aiRequest(prompt: 'hi', thinkingLevel: 'lots')", true));
+        j.assertLogContains("Unknown thinking level 'lots'", j.buildAndAssertStatus(Result.FAILURE, p));
+
+        p.setDefinition(new CpsFlowDefinition("aiRequest(prompt: 'hi', outputTypes: ['hologram'])", true));
+        j.assertLogContains("Unknown output type 'hologram'", j.buildAndAssertStatus(Result.FAILURE, p));
+
+        p.setDefinition(new CpsFlowDefinition("aiRequest(prompt: 'hi', files: ['notes.txt'])", true));
+        j.assertLogContains("aiRequest needs a workspace for files", j.buildAndAssertStatus(Result.FAILURE, p));
+    }
+
+    @Test
+    public void pipelineStepAttachesFilesAndSavesOutputs() throws Exception {
+        WorkflowJob p = j.createProject(WorkflowJob.class, "p");
+        String script = """
+                node {
+                    writeFile file: 'notes.txt', text: 'some notes'
+                    def result = aiRequest(prompt: 'draw', files: ['notes.txt'], outputTypes: ['text', 'image'],
+                            outputDir: 'out', returnDetails: true)
+                    echo "text=${result.text}"
+                    echo "files=${result.files.size()} kind=${result.files[0].kind} path=${result.files[0].path}"
+                    echo "saved=${fileExists('out/image-1.png')}"
+                }
+                """;
+        p.setDefinition(new CpsFlowDefinition(script, true));
+        WorkflowRun b = j.buildAndAssertSuccess(p);
+        j.assertLogContains("text=drew with notes.txt=some notes", b);
+        j.assertLogContains("files=1 kind=image path=out/image-1.png", b);
+        j.assertLogContains("saved=true", b);
+    }
+
+    @Test
+    public void outputTypesSelectAModelThatCanProduceThem() throws Exception {
+        WorkflowJob p = j.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition("aiRequest(prompt: 'hi', outputTypes: ['video'])", true));
+        j.assertLogContains("No configured model supports this request", j.buildAndAssertStatus(Result.FAILURE, p));
+    }
+
+    @Test
+    public void stepTimeoutBoundsTheRequest() throws Exception {
+        WorkflowJob p = j.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition("aiRequest(prompt: 'sleep', timeout: 1)", true));
+        j.assertLogContains("timed out after 1 seconds", j.buildAndAssertStatus(Result.FAILURE, p));
+    }
+
+    @Test
+    public void pipelineStepExpandsEnvironmentVariablesWhenAsked() throws Exception {
+        WorkflowJob p = j.createProject(WorkflowJob.class, "p");
+        String script = """
+                withEnv(['WHO=world']) {
+                    def plain = aiRequest('hello ${WHO}')
+                    def expanded = aiRequest(prompt: 'hello ${WHO}', expandEnvVars: true)
+                    echo "plain=${plain}"
+                    echo "expanded=${expanded}"
+                }
+                """;
+        p.setDefinition(new CpsFlowDefinition(script, true));
+        WorkflowRun b = j.buildAndAssertSuccess(p);
+        j.assertLogContains("plain=echo: hello ${WHO}", b);
+        j.assertLogContains("expanded=echo: hello world", b);
+    }
+
+    @Test
     public void executeDoesNotModifyTheRequest() throws Exception {
         ModelRequest request = new ModelRequest();
         request.addInput(new InputTextContent("hi"));
@@ -252,14 +337,19 @@ public class AiRequestStepTest {
         @Override
         protected ModelData describe(FakeModelConfiguration configuration) {
             ModelData data = new ModelData(configuration);
-            data.setInputs(List.of(ModelInputType.TEXT));
-            data.setOutputs(List.of(ModelOutputType.UNSTRUCTURED_TEXT));
+            data.setInputs(List.of(ModelInputType.TEXT, ModelInputType.FILE));
+            data.setOutputs(List.of(ModelOutputType.UNSTRUCTURED_TEXT, ModelOutputType.IMAGE));
+            data.setSupportedThinkingLevels(List.of(ModelThinkingLevel.LOW, ModelThinkingLevel.MEDIUM));
             data.setCapabilities(List.of(
                     ModelCapability.TOOLS,
                     ModelCapability.TOKEN_USAGE_METRICS,
                     ModelCapability.ADJUSTABLE_SYSTEM_PROMPT,
                     ModelCapability.CUSTOM_TEMPERATURE,
-                    ModelCapability.OUTPUT_TOKEN_LIMITING));
+                    ModelCapability.OUTPUT_TOKEN_LIMITING,
+                    ModelCapability.THINKING,
+                    ModelCapability.CUSTOM_TOP_P,
+                    ModelCapability.CUSTOM_TOP_K,
+                    ModelCapability.CUSTOM_STOP_SEQUENCES));
             return data;
         }
 
@@ -282,7 +372,24 @@ public class AiRequestStepTest {
                 if (text.equals("sleep")) {
                     Thread.sleep(TimeUnit.MINUTES.toMillis(5));
                 }
-                return List.of(new OutputTextContent("echo: " + text), new TokenUtilizationContent(3, 5, 0));
+                if (text.equals("options")) {
+                    return List.of(new OutputTextContent("thinking="
+                            + request.getInput(ThinkingLevelContent.class).getThinkingLevel()
+                            + " topP=" + request.getInput(TopPContent.class).getTopP()
+                            + " topK=" + request.getInput(TopKContent.class).getTopK()
+                            + " stop=" + request.getInput(StopSequencesContent.class).getStopPhrases()));
+                }
+                String files = turnInputs.stream()
+                        .filter(InputFileContent.class::isInstance)
+                        .map(input -> (InputFileContent) input)
+                        .map(file -> " with " + file.getFileId() + "="
+                                + new String(file.getFileData(), StandardCharsets.UTF_8))
+                        .collect(Collectors.joining());
+                if (text.equals("draw")) {
+                    return List.of(
+                            new OutputTextContent("drew" + files), new OutputImageContent(new byte[] {1, 2, 3}, "image/png"));
+                }
+                return List.of(new OutputTextContent("echo: " + text + files), new TokenUtilizationContent(3, 5, 0));
             };
         }
 

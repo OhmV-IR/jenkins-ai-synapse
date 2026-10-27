@@ -5,6 +5,12 @@
         <dt><code>thinking</code></dt><dd>The model's thinking, if it reported any.</dd>
         <dt><code>toolCalls</code></dt><dd>A list of maps with the <code>id</code>, <code>name</code> and JSON
             <code>arguments</code> of each tool call.</dd>
+        <dt><code>citations</code></dt><dd>A list of maps with the <code>citedText</code>, <code>documentIndex</code>,
+            <code>documentTitle</code>, <code>fileId</code>, <code>startCharIndex</code> and <code>endCharIndex</code>
+            of each citation.</dd>
+        <dt><code>files</code></dt><dd>A list of maps with the <code>name</code>, <code>kind</code> (image, audio,
+            video or file), <code>contentType</code> and <code>size</code> of each output the model produced, and
+            the <code>path</code> it was saved to when <code>outputDir</code> is set.</dd>
         <dt><code>finishReason</code></dt><dd>Why the model stopped, or <code>null</code>.</dd>
         <dt><code>usage</code></dt><dd>A map of <code>inputTokens</code>, <code>outputTokens</code> and
             <code>cachedTokens</code>, or <code>null</code> if the model did not report usage.</dd>
