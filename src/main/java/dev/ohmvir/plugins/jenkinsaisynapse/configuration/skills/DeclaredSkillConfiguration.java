@@ -16,12 +16,14 @@ import hudson.util.ListBoxModel;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import jenkins.model.Jenkins;
 import lombok.Getter;
 import org.jenkinsci.Symbol;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.verb.POST;
 
 public class DeclaredSkillConfiguration extends SkillConfiguration {
     private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
@@ -161,15 +163,19 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
                 return "Item";
             }
 
+            @POST
             public FormValidation doCheckRelativeFilePath(@QueryParameter String value) {
-                if (value.trim().isEmpty()) {
+                Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+                if (value == null || value.trim().isEmpty()) {
                     return FormValidation.error("Relative file path cannot be empty");
                 }
                 return FormValidation.ok();
             }
 
+            @POST
             public FormValidation doCheckFileContent(@QueryParameter String value) {
-                if (value.trim().isEmpty()) {
+                Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+                if (value == null || value.trim().isEmpty()) {
                     return FormValidation.error("File content cannot be empty");
                 }
                 return FormValidation.ok();
@@ -195,14 +201,18 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
                 return "Allowed Tool";
             }
 
+            @POST
             public ListBoxModel doFillToolNameItems() {
+                Jenkins.get().checkPermission(Jenkins.ADMINISTER);
                 ListBoxModel items = new ListBoxModel();
                 ToolRegistry.getAllTools().forEach(tool -> items.add(tool.getName()));
                 return items;
             }
 
+            @POST
             public FormValidation doCheckToolName(@QueryParameter String value) {
-                if (value.trim().isEmpty()) {
+                Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+                if (value == null || value.trim().isEmpty()) {
                     return FormValidation.error("Tool name cannot be empty");
                 }
                 return FormValidation.ok();
@@ -218,12 +228,14 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
             return "Declared Skill";
         }
 
+        @POST
         public FormValidation doCheckSkillMetadata(@QueryParameter String value) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             try {
-                YAML_MAPPER.readTree(value);
+                parseSkillMetadata(value);
                 return FormValidation.ok();
-            } catch (Exception e) {
-                return FormValidation.error("skillMetadata must be a valid YAML object: " + e.getMessage());
+            } catch (Descriptor.FormException e) {
+                return FormValidation.error(e.getMessage());
             }
         }
     }

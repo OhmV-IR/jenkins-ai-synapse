@@ -5,11 +5,13 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
+import jenkins.model.Jenkins;
 import lombok.Getter;
 import org.jenkinsci.Symbol;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.verb.POST;
 
 public class SimplePrompt extends PromptConfiguration {
     private @Getter final String promptText;
@@ -38,8 +40,10 @@ public class SimplePrompt extends PromptConfiguration {
             return "Simple Prompt";
         }
 
+        @POST
         public FormValidation doCheckPromptText(@QueryParameter String value) {
-            if (value.trim().isEmpty()) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            if (value == null || value.trim().isEmpty()) {
                 return FormValidation.error("Please enter a prompt text");
             }
             return FormValidation.ok();

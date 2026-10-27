@@ -4,11 +4,13 @@ import hudson.ExtensionPoint;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
+import jenkins.model.Jenkins;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.PromptsConfiguration;
 import lombok.Getter;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.verb.POST;
 
 public abstract class PromptConfiguration implements Describable<PromptConfiguration>, ExtensionPoint {
     private @Getter String promptId = "";
@@ -35,7 +37,9 @@ public abstract class PromptConfiguration implements Describable<PromptConfigura
          * rejected when the form is submitted, see {@link PromptsConfiguration#setPrompts}, which reports the id in
          * the form error. This check reports ids that are already shared by more than one saved prompt.
          */
+        @POST
         public FormValidation doCheckPromptId(@QueryParameter String value) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             if (value == null || value.trim().isEmpty()) {
                 return FormValidation.error("Prompt id cannot be empty");
             }

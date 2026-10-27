@@ -19,7 +19,7 @@
     </f:entry>
 
     <f:entry title="${%Skill Metadata}" field="skillMetadata" description="${%Metadata related to the skill for indexing and organization}">
-        <f:textarea />
+        <f:textarea checkMethod="post" />
     </f:entry>
 
     <f:entry title="${%Allowed Tools}" field="allowedTools" description="${%The external tools the agent is permitted to use while executing the skill}">
