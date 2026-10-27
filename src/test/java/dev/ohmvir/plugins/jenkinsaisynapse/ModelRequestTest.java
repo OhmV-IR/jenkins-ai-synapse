@@ -176,8 +176,6 @@ public class ModelRequestTest {
     private static ModelRequest skillRequest() throws Exception {
         ModelRequest request = new ModelRequest();
         request.addInput(new InputTextContent("use the skill"));
-        // Attached up front so expansion does not look the tool up from Jenkins
-        request.attachTool(new ReadSkillFileTool());
         request.attachSkill(new SkillData("execute-skill", "A skill", null, null, null, null, "Do things", Map.of()));
         return request;
     }
