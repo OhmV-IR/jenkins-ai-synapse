@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import hudson.security.ACL;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
@@ -12,8 +13,22 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.authentication.TestingAuthenticationToken;
 
 public class AiRequestRunnerTest {
+    @Test
+    public void warnsWhenToolsRunAsSystem() {
+        assertTrue(AiRequestRunner.shouldWarnAboutSystemAuthentication(ACL.SYSTEM2, true));
+    }
+
+    @Test
+    public void doesNotWarnWithoutToolsOrForALimitedUser() {
+        assertFalse(AiRequestRunner.shouldWarnAboutSystemAuthentication(ACL.SYSTEM2, false));
+        assertFalse(AiRequestRunner.shouldWarnAboutSystemAuthentication(
+                new TestingAuthenticationToken("alice", "password"), true));
+        assertFalse(AiRequestRunner.shouldWarnAboutSystemAuthentication(null, true));
+    }
+
     @Test
     public void providerTimeoutBoundsTheRequestWithoutAStepTimeout() {
         assertEquals(300, AiRequestRunner.effectiveTimeout(300, 0));
