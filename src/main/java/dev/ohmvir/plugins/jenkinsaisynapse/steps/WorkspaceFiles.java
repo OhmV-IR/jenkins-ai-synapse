@@ -63,8 +63,11 @@ final class WorkspaceFiles {
      */
     static ModelInput readAttachment(FilePath workspace, String path) throws IOException, InterruptedException {
         FilePath file = workspace.child(path);
-        if (!file.exists() || file.isDirectory()) {
+        if (!file.exists()) {
             throw new AbortException("File to attach does not exist: " + path);
+        }
+        if (file.isDirectory()) {
+            throw new AbortException("File to attach is a directory: " + path);
         }
         if (file.length() > MAX_ATTACHMENT_BYTES) {
             throw new AbortException("File to attach is larger than " + MAX_ATTACHMENT_BYTES + " bytes: " + path);
