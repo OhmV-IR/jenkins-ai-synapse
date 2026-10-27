@@ -3,23 +3,23 @@
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
     <f:section title="${%Full Prompt}">
         <f:entry title="${%Prompt Id}" field="promptId">
-            <f:textbox />
+            <f:textbox checkMethod="post" />
         </f:entry>
         <f:entry title="${%Prompt Text}" field="promptText">
-            <f:textbox />
+            <f:textbox checkMethod="post" />
         </f:entry>
         <f:entry title="${%System Prompt}" field="systemPrompt">
-            <f:textbox />
+            <f:textbox checkMethod="post" />
         </f:entry>
         <f:entry title="${%Temperature}" field="temperature">
-            <f:number min="0" />
+            <f:number min="0" checkMethod="post" />
         </f:entry>
         <f:entry title="${%Max Output Tokens}" field="maxOutputTokensCount"
                  description="${%The maximum number of tokens to generate. 0 or empty means not set, so the model's own limit applies}">
-            <f:number min="0" />
+            <f:number min="0" checkMethod="post" />
         </f:entry>
         <f:entry title="${%Thinking Level}" field="thinkingLevel">
-            <f:enum field="thinkingLevel">
+            <f:enum field="thinkingLevel" checkMethod="post">
                 ${it.name()}
             </f:enum>
         </f:entry>

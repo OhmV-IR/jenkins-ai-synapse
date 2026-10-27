@@ -4,6 +4,7 @@ import hudson.ExtensionPoint;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
+import jenkins.model.Jenkins;
 import lombok.Getter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
@@ -37,6 +38,7 @@ public abstract class ModelConfiguration implements Describable<ModelConfigurati
     public abstract static class DescriptorImpl extends Descriptor<ModelConfiguration> {
         @POST
         public FormValidation doCheckModelName(@QueryParameter String value) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             if (value == null || value.trim().isEmpty()) {
                 return FormValidation.error("Model name is required");
             }

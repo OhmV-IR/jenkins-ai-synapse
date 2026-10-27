@@ -3,6 +3,7 @@ package dev.ohmvir.plugins.jenkinsaisynapse.configuration.prompts;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
+import jenkins.model.Jenkins;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.MaxOutputTokensContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.SystemPromptContent;
@@ -15,6 +16,7 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.verb.POST;
 
 public class FullPrompt extends SimplePrompt {
     private @Getter String systemPrompt;
@@ -89,14 +91,18 @@ public class FullPrompt extends SimplePrompt {
             return "Full Prompt";
         }
 
+        @POST
         public FormValidation doCheckSystemPrompt(@QueryParameter String value) {
-            if (value.trim().isEmpty()) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+            if (value == null || value.trim().isEmpty()) {
                 return FormValidation.error("Please enter a system prompt.");
             }
             return FormValidation.ok();
         }
 
+        @POST
         public FormValidation doCheckTemperature(@QueryParameter double value) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             String error = validateTemperature(value);
             if (error != null) {
                 return FormValidation.error(error);
@@ -104,7 +110,9 @@ public class FullPrompt extends SimplePrompt {
             return FormValidation.ok();
         }
 
+        @POST
         public FormValidation doCheckMaxOutputTokensCount(@QueryParameter long value) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             if (value < 0) {
                 return FormValidation.error(
                         "Max output tokens cannot be negative, enter a positive number or 0 for not set");
@@ -112,7 +120,9 @@ public class FullPrompt extends SimplePrompt {
             return FormValidation.ok();
         }
 
+        @POST
         public FormValidation doCheckThinkingLevel(@QueryParameter ModelThinkingLevel value) {
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             if (value == null) {
                 return FormValidation.error("Must select a thinking level");
             }
