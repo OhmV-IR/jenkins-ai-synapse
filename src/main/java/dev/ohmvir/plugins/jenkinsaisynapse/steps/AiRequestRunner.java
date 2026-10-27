@@ -1,5 +1,36 @@
 package dev.ohmvir.plugins.jenkinsaisynapse.steps;
 
+import dev.ohmvir.plugins.jenkinsaisynapse.api.ModelConversation;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.ModelConversationsAction;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelRequestException;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelRequestListener;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputTextContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.MaxOutputTokensContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.StopSequencesContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.SystemPromptContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.TemperatureContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ToolCallResponseContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.TopKContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.TopPContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelRegistry;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.RegisteredModel;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.CitationContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.FinishReasonContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutputKind;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ModelResponse;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputTextContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ThinkingContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.TokenUtilizationContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolRegistry;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.PromptsConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.PromptConfiguration;
 import hudson.AbortException;
 import hudson.ExtensionList;
 import hudson.Functions;
@@ -11,37 +42,12 @@ import hudson.model.queue.Tasks;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.util.ListBoxModel;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.ModelConversation;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.ModelConversationsAction;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelRequestListener;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelRequestException;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputTextContent;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.input.MaxOutputTokensContent;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.input.SystemPromptContent;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.input.TemperatureContent;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ToolCallResponseContent;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelRegistry;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.models.RegisteredModel;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.output.FinishReasonContent;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ModelResponse;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputTextContent;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ThinkingContent;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.output.TokenUtilizationContent;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolRegistry;
-import dev.ohmvir.plugins.jenkinsaisynapse.configuration.PromptsConfiguration;
-import dev.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.PromptConfiguration;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -68,8 +74,19 @@ public final class AiRequestRunner {
     private @Nullable String systemPrompt;
     private @Nullable Double temperature;
     private @Nullable Long maxOutputTokens;
+    private @Nullable ModelThinkingLevel thinkingLevel;
+    private @Nullable Double topP;
+    private @Nullable Integer topK;
+    private List<String> stopSequences = List.of();
     private List<String> tools = List.of();
     private List<String> skills = List.of();
+    /** Inputs such as workspace files to attach after the prompt text. */
+    private List<ModelInput> attachments = List.of();
+    /** The outputs the response must contain. Text by default. */
+    private List<ModelOutputKind<?>> outputs = List.of(OutputTextContent.KIND);
+    /** Bounds the whole request in seconds, on top of the timeout of the model's provider. 0 means no extra bound. */
+    private long timeoutSeconds;
+
     private boolean quiet;
 
     /**
@@ -90,7 +107,7 @@ public final class AiRequestRunner {
         request.setAssociatedConversation(conversation);
         Authentication toolAuthentication = getToolAuthentication(run);
         ModelRequestListener requestListener = quiet ? ModelRequestListener.NOOP : new BuildLogListener(logger);
-        long timeoutSeconds = modelData.getRequestTimeoutSeconds();
+        long timeoutSeconds = effectiveTimeout(modelData.getRequestTimeoutSeconds(), this.timeoutSeconds);
         ExecutorService executor = Executors.newSingleThreadExecutor(task -> {
             Thread thread = new Thread(task, "jenkins-ai-model-request");
             thread.setDaemon(true);
@@ -102,9 +119,7 @@ public final class AiRequestRunner {
                 (tool, toolCall) -> executeTool(tool, toolCall, toolAuthentication, listener)));
         ModelResponse response;
         try {
-            response = timeoutSeconds == 0
-                    ? future.get()
-                    : future.get(timeoutSeconds, TimeUnit.SECONDS);
+            response = timeoutSeconds == 0 ? future.get() : future.get(timeoutSeconds, TimeUnit.SECONDS);
         } catch (TimeoutException e) {
             future.cancel(true);
             throw new AbortException("AI request timed out after " + timeoutSeconds + " seconds");
@@ -150,6 +165,7 @@ public final class AiRequestRunner {
         if (prompt != null) {
             request.addInput(new InputTextContent(prompt));
         }
+        attachments.forEach(request::addInput);
         if (systemPrompt != null) {
             replaceInput(request, SystemPromptContent.class, new SystemPromptContent(systemPrompt));
         }
@@ -158,6 +174,18 @@ public final class AiRequestRunner {
         }
         if (maxOutputTokens != null) {
             replaceInput(request, MaxOutputTokensContent.class, new MaxOutputTokensContent(maxOutputTokens));
+        }
+        if (thinkingLevel != null) {
+            replaceInput(request, ThinkingLevelContent.class, new ThinkingLevelContent(thinkingLevel));
+        }
+        if (topP != null) {
+            replaceInput(request, TopPContent.class, new TopPContent(topP));
+        }
+        if (topK != null) {
+            replaceInput(request, TopKContent.class, new TopKContent(topK));
+        }
+        if (!stopSequences.isEmpty()) {
+            replaceInput(request, StopSequencesContent.class, new StopSequencesContent(List.copyOf(stopSequences)));
         }
         for (String toolName : tools) {
             request.attachTool(findTool(toolName));
@@ -175,8 +203,21 @@ public final class AiRequestRunner {
         }
         request.expandSkills();
         request.setModelId(model);
-        request.requestOutput(OutputTextContent.KIND);
+        outputs.forEach(request::requestOutput);
         return request;
+    }
+
+    /**
+     * @return The shorter of the two timeouts, where 0 means no timeout.
+     */
+    static long effectiveTimeout(long providerTimeoutSeconds, long stepTimeoutSeconds) {
+        if (providerTimeoutSeconds <= 0) {
+            return Math.max(stepTimeoutSeconds, 0);
+        }
+        if (stepTimeoutSeconds <= 0) {
+            return providerTimeoutSeconds;
+        }
+        return Math.min(providerTimeoutSeconds, stepTimeoutSeconds);
     }
 
     private RegisteredModel selectModel(ModelRequest request) throws AbortException {
@@ -202,21 +243,19 @@ public final class AiRequestRunner {
     }
 
     private ToolCallResponseContent executeTool(
-            Tool tool,
-            ToolCallContent toolCall,
-            Authentication authentication,
-            TaskListener listener) {
+            Tool tool, ToolCallContent toolCall, Authentication authentication, TaskListener listener) {
         if (!quiet) {
-            listener.getLogger().println("[AI Synapse] Model called tool '" + tool.getName() + "' as "
-                    + authentication.getName() + " with arguments " + toolCall.getArgumentsPrettyJson());
+            listener.getLogger()
+                    .println("[AI Synapse] Model called tool '" + tool.getName() + "' as " + authentication.getName()
+                            + " with arguments " + toolCall.getArgumentsPrettyJson());
         }
         ToolCallResponseContent response;
         try (ACLContext ignored = ACL.as2(authentication)) {
             response = tool.callTool(toolCall);
         }
         if (!quiet && !response.isSuccessful()) {
-            listener.getLogger().println("[AI Synapse] Tool '" + tool.getName() + "' failed: "
-                    + response.getResponseContent());
+            listener.getLogger()
+                    .println("[AI Synapse] Tool '" + tool.getName() + "' failed: " + response.getResponseContent());
         }
         return response;
     }
@@ -316,6 +355,18 @@ public final class AiRequestRunner {
                 toolCalls.add(call);
             }
             result.put("toolCalls", toolCalls);
+            List<Map<String, Object>> citations = new ArrayList<>();
+            for (CitationContent citation : response.getOutputs(CitationContent.class)) {
+                Map<String, Object> citationMap = new LinkedHashMap<>();
+                citationMap.put("citedText", citation.getCitedText());
+                citationMap.put("documentIndex", citation.getDocumentIndex());
+                citationMap.put("documentTitle", citation.getDocumentTitle());
+                citationMap.put("fileId", citation.getFileId());
+                citationMap.put("startCharIndex", citation.getStartCharIndex());
+                citationMap.put("endCharIndex", citation.getEndCharIndex());
+                citations.add(citationMap);
+            }
+            result.put("citations", citations);
             List<FinishReasonContent> finishReasons = response.getOutputs(FinishReasonContent.class);
             result.put(
                     "finishReason",

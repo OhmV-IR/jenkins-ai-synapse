@@ -1,17 +1,34 @@
 package dev.ohmvir.plugins.jenkinsaisynapse.steps;
 
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutputKind;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputAudioContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputFileContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputImageContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputTextContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputVideoContent;
+import hudson.AbortException;
+import hudson.EnvVars;
 import hudson.Extension;
+import hudson.FilePath;
 import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.model.Item;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.util.ListBoxModel;
+import java.io.IOException;
 import java.io.Serial;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import net.sf.json.JSONObject;
 import org.jenkinsci.plugins.workflow.steps.Step;
@@ -34,6 +51,11 @@ import org.kohsuke.stapler.StaplerRequest2;
  * def details = aiRequest(promptId: 'review', prompt: diff, model: 'anthropic:claude-opus-5-5',
  *                         tools: ['readFile'], skills: ['code-review'], returnDetails: true)
  * echo details.text
+ *
+ * node {
+ *     def review = aiRequest(prompt: 'Describe this screenshot', files: ['screenshot.png'],
+ *                            outputTypes: ['text', 'image'], outputDir: 'ai-output', returnDetails: true)
+ * }
  * </pre>
  */
 @Getter
@@ -46,8 +68,30 @@ public class AiRequestStep extends Step {
     private @Nullable Long maxOutputTokens;
     private List<String> tools = new ArrayList<>();
     private List<String> skills = new ArrayList<>();
+    private @Nullable String thinkingLevel;
+    private @Nullable Double topP;
+    private @Nullable Integer topK;
+    private List<String> stopSequences = new ArrayList<>();
+    private List<String> files = new ArrayList<>();
+    private List<String> outputTypes = new ArrayList<>();
+    private @Nullable String outputDir;
+    private @Nullable Integer timeout;
     private boolean returnDetails;
     private boolean quiet;
+    private boolean expandEnvVars;
+
+    /** The values accepted by {@link #setOutputTypes(List)}, mapped to the outputs they require. */
+    static final Map<String, ModelOutputKind<?>> OUTPUT_TYPES = createOutputTypes();
+
+    private static Map<String, ModelOutputKind<?>> createOutputTypes() {
+        Map<String, ModelOutputKind<?>> outputTypes = new LinkedHashMap<>();
+        outputTypes.put("text", OutputTextContent.KIND);
+        outputTypes.put("image", OutputImageContent.KIND);
+        outputTypes.put("audio", OutputAudioContent.KIND);
+        outputTypes.put("video", OutputVideoContent.KIND);
+        outputTypes.put("file", OutputFileContent.KIND);
+        return Collections.unmodifiableMap(outputTypes);
+    }
 
     /**
      * @param prompt The text to send to the model. May be left out when {@link #setPromptId(String)} is set.
@@ -97,7 +141,92 @@ public class AiRequestStep extends Step {
         this.skills = skills == null ? new ArrayList<>() : new ArrayList<>(skills);
     }
 
-    /** Return a map with the text, thinking, tool calls, finish reason and token usage instead of only the text. */
+    /**
+     * How much the model should think, one of {@code off}, {@code on}, {@code low}, {@code medium}, {@code high},
+     * {@code extra_high} or {@code max}. The nearest level the model supports is used.
+     */
+    @DataBoundSetter
+    public void setThinkingLevel(@Nullable String thinkingLevel) {
+        String level = Util.fixEmptyAndTrim(thinkingLevel);
+        if (level != null) {
+            parseThinkingLevel(level);
+        }
+        this.thinkingLevel = level;
+    }
+
+    @DataBoundSetter
+    public void setTopP(@Nullable Double topP) {
+        this.topP = topP;
+    }
+
+    @DataBoundSetter
+    public void setTopK(@Nullable Integer topK) {
+        this.topK = topK;
+    }
+
+    /** Text that makes the model stop generating when it produces it. */
+    @DataBoundSetter
+    public void setStopSequences(@Nullable List<String> stopSequences) {
+        this.stopSequences = stopSequences == null ? new ArrayList<>() : new ArrayList<>(stopSequences);
+    }
+
+    /** Workspace files to attach to the request. Images, audio and video are sent as such, anything else as a file. */
+    @DataBoundSetter
+    public void setFiles(@Nullable List<String> files) {
+        this.files = files == null ? new ArrayList<>() : new ArrayList<>(files);
+    }
+
+    /**
+     * The outputs the response must contain, out of {@code text}, {@code image}, {@code audio}, {@code video} and
+     * {@code file}. Only models that can produce all of them are used. Defaults to {@code text}.
+     */
+    @DataBoundSetter
+    public void setOutputTypes(@Nullable List<String> outputTypes) {
+        List<String> types = new ArrayList<>();
+        if (outputTypes != null) {
+            for (String type : outputTypes) {
+                String normalized = type == null ? "" : type.trim().toLowerCase(Locale.ROOT);
+                if (!OUTPUT_TYPES.containsKey(normalized)) {
+                    throw new IllegalArgumentException("Unknown output type '" + type + "'. Use one of: "
+                            + String.join(", ", OUTPUT_TYPES.keySet()));
+                }
+                types.add(normalized);
+            }
+        }
+        this.outputTypes = types;
+    }
+
+    /** Workspace directory to save the images, audio, video and files the model produces to. */
+    @DataBoundSetter
+    public void setOutputDir(@Nullable String outputDir) {
+        this.outputDir = Util.fixEmptyAndTrim(outputDir);
+    }
+
+    /**
+     * The maximum number of seconds the whole request may take. The timeout configured for the model's provider still
+     * applies when it is shorter.
+     */
+    @DataBoundSetter
+    public void setTimeout(@Nullable Integer timeout) {
+        if (timeout != null && timeout < 0) {
+            throw new IllegalArgumentException("timeout must not be negative");
+        }
+        this.timeout = timeout == null || timeout == 0 ? null : timeout;
+    }
+
+    /**
+     * Expand references to environment variables such as {@code ${BUILD_NUMBER}} in the prompt, system prompt, files
+     * and output directory. Groovy string interpolation already does this for double-quoted strings.
+     */
+    @DataBoundSetter
+    public void setExpandEnvVars(boolean expandEnvVars) {
+        this.expandEnvVars = expandEnvVars;
+    }
+
+    /**
+     * Return a map with the text, thinking, tool calls, citations, files, finish reason and token usage instead of
+     * only the text.
+     */
     @DataBoundSetter
     public void setReturnDetails(boolean returnDetails) {
         this.returnDetails = returnDetails;
@@ -117,18 +246,62 @@ public class AiRequestStep extends Step {
         return Collections.unmodifiableList(skills);
     }
 
-    AiRequestRunner createRunner() {
+    public List<String> getStopSequences() {
+        return Collections.unmodifiableList(stopSequences);
+    }
+
+    public List<String> getFiles() {
+        return Collections.unmodifiableList(files);
+    }
+
+    public List<String> getOutputTypes() {
+        return Collections.unmodifiableList(outputTypes);
+    }
+
+    static ModelThinkingLevel parseThinkingLevel(String level) {
+        try {
+            return ModelThinkingLevel.valueOf(
+                    level.trim().toUpperCase(Locale.ROOT).replace('-', '_'));
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Unknown thinking level '" + level + "'. Use one of: "
+                    + Arrays.stream(ModelThinkingLevel.values())
+                            .map(value -> value.name().toLowerCase(Locale.ROOT))
+                            .collect(Collectors.joining(", ")));
+        }
+    }
+
+    /**
+     * @param env The build's environment, used when {@link #isExpandEnvVars()} is set
+     * @param attachments The workspace files to attach, already read
+     */
+    AiRequestRunner createRunner(@Nullable EnvVars env, List<ModelInput> attachments) {
         AiRequestRunner runner = new AiRequestRunner();
-        runner.setPrompt(prompt);
+        runner.setPrompt(expand(env, prompt));
         runner.setPromptId(promptId);
         runner.setModel(model);
-        runner.setSystemPrompt(systemPrompt);
+        runner.setSystemPrompt(expand(env, systemPrompt));
         runner.setTemperature(temperature);
         runner.setMaxOutputTokens(maxOutputTokens);
+        runner.setThinkingLevel(thinkingLevel == null ? null : parseThinkingLevel(thinkingLevel));
+        runner.setTopP(topP);
+        runner.setTopK(topK);
+        runner.setStopSequences(List.copyOf(stopSequences));
         runner.setTools(List.copyOf(tools));
         runner.setSkills(List.copyOf(skills));
+        runner.setAttachments(List.copyOf(attachments));
+        if (!outputTypes.isEmpty()) {
+            runner.setOutputs(outputTypes.stream()
+                    .<ModelOutputKind<?>>map(OUTPUT_TYPES::get)
+                    .toList());
+        }
+        runner.setTimeoutSeconds(timeout == null ? 0 : timeout);
         runner.setQuiet(quiet);
         return runner;
+    }
+
+    @Nullable
+    String expand(@Nullable EnvVars env, @Nullable String value) {
+        return expandEnvVars && env != null && value != null ? env.expand(value) : value;
     }
 
     @Override
@@ -151,8 +324,37 @@ public class AiRequestStep extends Step {
         protected Object run() throws Exception {
             Run<?, ?> run = getContext().get(Run.class);
             TaskListener listener = getContext().get(TaskListener.class);
-            AiRequestRunner.Result result = step.createRunner().execute(run, listener);
-            return step.isReturnDetails() ? result.toMap() : result.getText();
+            EnvVars env = getContext().get(EnvVars.class);
+            List<ModelInput> attachments = new ArrayList<>();
+            for (String path : step.getFiles()) {
+                attachments.add(WorkspaceFiles.readAttachment(requireWorkspace("files"), step.expand(env, path)));
+            }
+            AiRequestRunner.Result result = step.createRunner(env, attachments).execute(run, listener);
+            String outputDir = step.expand(env, step.getOutputDir());
+            List<Map<String, Object>> files = WorkspaceFiles.saveOutputs(
+                    result.getResponse(),
+                    outputDir == null ? null : requireWorkspace("outputDir").child(outputDir),
+                    outputDir);
+            if (!step.isQuiet() && outputDir == null && !files.isEmpty()) {
+                listener.getLogger()
+                        .println("[AI] The model produced " + files.size()
+                                + " files, set outputDir to save them to the workspace");
+            }
+            if (!step.isReturnDetails()) {
+                return result.getText();
+            }
+            Map<String, Object> details = result.toMap();
+            details.put("files", files);
+            return details;
+        }
+
+        private FilePath requireWorkspace(String parameter) throws IOException, InterruptedException {
+            FilePath workspace = getContext().get(FilePath.class);
+            if (workspace == null) {
+                throw new AbortException(
+                        "aiRequest needs a workspace for " + parameter + ", use it inside a node block");
+            }
+            return workspace;
         }
     }
 
@@ -177,7 +379,7 @@ public class AiRequestStep extends Step {
         public Step newInstance(@Nullable StaplerRequest2 req, @NonNull JSONObject formData)
                 throws Descriptor.FormException {
             // The snippet generator submits empty number fields as "", which cannot be bound to a Double or Long.
-            for (String field : List.of("temperature", "maxOutputTokens")) {
+            for (String field : List.of("temperature", "maxOutputTokens", "topP", "topK", "timeout")) {
                 if (Util.fixEmptyAndTrim(formData.optString(field)) == null) {
                     formData.remove(field);
                 }

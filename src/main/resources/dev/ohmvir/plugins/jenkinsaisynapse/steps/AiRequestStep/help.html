@@ -21,6 +21,24 @@ echo "Used ${review.usage?.outputTokens} output tokens"
 </pre>
     <p>
         <code>tools</code> and <code>skills</code> are lists of tool and skill names. They are not shown in the
-        snippet generator.
+        snippet generator, and neither are these lists:
     </p>
+    <dl>
+        <dt><code>files</code></dt>
+        <dd>Workspace files to attach to the request. Images, audio and video are sent as such, anything else as a
+            file. Each may be up to 32 MB. Needs a workspace, so use it inside a <code>node</code> block.</dd>
+        <dt><code>outputTypes</code></dt>
+        <dd>The outputs the response must contain, out of <code>text</code>, <code>image</code>, <code>audio</code>,
+            <code>video</code> and <code>file</code>. Only models that can produce all of them are used. Defaults to
+            <code>['text']</code>.</dd>
+        <dt><code>stopSequences</code></dt>
+        <dd>Text that makes the model stop generating when it produces it.</dd>
+    </dl>
+<pre>
+node {
+    def result = aiRequest(prompt: 'Draw a diagram of this design', files: ['design.md'],
+                           outputTypes: ['text', 'image'], outputDir: 'ai-output', returnDetails: true)
+    archiveArtifacts artifacts: 'ai-output/*'
+}
+</pre>
 </div>
