@@ -307,6 +307,30 @@ public class AiRequestStepTest {
     }
 
     @Test
+    public void pipelineStepExpandsModelPromptIdAndStopSequencesWhenAsked() throws Exception {
+        WorkflowJob p = j.createProject(WorkflowJob.class, "p");
+        String script = """
+                withEnv(['AI_MODEL=fake:echo', 'STOP=END', 'NOTHING=']) {
+                    def details = aiRequest(prompt: 'options', model: '${AI_MODEL}', expandEnvVars: true,
+                            returnDetails: true, stopSequences: ['${STOP}', '${NOTHING}'])
+                    echo "text=${details.text} model=${details.model}"
+                }
+                """;
+        p.setDefinition(new CpsFlowDefinition(script, true));
+        WorkflowRun b = j.buildAndAssertSuccess(p);
+        j.assertLogContains("model=fake:echo", b);
+        j.assertLogContains("stop=[END]", b);
+
+        p.setDefinition(new CpsFlowDefinition(
+                "withEnv(['AI_MODEL=fake:echo']) { aiRequest(prompt: 'hi', model: '${AI_MODEL}') }", true));
+        j.assertLogContains("Unknown model '${AI_MODEL}'", j.buildAndAssertStatus(Result.FAILURE, p));
+
+        p.setDefinition(new CpsFlowDefinition(
+                "withEnv(['PROMPT=missing']) { aiRequest(promptId: '${PROMPT}', expandEnvVars: true) }", true));
+        j.assertLogContains("No base prompt with id 'missing'", j.buildAndAssertStatus(Result.FAILURE, p));
+    }
+
+    @Test
     public void executeDoesNotModifyTheRequest() throws Exception {
         ModelRequest request = new ModelRequest();
         request.addInput(new InputTextContent("hi"));
