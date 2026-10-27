@@ -1,7 +1,10 @@
 package dev.ohmvir.plugins.jenkinsaisynapse.configuration.skills;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.ReadSkillFileTool;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolRegistry;
 import hudson.Extension;
@@ -16,6 +19,7 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 import org.jenkinsci.Symbol;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
@@ -31,16 +35,47 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
                     skillDescription,
                     skillLicense,
                     skillCompatibility,
-                    YAML_MAPPER.readTree(skillMetadata),
+                    parseSkillMetadata(skillMetadata),
                     allowedTools.stream().map(AllowedTool::getToolName).toList(),
                     skillText,
                     skillReferences.stream()
                             .collect(Collectors.toMap(
-                                    SkillReferenceEntry::getRelativeFilePath, SkillReferenceEntry::getFileContent))));
+                                    SkillReferenceEntry::getRelativeFilePath,
+                                    SkillReferenceEntry::getFileContent,
+                                    (first, second) -> second,
+                                    LinkedHashMap::new))));
         } catch (Exception e) {
             LOGGER.severe("Failed to generate SkillData for DeclaredSkillConfiguration due to " + e.getMessage());
             return List.of();
         }
+    }
+
+    /**
+     * Parses the optional skill metadata. Null, blank and comment-only YAML mean the skill has no metadata (null);
+     * anything else must be a YAML mapping.
+     *
+     * @throws Descriptor.FormException if the metadata is not valid YAML or is not a mapping
+     */
+    static @Nullable JsonNode parseSkillMetadata(@Nullable String skillMetadata) throws Descriptor.FormException {
+        if (skillMetadata == null || skillMetadata.isBlank()) {
+            return null;
+        }
+        JsonNode node;
+        try {
+            node = YAML_MAPPER.readTree(skillMetadata);
+        } catch (JsonProcessingException e) {
+            throw new Descriptor.FormException(
+                    "Skill metadata is not valid YAML: " + e.getOriginalMessage(), e, "skillMetadata");
+        }
+        if (node == null || node.isMissingNode() || node.isNull()) {
+            return null;
+        }
+        if (!node.isObject()) {
+            throw new Descriptor.FormException(
+                    "Skill metadata must be a YAML mapping of keys to values, not a " + node.getNodeType(),
+                    "skillMetadata");
+        }
+        return node;
     }
 
     @DataBoundConstructor
@@ -58,11 +93,7 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
         this.skillDescription = skillDescription;
         this.skillLicense = skillLicense;
         this.skillCompatibility = skillCompatibility;
-        try {
-            YAML_MAPPER.readTree(skillMetadata);
-        } catch (Exception e) {
-            throw new Descriptor.FormException("Skill metadata is not a valid YAML object", "skillMetadata");
-        }
+        parseSkillMetadata(skillMetadata);
         this.skillMetadata = skillMetadata;
         if (allowedTools != null
                 && allowedTools.stream()
@@ -77,6 +108,23 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
                                 || ref.relativeFilePath.trim().isEmpty())) {
             throw new Descriptor.FormException(
                     "Skill Reference cannot have blank file content or relative path", "skillReferences");
+        }
+        if (skillReferences != null) {
+            Set<String> seenPaths = new HashSet<>();
+            for (SkillReferenceEntry ref : skillReferences) {
+                if (ref.relativeFilePath.trim().equals(ReadSkillFileTool.SKILL_FILE)) {
+                    throw new Descriptor.FormException(
+                            "Skill Reference cannot be named " + ReadSkillFileTool.SKILL_FILE
+                                    + " because it is generated from the skill itself",
+                            "skillReferences");
+                }
+                if (!seenPaths.add(ref.relativeFilePath)) {
+                    throw new Descriptor.FormException(
+                            "Skill References must have unique relative paths, but '" + ref.relativeFilePath
+                                    + "' is used more than once",
+                            "skillReferences");
+                }
+            }
         }
         this.skillReferences = skillReferences == null ? new ArrayList<>() : skillReferences;
     }
