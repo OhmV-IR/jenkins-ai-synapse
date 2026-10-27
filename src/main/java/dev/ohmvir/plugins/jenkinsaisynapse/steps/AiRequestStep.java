@@ -401,7 +401,7 @@ public class AiRequestStep extends Step {
                 if (expandedPath == null) {
                     throw new AbortException("The file path '" + path + "' is empty after expanding variables");
                 }
-                attachments.add(WorkspaceFiles.readAttachment(requireWorkspace("files"), expandedPath));
+                attachments.add(WorkspaceFiles.readAttachment(requireWorkspace("files"), expandedPath, budget));
             }
             AiRequestRunner runner = step.createRunner(env, attachments);
             runner.setSecrets(SecretsUtils.getBuildSecrets(run, env));

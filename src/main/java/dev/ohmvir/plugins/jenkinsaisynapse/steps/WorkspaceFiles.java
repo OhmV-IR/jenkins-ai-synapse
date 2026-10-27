@@ -15,11 +15,16 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputVideoContent;
 import hudson.AbortException;
 import hudson.FilePath;
 import hudson.Util;
+import hudson.remoting.VirtualChannel;
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serial;
+import java.io.Serializable;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -27,6 +32,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import jenkins.MasterToSlaveFileCallable;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -112,6 +118,76 @@ final class WorkspaceFiles {
             }
             usedBytes += length;
         }
+
+        /**
+         * @return How many more bytes can be attached before the limit is reached
+         */
+        long remaining() {
+            return limitBytes - usedBytes;
+        }
+    }
+
+    /**
+     * The result of {@link ReadFile}.
+     *
+     * @param data The content of the file, or null if the file is larger than the total size still allowed
+     * @param length The size of the file in bytes, larger than the allowance if there is no data
+     */
+    private record FileContent(byte @Nullable [] data, long length) implements Serializable {
+        @Serial
+        private static final long serialVersionUID = 1L;
+    }
+
+    /**
+     * Checks and reads a file in a single call to the agent, rather than one remoting round trip for each of exists,
+     * isDirectory, length and read. The read is bounded so that a file that is too large is never held in memory.
+     */
+    private static final class ReadFile extends MasterToSlaveFileCallable<FileContent> {
+        @Serial
+        private static final long serialVersionUID = 1L;
+
+        private final String path;
+        private final long remainingBytes;
+
+        ReadFile(String path, long remainingBytes) {
+            this.path = path;
+            this.remainingBytes = remainingBytes;
+        }
+
+        @Override
+        public FileContent invoke(File file, VirtualChannel channel) throws IOException {
+            if (!file.exists()) {
+                throw new AbortException("File to attach does not exist: " + path);
+            }
+            if (file.isDirectory()) {
+                throw new AbortException("File to attach is a directory: " + path);
+            }
+            long length = file.length();
+            if (length > MAX_ATTACHMENT_BYTES) {
+                throw new AbortException(tooLargeMessage(path));
+            }
+            if (length > remainingBytes) {
+                return new FileContent(null, length);
+            }
+            // The file can grow after its length was checked, so the read itself is bounded, by one more byte than
+            // allowed to tell that it went over.
+            long allowedBytes = Math.min(MAX_ATTACHMENT_BYTES, remainingBytes);
+            byte[] data;
+            try (InputStream in = Files.newInputStream(file.toPath())) {
+                data = in.readNBytes((int) allowedBytes + 1);
+            }
+            if (data.length > allowedBytes) {
+                if (allowedBytes == MAX_ATTACHMENT_BYTES) {
+                    throw new AbortException(tooLargeMessage(path));
+                }
+                return new FileContent(null, data.length);
+            }
+            return new FileContent(data, data.length);
+        }
+    }
+
+    private static String tooLargeMessage(String path) {
+        return "File to attach is larger than " + MAX_ATTACHMENT_BYTES + " bytes: " + path;
     }
 
     /**
@@ -127,8 +203,8 @@ final class WorkspaceFiles {
      * text (including JSON, YAML, XML and SVG) headed by the file name, or any other file such as a PDF.
      *
      * @param path The path of the file, relative to the workspace
-     * @param budget The total size of the files attached to the request, the file is counted towards it before it is
-     *     read
+     * @param budget The total size of the files attached to the request, a file larger than what is still allowed is
+     *     not read
      * @throws AbortException If the path is missing or blank, or the file cannot be attached
      */
     static ModelInput readAttachment(FilePath workspace, @Nullable String path, AttachmentBudget budget)
@@ -137,20 +213,12 @@ final class WorkspaceFiles {
             throw new AbortException("File to attach has no path, check for an empty or unset variable in files");
         }
         FilePath file = workspace.child(path);
-        if (!file.exists()) {
-            throw new AbortException("File to attach does not exist: " + path);
-        }
-        if (file.isDirectory()) {
-            throw new AbortException("File to attach is a directory: " + path);
-        }
-        long length = file.length();
-        if (length > MAX_ATTACHMENT_BYTES) {
-            throw new AbortException("File to attach is larger than " + MAX_ATTACHMENT_BYTES + " bytes: " + path);
-        }
-        budget.add(path, length);
-        byte[] data;
-        try (InputStream in = file.read()) {
-            data = in.readAllBytes();
+        FileContent content = file.act(new ReadFile(path, budget.remaining()));
+        // A file larger than the total size still allowed comes back without data, and is always refused here
+        budget.add(path, content.length());
+        byte[] data = content.data();
+        if (data == null) {
+            throw new AbortException("File to attach could not be read: " + path);
         }
         String contentType = guessContentType(file.getName(), data);
         if (IMAGE_CONTENT_TYPES.contains(contentType)) {
@@ -211,6 +279,9 @@ final class WorkspaceFiles {
         List<Map<String, Object>> files = new ArrayList<>();
         Set<String> usedNames = new HashSet<>();
         int index = 0;
+        if (outputDirectory != null && !response.getOutputs().isEmpty()) {
+            outputDirectory.mkdirs();
+        }
         for (ModelOutput output : response.getOutputs()) {
             String kind;
             @Nullable String name = null;
@@ -257,7 +328,6 @@ final class WorkspaceFiles {
             description.put("contentType", contentType);
             description.put("size", data.length);
             if (outputDirectory != null) {
-                outputDirectory.mkdirs();
                 outputDirectory.child(fileName).copyFrom(new ByteArrayInputStream(data));
                 description.put("path", outputDir + "/" + fileName);
             }
