@@ -246,6 +246,16 @@ public class AiRequestStepTest {
     }
 
     @Test
+    public void pipelineStepRejectsNullAndBlankFileEntries() throws Exception {
+        WorkflowJob p = j.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition("aiRequest(prompt: 'hi', files: ['a.txt', null])", true));
+        j.assertLogContains("files[1] is empty", j.buildAndAssertStatus(Result.FAILURE, p));
+
+        p.setDefinition(new CpsFlowDefinition("aiRequest(prompt: 'hi', files: ['  '])", true));
+        j.assertLogContains("files[0] is empty", j.buildAndAssertStatus(Result.FAILURE, p));
+    }
+
+    @Test
     public void pipelineStepAttachesFilesAndSavesOutputs() throws Exception {
         WorkflowJob p = j.createProject(WorkflowJob.class, "p");
         String script = """

@@ -14,6 +14,7 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputImageContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputVideoContent;
 import hudson.AbortException;
 import hudson.FilePath;
+import hudson.Util;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -80,8 +81,13 @@ final class WorkspaceFiles {
      * text (including JSON, YAML, XML and SVG) headed by the file name, or any other file such as a PDF.
      *
      * @param path The path of the file, relative to the workspace
+     * @throws AbortException If the path is missing or blank, or the file cannot be attached
      */
-    static ModelInput readAttachment(FilePath workspace, String path) throws IOException, InterruptedException {
+    static ModelInput readAttachment(FilePath workspace, @Nullable String path)
+            throws IOException, InterruptedException {
+        if (Util.fixEmptyAndTrim(path) == null) {
+            throw new AbortException("File to attach has no path, check for an empty or unset variable in files");
+        }
         FilePath file = workspace.child(path);
         if (!file.exists()) {
             throw new AbortException("File to attach does not exist: " + path);

@@ -184,10 +184,22 @@ public class AiRequestStep extends Step {
     /**
      * Workspace files to attach to the request. PNG, JPEG, GIF and WebP images, audio and video are sent as such, text
      * files (including JSON, YAML, XML and SVG) as text headed by the file name, anything else as a file.
+     *
+     * @throws IllegalArgumentException If an entry is null or blank, for example because it comes from an unset variable
      */
     @DataBoundSetter
     public void setFiles(@Nullable List<String> files) {
-        this.files = files == null ? new ArrayList<>() : new ArrayList<>(files);
+        List<String> paths = new ArrayList<>();
+        if (files != null) {
+            for (int i = 0; i < files.size(); i++) {
+                String path = Util.fixEmptyAndTrim(files.get(i));
+                if (path == null) {
+                    throw new IllegalArgumentException("files[" + i + "] is empty, every file needs a path");
+                }
+                paths.add(path);
+            }
+        }
+        this.files = paths;
     }
 
     /**
