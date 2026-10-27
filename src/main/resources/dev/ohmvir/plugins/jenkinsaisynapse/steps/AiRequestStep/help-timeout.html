@@ -1,4 +1,5 @@
 <div>
-    The maximum number of seconds the whole request, including tool calls, may take. The timeout configured for the
-    model's provider still applies when it is shorter. Leave empty for no extra limit.
+    The maximum number of seconds the whole request, including tool calls, may take. When set, it replaces the timeout
+    configured for the model's provider, even if it is longer, so use it to give long agentic runs more time. Leave
+    empty to use the provider's timeout.
 </div>

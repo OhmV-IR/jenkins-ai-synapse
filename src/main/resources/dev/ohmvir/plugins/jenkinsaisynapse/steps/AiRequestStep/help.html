@@ -6,8 +6,8 @@
         under <em>AI Conversations</em>.
     </p>
     <p>
-        Aborting the build cancels the request. The request also fails if it takes longer than the timeout configured
-        for the model's client.
+        Aborting the build cancels the request. The request also fails if it takes longer than the <code>timeout</code>
+        of the step or, when the step sets none, the timeout configured for the model's provider.
     </p>
 <pre>
 def answer = aiRequest 'Summarize the changes in this build'
