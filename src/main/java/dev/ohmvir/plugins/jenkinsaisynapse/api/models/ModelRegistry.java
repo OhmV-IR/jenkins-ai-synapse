@@ -3,7 +3,7 @@ package dev.ohmvir.plugins.jenkinsaisynapse.api.models;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
-import dev.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsManagementLink;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,7 +33,7 @@ public class ModelRegistry {
     @Initializer(after = InitMilestone.PLUGINS_STARTED)
     public static void initialize() {
         LOGGER.info("Prefetching model data");
-        GLOBAL.reload(ModelsManagementLink.get().getModelConfigurations(), ModelProvider.all());
+        GLOBAL.reload(ModelsConfiguration.get().getModels(), ModelProvider.all());
     }
 
     /**
