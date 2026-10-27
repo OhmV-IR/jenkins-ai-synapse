@@ -13,6 +13,7 @@ import hudson.tasks.Builder;
 import hudson.util.ListBoxModel;
 import dev.ohmvir.plugins.jenkinsaisynapse.steps.AiRequestRunner;
 import dev.ohmvir.plugins.jenkinsaisynapse.steps.EnvVarExpansion;
+import dev.ohmvir.plugins.jenkinsaisynapse.utils.SecretsUtils;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -112,6 +113,7 @@ public class ModelRequestExecutionStep extends Builder implements SimpleBuildSte
         runner.setTools(splitNames(EnvVarExpansion.expand(env, tools)));
         runner.setSkills(splitNames(EnvVarExpansion.expand(env, skills)));
         runner.setQuiet(quiet);
+        runner.setSecrets(SecretsUtils.getBuildSecrets(run, env));
         AiRequestRunner.Result result = runner.execute(run, listener);
         if (quiet) {
             listener.getLogger().println(result.getText());

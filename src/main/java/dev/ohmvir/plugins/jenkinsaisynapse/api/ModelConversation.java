@@ -3,6 +3,7 @@ package dev.ohmvir.plugins.jenkinsaisynapse.api;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -19,6 +20,7 @@ public class ModelConversation {
     private @Getter @Setter @Nullable String modelId;
     private final List<ConversationEntry> entries = new ArrayList<>();
     private transient List<ModelContent> conversation = new ArrayList<>();
+    private transient List<String> secrets = List.of();
 
     public static ModelConversation inMemory() {
         return new ModelConversation();
@@ -32,6 +34,19 @@ public class ModelConversation {
         return new Date(createdAt);
     }
 
+    /**
+     * Replaces these values with asterisks in the entries added from now on, so that secrets used by the build are not
+     * stored in the build or shown on the AI Conversations page.
+     */
+    public synchronized void maskSecrets(Collection<String> values) {
+        // Longest first, so that a secret containing another one is masked as a whole.
+        secrets = values.stream()
+                .filter(value -> value != null && !value.isBlank())
+                .distinct()
+                .sorted(Comparator.comparingInt(String::length).reversed())
+                .toList();
+    }
+
     public void addContent(ModelContent content) {
         addAllContent(List.of(content));
     }
@@ -39,7 +54,7 @@ public class ModelConversation {
     public synchronized void addAllContent(Collection<? extends ModelContent> content) {
         conversation.addAll(content);
         for (ModelContent item : content) {
-            entries.add(ConversationEntry.from(item));
+            entries.add(ConversationEntry.from(item, secrets));
         }
     }
 
@@ -53,6 +68,7 @@ public class ModelConversation {
 
     private Object readResolve() {
         conversation = new ArrayList<>();
+        secrets = List.of();
         return this;
     }
 }

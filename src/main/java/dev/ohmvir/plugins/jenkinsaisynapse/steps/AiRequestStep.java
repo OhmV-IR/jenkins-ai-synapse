@@ -8,6 +8,7 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputFileContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputImageContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputTextContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputVideoContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.utils.SecretsUtils;
 import hudson.AbortException;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -384,8 +385,10 @@ public class AiRequestStep extends Step {
                 }
                 attachments.add(WorkspaceFiles.readAttachment(requireWorkspace("files"), expandedPath));
             }
-            AiRequestRunner.Result result = step.createRunner(env, attachments).execute(run, listener);
-            String outputDir = step.expandAndTrim(env, step.getOutputDir());
+            AiRequestRunner runner = step.createRunner(env, attachments);
+            runner.setSecrets(SecretsUtils.getBuildSecrets(run, env));
+            AiRequestRunner.Result result = runner.execute(run, listener);
+            String outputDir = step.expand(env, step.getOutputDir());
             List<Map<String, Object>> files = WorkspaceFiles.saveOutputs(
                     result.getResponse(),
                     outputDir == null ? null : requireWorkspace("outputDir").child(outputDir),

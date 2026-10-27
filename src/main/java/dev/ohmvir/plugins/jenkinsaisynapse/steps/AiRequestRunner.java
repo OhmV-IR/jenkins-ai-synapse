@@ -45,6 +45,7 @@ import hudson.util.ListBoxModel;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -98,6 +99,9 @@ public final class AiRequestRunner {
      */
     private @Nullable Integer maxSteps;
 
+    /** Values to mask in the recorded conversation, such as the build's credentials. */
+    private Collection<String> secrets = List.of();
+
     private boolean quiet;
 
     /**
@@ -115,6 +119,7 @@ public final class AiRequestRunner {
         }
         ModelConversation conversation = ModelConversation.inMemory();
         conversation.setModelId(modelData.getModelId());
+        conversation.maskSecrets(secrets);
         request.setAssociatedConversation(conversation);
         Authentication toolAuthentication = getToolAuthentication(run);
         ModelRequestListener requestListener = quiet ? ModelRequestListener.NOOP : new BuildLogListener(logger);

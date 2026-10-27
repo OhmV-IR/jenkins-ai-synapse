@@ -27,6 +27,9 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputVideoContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ThinkingContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.TokenUtilizationContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
+import java.util.Collection;
+import java.util.List;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -35,7 +38,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * A stored record of one piece of a {@link ModelConversation}. Only plain values are kept: text is truncated to
  * {@link #MAX_TEXT_LENGTH} characters, and binary content (images, audio, video, files) is recorded by MIME type and
- * size only.
+ * size only. Secret values given to {@link #from(ModelContent, Collection)} are replaced with {@link #MASK}.
  */
 @Getter
 @Setter
@@ -43,6 +46,7 @@ import org.jspecify.annotations.Nullable;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ConversationEntry {
     public static final int MAX_TEXT_LENGTH = 100_000;
+    public static final String MASK = "****";
 
     public static final String DIRECTION_INPUT = "input";
     public static final String DIRECTION_OUTPUT = "output";
@@ -59,8 +63,21 @@ public class ConversationEntry {
     private @Nullable String mimeType;
     private @Nullable Long sizeBytes;
 
+    /** The values to mask while the entry is being built, never stored. */
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private transient @Nullable Collection<String> secrets;
+
     public static ConversationEntry from(ModelContent content) {
+        return from(content, List.of());
+    }
+
+    /**
+     * @param secrets Values to replace with {@link #MASK} in the recorded text, longest first
+     */
+    public static ConversationEntry from(ModelContent content, Collection<String> secrets) {
         ConversationEntry entry = new ConversationEntry();
+        entry.secrets = secrets;
         entry.direction = content instanceof ModelInput ? DIRECTION_INPUT : DIRECTION_OUTPUT;
         entry.type = content.getClass().getSimpleName();
         switch (content) {
@@ -109,10 +126,17 @@ public class ConversationEntry {
             case OutputFileContent c -> entry.setBinary(c.getContentType(), c.getFileData());
             default -> {}
         }
+        entry.secrets = null;
         return entry;
     }
 
     public void setText(@Nullable String text) {
+        // Mask before truncating, so that a secret cut off at the limit is not left partly visible.
+        if (text != null && secrets != null) {
+            for (String secret : secrets) {
+                text = text.replace(secret, MASK);
+            }
+        }
         if (text != null && text.length() > MAX_TEXT_LENGTH) {
             text = text.substring(0, MAX_TEXT_LENGTH) + "\n[truncated " + (text.length() - MAX_TEXT_LENGTH)
                     + " characters]";

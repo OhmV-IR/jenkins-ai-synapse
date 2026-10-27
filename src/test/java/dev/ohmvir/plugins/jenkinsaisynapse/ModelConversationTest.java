@@ -73,4 +73,25 @@ public class ModelConversationTest {
                 ConversationEntry.from(new OutputTextContent("x".repeat(ConversationEntry.MAX_TEXT_LENGTH + 10)));
         assertTrue(entry.getText().endsWith("[truncated 10 characters]"));
     }
+
+    @Test
+    public void secretsAreMaskedInRecordedText() {
+        ModelConversation conversation = ModelConversation.inMemory();
+        conversation.maskSecrets(List.of("hunter2", "hunter2-long", ""));
+        conversation.addAllContent(List.of(
+                new InputTextContent("Check hunter2 and hunter2-long"), new OutputTextContent("no secrets here")));
+
+        List<ConversationEntry> entries = conversation.getEntries();
+        assertEquals("Check **** and ****", entries.get(0).getText());
+        assertEquals("no secrets here", entries.get(1).getText());
+    }
+
+    @Test
+    public void secretsAreMaskedBeforeTruncation() {
+        String text = "x".repeat(ConversationEntry.MAX_TEXT_LENGTH - 3) + "hunter2";
+        ConversationEntry entry =
+                ConversationEntry.from(new OutputTextContent(text), List.of("hunter2"));
+        assertTrue(entry.getText().startsWith("x".repeat(ConversationEntry.MAX_TEXT_LENGTH - 3) + "***\n"));
+        assertTrue(entry.getText().endsWith("[truncated 1 characters]"));
+    }
 }
