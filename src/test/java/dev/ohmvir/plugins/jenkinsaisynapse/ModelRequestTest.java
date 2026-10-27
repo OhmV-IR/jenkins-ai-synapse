@@ -1,6 +1,7 @@
 package dev.ohmvir.plugins.jenkinsaisynapse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -233,5 +234,24 @@ public class ModelRequestTest {
         assertEquals(
                 systemPrompts(seenInputs.get(0)).get(0).getSystemPrompt(),
                 systemPrompts(seenInputs.get(1)).get(0).getSystemPrompt());
+    }
+
+    @Test
+    public void copyDoesNotShareCollectionsWithOriginal() throws Exception {
+        ModelRequest original = skillRequest();
+        original.requireCapability(ModelCapability.TOOLS);
+        original.setModelId("m");
+
+        ModelRequest copy = new ModelRequest(original);
+        int originalInputs = original.getModelInputs().size();
+        copy.addInput(new InputTextContent("extra"));
+        copy.requireCapability(ModelCapability.ADJUSTABLE_SYSTEM_PROMPT);
+        copy.expandSkills();
+
+        assertEquals("m", copy.getModelId());
+        assertEquals(originalInputs, original.getModelInputs().size());
+        assertTrue(original.hasInputType(InputSkillContent.class));
+        assertFalse(original.getRequiredCapabilities().contains(ModelCapability.ADJUSTABLE_SYSTEM_PROMPT));
+        assertFalse(copy.hasInputType(InputSkillContent.class));
     }
 }
