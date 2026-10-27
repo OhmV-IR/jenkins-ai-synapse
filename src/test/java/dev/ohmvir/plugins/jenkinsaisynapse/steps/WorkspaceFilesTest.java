@@ -2,6 +2,7 @@ package dev.ohmvir.plugins.jenkinsaisynapse.steps;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -14,6 +15,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -41,7 +43,7 @@ public class WorkspaceFilesTest {
         assertTrue(fileName.endsWith(".png"));
         Set<String> used = new HashSet<>();
         unique("a".repeat(500), used);
-        assertTrue(unique("a".repeat(500), used).length() <= 140);
+        assertTrue(unique("a".repeat(500), used).length() <= 128);
     }
 
     @Test
@@ -61,6 +63,63 @@ public class WorkspaceFilesTest {
         Set<String> used = new HashSet<>();
         assertEquals("a.png", unique("a.png", used));
         assertEquals("2-a.png", WorkspaceFiles.uniqueFileName("a.png", "image-2.png", 2, used));
+    }
+
+    @Test
+    public void collisionNamesAreNotUsedByAnotherOutput() {
+        Set<String> used = new HashSet<>();
+        assertEquals("3-a.png", uniqueAt("3-a.png", 1, used));
+        assertEquals("a.png", uniqueAt("a.png", 2, used));
+        // 3-a.png is taken by the first output, so the third must not overwrite it
+        assertEquals("3-2-a.png", uniqueAt("a.png", 3, used));
+    }
+
+    @Test
+    public void outputFileNamesDifferingOnlyInCaseDoNotOverwriteEachOther() {
+        Set<String> used = new HashSet<>();
+        assertEquals("Report.pdf", uniqueAt("Report.pdf", 1, used));
+        assertEquals("2-report.pdf", uniqueAt("report.pdf", 2, used));
+        assertEquals("3-REPORT.PDF", uniqueAt("REPORT.PDF", 3, used));
+        // A name that only differs in case from an earlier collision name is a collision as well
+        assertEquals("4-Report.pdf", uniqueAt("Report.pdf", 4, used));
+        assertEquals("5-2-REPORT.pdf", uniqueAt("2-REPORT.pdf", 5, used));
+    }
+
+    @Test
+    public void manyOutputsWithTheSameNameAllGetDistinctNames() {
+        Set<String> used = new HashSet<>();
+        Set<String> names = new HashSet<>();
+        for (int i = 0; i < 50; i++) {
+            // The same index each time, as the index is only a hint
+            names.add(uniqueAt("a.png", 1, used).toLowerCase(Locale.ROOT));
+        }
+        assertEquals(50, names.size());
+    }
+
+    @Test
+    public void collisionNamesStayWithinTheLengthLimitAndKeepTheirExtension() {
+        Set<String> used = new HashSet<>();
+        Set<String> names = new HashSet<>();
+        String longName = "a".repeat(500) + ".png";
+        for (int i = 0; i < 20; i++) {
+            String fileName = uniqueAt(longName, 7, used);
+            assertTrue(fileName.length() <= 128, fileName);
+            assertTrue(fileName.endsWith(".png"), fileName);
+            names.add(fileName);
+        }
+        assertEquals(20, names.size());
+        // An extension too long to keep next to the prefix is shortened rather than exceeding the limit
+        String longExtension = "a." + "b".repeat(126);
+        used = new HashSet<>();
+        String first = uniqueAt(longExtension, 1, used);
+        String second = uniqueAt(longExtension, 1, used);
+        assertEquals(128, first.length());
+        assertEquals(128, second.length());
+        assertNotEquals(first, second);
+    }
+
+    private static String uniqueAt(String name, int index, Set<String> used) {
+        return WorkspaceFiles.uniqueFileName(name, "output.bin", index, used);
     }
 
     private static String unique(String name, Set<String> used) {

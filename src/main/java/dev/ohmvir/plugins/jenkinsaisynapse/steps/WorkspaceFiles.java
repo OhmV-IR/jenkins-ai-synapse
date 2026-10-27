@@ -92,6 +92,9 @@ final class WorkspaceFiles {
     private static final Pattern WINDOWS_DEVICE_NAME =
             Pattern.compile("(?i)(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\\..*)?");
 
+    /** The longest output file name, the same as the limit applied by {@code FileDownloadUtils.sanitizeFileName}. */
+    private static final int MAX_FILE_NAME_LENGTH = 128;
+
     private WorkspaceFiles() {}
 
     /**
@@ -359,17 +362,43 @@ final class WorkspaceFiles {
      * @param name The file name the model chose, if any
      * @param fallback The file name to use when the model's name has nothing usable in it, trusted to be safe
      * @param index The position of the output, to tell apart outputs with the same name
-     * @param usedNames The names already used in the output directory, this name is added to it
+     * @param usedNames The names already used in the output directory, this name is added to it. Names are stored in
+     *     lower case, as the output directory can be on a case-insensitive file system
+     * @return A file name of at most 128 characters that is not used yet, ignoring case
      */
     static String uniqueFileName(@Nullable String name, String fallback, int index, Set<String> usedNames) {
         String fileName = FileDownloadUtils.sanitizeFileName(name, fallback);
         if (WINDOWS_DEVICE_NAME.matcher(fileName).matches()) {
             fileName = "file-" + fileName;
         }
-        if (!usedNames.add(fileName)) {
-            fileName = index + "-" + fileName;
-            usedNames.add(fileName);
+        if (usedNames.add(fileName.toLowerCase(Locale.ROOT))) {
+            return fileName;
         }
-        return fileName;
+        // <index>-<name> first, then <index>-<n>-<name> until the name is not used by another output
+        for (int attempt = 1; ; attempt++) {
+            String prefix = attempt == 1 ? index + "-" : index + "-" + attempt + "-";
+            String candidate = withPrefix(prefix, fileName);
+            if (usedNames.add(candidate.toLowerCase(Locale.ROOT))) {
+                return candidate;
+            }
+        }
+    }
+
+    /**
+     * Adds a prefix to a file name, keeping the result within the length limit by shortening the name before its
+     * extension.
+     */
+    private static String withPrefix(String prefix, String fileName) {
+        if (prefix.length() + fileName.length() <= MAX_FILE_NAME_LENGTH) {
+            return prefix + fileName;
+        }
+        int dot = fileName.lastIndexOf('.');
+        String extension = dot > 0 ? fileName.substring(dot) : "";
+        if (prefix.length() + extension.length() >= MAX_FILE_NAME_LENGTH) {
+            // No room left for a name next to the extension, so the extension is shortened with it
+            return (prefix + fileName).substring(0, MAX_FILE_NAME_LENGTH);
+        }
+        String stem = dot > 0 ? fileName.substring(0, dot) : fileName;
+        return prefix + stem.substring(0, MAX_FILE_NAME_LENGTH - prefix.length() - extension.length()) + extension;
     }
 }
