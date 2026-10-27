@@ -156,6 +156,42 @@ public class WorkspaceFilesTest {
     }
 
     @Test
+    public void outputsGetThePreferredExtensionOfTheirContentType() {
+        assertEquals("jpg", WorkspaceFiles.extensionFor("image/jpeg"));
+        assertEquals("png", WorkspaceFiles.extensionFor("image/png"));
+        assertEquals("pdf", WorkspaceFiles.extensionFor("application/pdf"));
+        assertEquals("yaml", WorkspaceFiles.extensionFor("application/yaml"));
+        assertEquals("svg", WorkspaceFiles.extensionFor("image/svg+xml"));
+    }
+
+    @Test
+    public void theExtensionOfAContentTypeIgnoresParametersAndCase() {
+        assertEquals("txt", WorkspaceFiles.extensionFor("text/plain; charset=utf-8"));
+        assertEquals("json", WorkspaceFiles.extensionFor("application/json;charset=UTF-8"));
+        assertEquals("jpg", WorkspaceFiles.extensionFor("IMAGE/JPEG"));
+        assertEquals("pdf", WorkspaceFiles.extensionFor("  Application/PDF ; q=1"));
+    }
+
+    @Test
+    public void theExtensionOfAnUnknownContentTypeIsBinOrTxt() {
+        assertEquals("bin", WorkspaceFiles.extensionFor("application/octet-stream"));
+        assertEquals("bin", WorkspaceFiles.extensionFor("application/x-unknown"));
+        assertEquals("txt", WorkspaceFiles.extensionFor("text/x-unknown"));
+    }
+
+    @Test
+    public void everyKnownContentTypeHasAPreferredExtensionThatMapsBackToIt() {
+        for (String contentType : WorkspaceFiles.CONTENT_TYPES_BY_EXTENSION.values()) {
+            String extension = WorkspaceFiles.PREFERRED_EXTENSIONS.get(contentType);
+            assertTrue(extension != null, "No preferred extension for " + contentType);
+            assertEquals(
+                    contentType,
+                    WorkspaceFiles.CONTENT_TYPES_BY_EXTENSION.get(extension),
+                    extension + " does not map back to " + contentType);
+        }
+    }
+
+    @Test
     public void outputFileNamesStayBoundedWhenAnExtensionIsAdded() {
         String fileName = withExtension("a".repeat(500), "pdf");
         assertEquals(128, fileName.length());
