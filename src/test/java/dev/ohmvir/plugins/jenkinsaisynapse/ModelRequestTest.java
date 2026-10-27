@@ -10,9 +10,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputImageContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputSkillContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputTextContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.SystemPromptContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ToolCallResponseContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
@@ -28,10 +30,13 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputImageContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputTextContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ThinkingContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.ReadSkillFileTool;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolArgumentDescription;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -165,5 +170,68 @@ public class ModelRequestTest {
         ModelRequest request = new ModelRequest();
         request.addInput(new InputImageContent(new byte[] {1}, "image/png"));
         assertNull(request.execute(registry));
+    }
+
+    private static ModelRequest skillRequest() throws Exception {
+        ModelRequest request = new ModelRequest();
+        request.addInput(new InputTextContent("use the skill"));
+        // Attached up front so expansion does not look the tool up from Jenkins
+        request.attachTool(new ReadSkillFileTool());
+        request.attachSkill(new SkillData("execute-skill", "A skill", null, null, null, null, "Do things", Map.of()));
+        return request;
+    }
+
+    private static List<SystemPromptContent> systemPrompts(List<ModelInput> inputs) {
+        return inputs.stream()
+                .filter(SystemPromptContent.class::isInstance)
+                .map(SystemPromptContent.class::cast)
+                .toList();
+    }
+
+    @Test
+    public void executeExpandsSkillsBeforeSelectingAModel() throws Exception {
+        List<List<ModelInput>> seenInputs = new ArrayList<>();
+        ModelClient client = (model, request, inputs) -> {
+            seenInputs.add(inputs);
+            return List.of(new OutputTextContent("done"));
+        };
+        ModelRegistry registry = new ModelRegistry();
+        // No SKILLS capability, as the skill is sent as a system prompt and the skill-file tool
+        registry.setModels(List.of(
+                TestModels.registered("m", client, ModelCapability.TOOLS, ModelCapability.ADJUSTABLE_SYSTEM_PROMPT)));
+
+        ModelRequest request = skillRequest();
+        assertNotNull(request.execute(registry));
+
+        assertEquals(1, seenInputs.size());
+        assertTrue(seenInputs.get(0).stream().noneMatch(InputSkillContent.class::isInstance));
+        List<SystemPromptContent> prompts = systemPrompts(seenInputs.get(0));
+        assertEquals(1, prompts.size());
+        assertTrue(prompts.get(0).getSystemPrompt().contains("<name>execute-skill</name>"));
+        assertEquals(Set.of(ReadSkillFileTool.NAME), request.getAvailableTools().keySet());
+    }
+
+    @Test
+    public void executeOnAModelExpandsSkillsOnce() throws Exception {
+        List<List<ModelInput>> seenInputs = new ArrayList<>();
+        ModelClient client = (model, request, inputs) -> {
+            seenInputs.add(inputs);
+            return List.of(new OutputTextContent("done"));
+        };
+        RegisteredModel model =
+                TestModels.registered("m", client, ModelCapability.TOOLS, ModelCapability.ADJUSTABLE_SYSTEM_PROMPT);
+
+        ModelRequest request = skillRequest();
+        assertNotNull(request.execute(model));
+        assertNotNull(request.execute(model));
+
+        assertEquals(2, seenInputs.size());
+        for (List<ModelInput> inputs : seenInputs) {
+            assertTrue(inputs.stream().noneMatch(InputSkillContent.class::isInstance));
+            assertEquals(1, systemPrompts(inputs).size());
+        }
+        assertEquals(
+                systemPrompts(seenInputs.get(0)).get(0).getSystemPrompt(),
+                systemPrompts(seenInputs.get(1)).get(0).getSystemPrompt());
     }
 }
