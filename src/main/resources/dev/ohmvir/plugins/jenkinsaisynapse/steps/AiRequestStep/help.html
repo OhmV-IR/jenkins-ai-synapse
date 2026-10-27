@@ -26,8 +26,9 @@ echo "Used ${review.usage?.outputTokens} output tokens"
     </p>
     <dl>
         <dt><code>files</code></dt>
-        <dd>Workspace files to attach to the request. Images, audio and video are sent as such, anything else as a
-            file. Each may be up to 32 MB. Needs a workspace, so use it inside a <code>node</code> block.</dd>
+        <dd>Workspace files to attach to the request. PNG, JPEG, GIF and WebP images, audio and video are sent as
+            such, anything else (including SVG and BMP images) as a file. Each may be up to 32 MB. Needs a workspace, so
+            use it inside a <code>node</code> block.</dd>
         <dt><code>outputTypes</code></dt>
         <dd>The outputs the response must contain, out of <code>text</code>, <code>image</code>, <code>audio</code>,
             <code>video</code> and <code>file</code>. Only models that can produce all of them are used. Defaults to

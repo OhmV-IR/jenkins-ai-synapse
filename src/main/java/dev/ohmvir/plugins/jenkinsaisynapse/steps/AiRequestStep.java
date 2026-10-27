@@ -181,7 +181,10 @@ public class AiRequestStep extends Step {
         this.stopSequences = stopSequences == null ? new ArrayList<>() : new ArrayList<>(stopSequences);
     }
 
-    /** Workspace files to attach to the request. Images, audio and video are sent as such, anything else as a file. */
+    /**
+     * Workspace files to attach to the request. PNG, JPEG, GIF and WebP images, audio and video are sent as such,
+     * anything else as a file.
+     */
     @DataBoundSetter
     public void setFiles(@Nullable List<String> files) {
         this.files = files == null ? new ArrayList<>() : new ArrayList<>(files);
