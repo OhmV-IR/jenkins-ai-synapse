@@ -17,6 +17,9 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * The System One {@code choice} answer type.
  */
 public class DecisionChoiceAnswerContent extends ModelOutput implements DecisionAnswer {
+    public static final ModelOutputKind<DecisionChoiceAnswerContent> KIND =
+            new ModelOutputKind<>(DecisionChoiceAnswerContent.class, Set.of(ModelCapability.DECISIONS), Set.of());
+
     private @Getter final String questionName;
     /** The label of the selected option */
     private @Getter final String choice;
@@ -46,6 +49,11 @@ public class DecisionChoiceAnswerContent extends ModelOutput implements Decision
     /** @return The probability of each option label */
     public Map<String, Double> getProbabilities() {
         return Collections.unmodifiableMap(probabilities);
+    }
+
+    @Override
+    public ModelOutputKind<DecisionChoiceAnswerContent> getKind() {
+        return KIND;
     }
 
     @Extension

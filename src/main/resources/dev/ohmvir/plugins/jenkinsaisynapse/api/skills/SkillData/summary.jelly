@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:section title="${%Skill Data}">
+        <f:entry title="${%Skill Name}">
+            <f:readOnlyTextbox value="${it.skillName}" />
+        </f:entry>
+        <f:entry title="${%Skill Description}">
+            <f:readOnlyTextbox value="${it.skillDescription}" />
+        </f:entry>
+        <f:entry title="${%Skill License}">
+            <f:readOnlyTextbox value="${it.skillLicense}" />
+        </f:entry>
+        <f:entry title="${%Skill Compatibility}">
+            <f:readOnlyTextbox value="${it.skillCompatibility}" />
+        </f:entry>
+        <f:entry title="${%Skill Metadata}">
+            <pre style="white-space: pre-wrap;">${it.skillMetadataPrettyYaml}</pre>
+        </f:entry>
+        <f:entry title="${%Allowed Tools}">
+            <ul>
+                <j:forEach var="item" items="${it.allowedTools}">
+                    <li>${item}</li>
+                </j:forEach>
+            </ul>
+        </f:entry>
+        <f:entry title="${%Skill Text}">
+            <pre style="white-space: pre-wrap;">${it.skillText}</pre>
+        </f:entry>
+        <f:section title="${%Skill References}">
+            <j:forEach var="entry" items="${it.skillReferencesEntries}">
+                <f:entry title="${entry.key}">
+                    <pre style="white-space: pre-wrap;">${entry.value}</pre>
+                </f:entry>
+            </j:forEach>
+        </f:section>
+    </f:section>
+</j:jelly>

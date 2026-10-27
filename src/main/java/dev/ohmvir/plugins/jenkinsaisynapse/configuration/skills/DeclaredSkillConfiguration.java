@@ -14,6 +14,7 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import lombok.Getter;
+import org.jenkinsci.Symbol;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -162,6 +163,7 @@ public class DeclaredSkillConfiguration extends SkillConfiguration {
     }
 
     @Extension
+    @Symbol("declaredSkill")
     public static class DescriptorImpl extends SkillConfiguration.DescriptorImpl {
         @Override
         public @NonNull String getDisplayName() {

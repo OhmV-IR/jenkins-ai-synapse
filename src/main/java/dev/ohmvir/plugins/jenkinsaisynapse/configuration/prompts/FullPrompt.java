@@ -1,15 +1,15 @@
 package dev.ohmvir.plugins.jenkinsaisynapse.configuration.prompts;
 
+import hudson.Extension;
+import hudson.model.Descriptor;
+import hudson.util.FormValidation;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.MaxOutputTokensContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.SystemPromptContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.TemperatureContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelRegistry;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
-import hudson.Extension;
-import hudson.model.Descriptor;
-import hudson.util.FormValidation;
 import lombok.Getter;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -60,7 +60,7 @@ public class FullPrompt extends SimplePrompt {
         if (temperature < 0) {
             return "Temperature cannot be less than 0";
         }
-        Double maxTemperature = ModelData.getHighestMaxTemperature();
+        Double maxTemperature = ModelRegistry.get().getHighestMaxTemperature();
         if (maxTemperature != null && temperature > maxTemperature) {
             return "Temperature cannot be greater than " + maxTemperature
                     + ", the highest max temperature supported by the configured models";

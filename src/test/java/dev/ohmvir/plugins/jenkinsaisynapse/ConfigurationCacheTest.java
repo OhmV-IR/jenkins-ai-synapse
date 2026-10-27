@@ -5,19 +5,20 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelDataRetriever;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelProvider;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelRegistry;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolArgumentDescription;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolRegistry;
-import dev.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsManagementLink;
-import dev.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsManagementLink;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.skills.BasicSkillConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.skills.BasicSkillFileConfiguration;
 import hudson.model.Descriptor;
-import hudson.util.ListBoxModel;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -28,44 +29,45 @@ import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 public class ConfigurationCacheTest {
     @Test
     public void modelEditsAndDeletionsTakeEffectOnSave(JenkinsRule j) throws Exception {
-        ModelsManagementLink link = ModelsManagementLink.get();
-        link.setModelConfigurations(List.of(
+        ModelsConfiguration config = ModelsConfiguration.get();
+        config.setModels(List.of(
                 new TestModelConfiguration("a", "Model A", 1.0), new TestModelConfiguration("b", "Model B", 1.0)));
-        assertEquals(1.0, ModelData.get("test:a").getMaxTemperature());
-        assertNotNull(ModelData.get("test:b"));
+        assertNotNull(ModelRegistry.get().getModelData("test:a"));
+        assertEquals(1.0, ModelRegistry.get().getModelData("test:a").getMaxTemperature());
+        assertNotNull(ModelRegistry.get().getModelData("test:b"));
 
-        link.setModelConfigurations(List.of(new TestModelConfiguration("a", "Model A", 2.0)));
-        assertEquals(2.0, ModelData.get("test:a").getMaxTemperature());
-        assertNull(ModelData.get("test:b"));
-
-        ListBoxModel models = ModelData.getAllModelsListBox();
-        assertEquals(1, models.size());
-        assertEquals("test:Model A", models.get(0).name);
-        assertEquals("test:a", models.get(0).value);
+        config.setModels(List.of(new TestModelConfiguration("a", "Model A", 2.0)));
+        assertNotNull(ModelRegistry.get().getModelData("test:a"));
+        assertEquals(2.0, ModelRegistry.get().getModelData("test:a").getMaxTemperature());
+        assertNull(ModelRegistry.get().getModelData("test:b"));
+        assertEquals(List.of("test:a"), ModelRegistry.get().getModels().stream()
+                .map(model -> model.getModelId())
+                .toList());
     }
 
     @Test
-    public void modelWithoutMetadataIsUnavailable(JenkinsRule j) throws Exception {
-        ModelsManagementLink.get()
-                .setModelConfigurations(List.of(
-                        new UnsupportedModelConfiguration("x", "Model X"),
-                        new TestModelConfiguration("a", "Model A", 1.0)));
+    public void modelWithoutProviderIsUnavailable(JenkinsRule j) throws Exception {
+        ModelsConfiguration.get().setModels(List.of(
+                new UnsupportedModelConfiguration("x", "Model X"),
+                new TestModelConfiguration("a", "Model A", 1.0)));
 
-        assertNull(ModelData.get("unsupported:x"));
-        assertNotNull(ModelData.get("test:a"));
-        assertEquals(2, ModelData.getAllModelsListBox().size());
+        assertNull(ModelRegistry.get().getModelData("unsupported:x"));
+        assertNotNull(ModelRegistry.get().getModelData("test:a"));
+        assertEquals(List.of("test:a"), ModelRegistry.get().getModels().stream()
+                .map(model -> model.getModelId())
+                .toList());
     }
 
     @Test
     public void invalidAndDeletedSkillsAreDropped(JenkinsRule j) throws Exception {
-        SkillsManagementLink link = SkillsManagementLink.get();
-        link.setSkills(List.of(
+        SkillsConfiguration config = SkillsConfiguration.get();
+        config.setSkills(List.of(
                 new BasicSkillFileConfiguration("not a valid skill file"),
                 new BasicSkillConfiguration("Skill text", "skill-a", "Skill A")));
         assertNotNull(SkillData.getSkillData("skill-a"));
         assertEquals(1, SkillData.getAllSkills().size());
 
-        link.setSkills(List.of());
+        config.setSkills(List.of());
         assertNull(SkillData.getSkillData("skill-a"));
         assertEquals(0, SkillData.getAllSkills().size());
     }
@@ -113,16 +115,21 @@ public class ConfigurationCacheTest {
     }
 
     @TestExtension
-    public static class TestModelDataRetriever extends ModelDataRetriever<TestModelConfiguration> {
-        public TestModelDataRetriever() {
+    public static class TestModelProvider extends ModelProvider<TestModelConfiguration> {
+        public TestModelProvider() {
             super(TestModelConfiguration.class);
         }
 
         @Override
-        public ModelData retrieveFromConfiguration(TestModelConfiguration configuration) {
+        protected ModelData describe(TestModelConfiguration configuration) {
             ModelData data = new ModelData(configuration);
             data.setMaxTemperature(configuration.getMaxTemperature());
             return data;
+        }
+
+        @Override
+        protected ModelClient createClient(TestModelConfiguration configuration) {
+            return (model, request, inputs) -> List.of();
         }
     }
 

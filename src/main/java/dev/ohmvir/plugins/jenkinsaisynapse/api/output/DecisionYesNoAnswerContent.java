@@ -14,6 +14,9 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * The System One {@code noul} answer type.
  */
 public class DecisionYesNoAnswerContent extends ModelOutput implements DecisionAnswer {
+    public static final ModelOutputKind<DecisionYesNoAnswerContent> KIND =
+            new ModelOutputKind<>(DecisionYesNoAnswerContent.class, Set.of(ModelCapability.DECISIONS), Set.of());
+
     private @Getter final String questionName;
     /** The probability that the answer is yes, from 0 to 1 */
     private @Getter final double probability;
@@ -36,6 +39,11 @@ public class DecisionYesNoAnswerContent extends ModelOutput implements DecisionA
     /** @return Whether yes is at least as likely as no */
     public boolean isYes() {
         return isYes(0.5);
+    }
+
+    @Override
+    public ModelOutputKind<DecisionYesNoAnswerContent> getKind() {
+        return KIND;
     }
 
     @Extension

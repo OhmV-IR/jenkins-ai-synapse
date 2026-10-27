@@ -16,6 +16,16 @@ public class InfillSuffixContent extends ModelInput {
         this.suffix = suffix;
     }
 
+    @Override
+    public Set<ModelCapability> getRequiredCapabilities() {
+        return Set.of(ModelCapability.INFILL);
+    }
+
+    @Override
+    public Set<ModelInputType> getRequiredInputTypes() {
+        return Set.of(ModelInputType.TEXT);
+    }
+
     @Extension
     public static class DescriptorImpl extends ModelInputDescriptor {
         @Override

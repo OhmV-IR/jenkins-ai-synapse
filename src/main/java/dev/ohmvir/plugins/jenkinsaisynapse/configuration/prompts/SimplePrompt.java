@@ -6,6 +6,7 @@ import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
 import lombok.Getter;
+import org.jenkinsci.Symbol;
 import org.jspecify.annotations.NonNull;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -30,6 +31,7 @@ public class SimplePrompt extends PromptConfiguration {
     }
 
     @Extension
+    @Symbol("simplePrompt")
     public static class DescriptorImpl extends PromptConfiguration.DescriptorImpl {
         @Override
         public @NonNull String getDisplayName() {

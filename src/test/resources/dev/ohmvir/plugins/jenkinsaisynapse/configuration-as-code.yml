@@ -1,0 +1,17 @@
+unclassified:
+  aiModels:
+    models:
+      - cascModel:
+          modelName: "large"
+          modelDisplayName: "Large model"
+  aiPrompts:
+    prompts:
+      - simplePrompt:
+          promptId: "summarize"
+          promptText: "Summarize the build"
+  aiSkills:
+    skills:
+      - basicSkill:
+          skillName: "reviewer"
+          skillDescription: "Reviews code"
+          skillText: "Review the code carefully"

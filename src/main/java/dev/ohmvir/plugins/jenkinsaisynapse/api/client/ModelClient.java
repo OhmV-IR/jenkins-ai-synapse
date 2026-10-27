@@ -3,43 +3,39 @@ package dev.ohmvir.plugins.jenkinsaisynapse.api.client;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelProvider;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
-import dev.ohmvir.plugins.jenkinsaisynapse.configuration.client.ModelClientConfiguration;
-import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
-import hudson.ExtensionPoint;
-import hudson.model.Describable;
+import java.io.IOException;
 import java.util.List;
 
-public abstract class ModelClient<
-                ConfigurationType extends ModelConfiguration, ClientConfigurationType extends ModelClientConfiguration>
-        implements Describable<ModelClient<?, ?>>, ExtensionPoint {
-    public ModelClient() {}
-
-    @SuppressWarnings("unchecked")
-    public List<ModelOutput> takeStep(
-            ModelData modelData,
-            ModelConfiguration configuration,
-            ModelClientConfiguration clientConfiguration,
-            ModelRequest request,
-            List<ModelInput> turnInputs) {
-        return takeStepImpl(
-                modelData,
-                (ConfigurationType) configuration,
-                (ClientConfigurationType) clientConfiguration,
-                request,
-                turnInputs);
-    }
-
+/**
+ * Sends requests to one configured model. Created by {@link ModelProvider#createModelClient}, which hands it the model
+ * configuration it needs.
+ */
+@FunctionalInterface
+public interface ModelClient {
     /**
      * Generate a response for the given request. This function can assume that the request is able to be handled by the model.
+     * Thinking levels should be sent as resolved by {@link ModelData#resolveThinkingLevel}.
+     * @param modelData What the model supports
      * @param request The associated model request
-     * @param turnInputs The inputs to attach for the model to respond. This will include all context, prior conversation history (as {@link dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputConversationContent}), as well as things like tool responses
+     * @param turnInputs The inputs to attach for the model to respond. This will include all context and relevant conversation history, as well as things like tool responses
      * @return A list of all the model outputs that were produced on this exchange (ie API roundtrip)
      */
-    protected abstract List<ModelOutput> takeStepImpl(
+    List<ModelOutput> takeStep(ModelData modelData, ModelRequest request, List<ModelInput> turnInputs)
+            throws IOException, InterruptedException;
+
+    /**
+     * Same as {@link #takeStep(ModelData, ModelRequest, List)}, with progress callbacks for streaming clients.
+     */
+    default List<ModelOutput> takeStep(
             ModelData modelData,
-            ConfigurationType configuration,
-            ClientConfigurationType clientConfiguration,
             ModelRequest request,
-            List<ModelInput> turnInputs);
+            List<ModelInput> turnInputs,
+            ModelRequestListener listener)
+            throws IOException, InterruptedException {
+        List<ModelOutput> outputs = takeStep(modelData, request, turnInputs);
+        listener.onStepCompleted(outputs);
+        return outputs;
+    }
 }

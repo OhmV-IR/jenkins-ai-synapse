@@ -4,14 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import dev.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsManagementLink;
-import dev.ohmvir.plugins.jenkinsaisynapse.configuration.skills.SkillConfiguration;
-import hudson.Extension;
-import hudson.ExtensionPoint;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
-import hudson.model.Describable;
 import hudson.model.Descriptor;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.skills.SkillConfiguration;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -19,10 +16,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import jenkins.util.Timer;
 import lombok.Getter;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-public class SkillData implements Describable<SkillData>, ExtensionPoint {
+/**
+ * A skill a model can use. Plain data: it can be built and read without a running Jenkins.
+ */
+public class SkillData {
     private @Getter final String skillName;
     private @Getter @Nullable final String skillDescription;
     private @Getter @Nullable final String skillLicense;
@@ -36,16 +35,11 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
         return skillReferences.entrySet();
     }
 
+    /**
+     * A map of skill names to SkillData
+     */
     private static final Logger LOGGER = Logger.getLogger(SkillData.class.getName());
-
-    /**
-     * A map of skill names to SkillData. Replaced wholesale on every reload so readers never see a partial registry.
-     */
     private static volatile Map<String, SkillData> skillDataCache = Map.of();
-
-    /**
-     * Skills that were rejected during the last reload because another skill with the same name was already registered.
-     */
     private static volatile List<DuplicateSkillRegistration> duplicateSkillRegistrations = List.of();
 
     public String getSkillMetadataPrettyYaml() {
@@ -55,9 +49,6 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
         return skillMetadata.toPrettyString();
     }
 
-    /**
-     * Generates skills in the background, since some skill configurations fetch them over the network.
-     */
     @Initializer(after = InitMilestone.PLUGINS_STARTED, fatal = false)
     public static void initializeSkillDataCache() {
         Timer.get().execute(() -> {
@@ -69,16 +60,11 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
         });
     }
 
-    /**
-     * Rebuilds the skills from the current skill configurations and swaps them in.
-     * Call this after the skill configurations change. The configurations are read while holding the lock, so a
-     * reload that started earlier can never overwrite the result of a later one.
-     */
     public static synchronized void reload() {
-        reloadSkills(SkillsManagementLink.get().getSkills());
+        reloadSkills(SkillsConfiguration.get().getSkills());
     }
 
-    public static @Nullable SkillData getSkillData(String skillName) {
+    public static SkillData getSkillData(String skillName) {
         return skillDataCache.get(skillName);
     }
 
@@ -90,11 +76,6 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
         return duplicateSkillRegistrations;
     }
 
-    /**
-     * Rebuilds the skill registry from the given configurations. When two skills share a name, the first one
-     * registered wins and the later one is rejected, logged and recorded in {@link #getDuplicateSkillRegistrations()}.
-     * A configuration that fails to generate its skills is logged and skipped.
-     */
     public static synchronized void reloadSkills(List<SkillConfiguration> configs) {
         Map<String, SkillData> skills = new LinkedHashMap<>();
         Map<String, String> skillSources = new HashMap<>();
@@ -134,11 +115,6 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
         duplicateSkillRegistrations = List.copyOf(duplicates);
     }
 
-    /**
-     * @param skillName the name shared by both skills
-     * @param rejectedSource where the skill that failed to register came from
-     * @param registeredSource where the skill that kept the name came from
-     */
     public record DuplicateSkillRegistration(String skillName, String rejectedSource, String registeredSource) {}
 
     public Map<String, String> getSkillReferences() {
@@ -208,9 +184,6 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
         return node == null || node.isNull() ? null : node.asText();
     }
 
-    /**
-     * The spec defines allowed-tools as a space-delimited string, but a YAML list is accepted too.
-     */
     private static @Nullable List<String> parseAllowedTools(@Nullable JsonNode node) {
         if (node == null || node.isNull()) {
             return null;
@@ -222,13 +195,5 @@ public class SkillData implements Describable<SkillData>, ExtensionPoint {
             tools.addAll(Arrays.asList(node.asText().trim().split("\\s+")));
         }
         return tools.stream().filter(tool -> !tool.isEmpty()).toList();
-    }
-
-    @Extension
-    public static class DescriptorImpl extends Descriptor<SkillData> {
-        @Override
-        public @NonNull String getDisplayName() {
-            return "Skill Data";
-        }
     }
 }

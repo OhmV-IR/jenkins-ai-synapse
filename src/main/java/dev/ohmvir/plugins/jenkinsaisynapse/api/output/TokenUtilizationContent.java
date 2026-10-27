@@ -1,40 +1,25 @@
 package dev.ohmvir.plugins.jenkinsaisynapse.api.output;
 
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
-import hudson.Extension;
 import java.util.Set;
 import lombok.Getter;
-import org.jspecify.annotations.NonNull;
-import org.kohsuke.stapler.DataBoundConstructor;
 
 public class TokenUtilizationContent extends ModelOutput {
+    public static final ModelOutputKind<TokenUtilizationContent> KIND =
+            new ModelOutputKind<>(TokenUtilizationContent.class, Set.of(ModelCapability.TOKEN_USAGE_METRICS), Set.of());
+
     private @Getter final long inputTokensUsed;
     private @Getter final long outputTokensUsed;
     private @Getter final long cachedTokensUsed;
 
-    @DataBoundConstructor
     public TokenUtilizationContent(long inputTokensUsed, long outputTokensUsed, long cachedTokensUsed) {
         this.inputTokensUsed = inputTokensUsed;
         this.outputTokensUsed = outputTokensUsed;
         this.cachedTokensUsed = cachedTokensUsed;
     }
 
-    @Extension
-    public static class DescriptorImpl extends ModelOutputDescriptor {
-        @Override
-        public Set<ModelCapability> getRequiredCapabilities() {
-            return Set.of(ModelCapability.TOKEN_USAGE_METRICS);
-        }
-
-        @Override
-        public Set<ModelOutputType> getRequiredOutputTypes() {
-            return Set.of();
-        }
-
-        @Override
-        public @NonNull String getDisplayName() {
-            return "Token Utilization Content";
-        }
+    @Override
+    public ModelOutputKind<TokenUtilizationContent> getKind() {
+        return KIND;
     }
 }
