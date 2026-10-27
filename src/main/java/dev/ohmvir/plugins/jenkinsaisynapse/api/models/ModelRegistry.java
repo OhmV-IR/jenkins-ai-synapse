@@ -7,13 +7,18 @@ import dev.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jenkins.util.Timer;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -22,27 +27,58 @@ import org.jspecify.annotations.Nullable;
  */
 public class ModelRegistry {
     private static final Logger LOGGER = Logger.getLogger(ModelRegistry.class.getName());
-    private static final ModelRegistry GLOBAL = new ModelRegistry();
+    private static final long RETRY_DELAY_SECONDS = 60;
+    private static final ModelRegistry GLOBAL = new ModelRegistry(true);
 
     private volatile List<RegisteredModel> models = List.of();
+    /** The configurations of the last {@link #reload}, in order, so recovered models can be put back in place. */
+    private volatile List<ModelConfiguration> configured = List.of();
+    /** The configurations of the last {@link #reload} that could not be described, to be retried. */
+    private volatile List<ModelConfiguration> failed = List.of();
+
+    private volatile Collection<? extends ModelProvider<?>> providers = List.of();
+    private final boolean retryInBackground;
+    private final AtomicBoolean retryScheduled = new AtomicBoolean();
+
+    public ModelRegistry() {
+        this(false);
+    }
+
+    private ModelRegistry(boolean retryInBackground) {
+        this.retryInBackground = retryInBackground;
+    }
 
     public static ModelRegistry get() {
         return GLOBAL;
     }
 
-    @Initializer(after = InitMilestone.PLUGINS_STARTED)
+    /**
+     * Describing a model may call the provider's API, so the registry is loaded in the background rather than
+     * delaying Jenkins startup, and a failure here must not fail startup either. The registry is empty until the
+     * load is done.
+     */
+    @Initializer(after = InitMilestone.PLUGINS_STARTED, fatal = false)
     public static void initialize() {
-        LOGGER.info("Prefetching model data");
-        GLOBAL.reload(ModelsConfiguration.get().getModels(), ModelProvider.all());
+        Timer.get().execute(() -> {
+            try {
+                LOGGER.info("Prefetching model data");
+                GLOBAL.reload(ModelsConfiguration.get().getModels(), ModelProvider.all());
+            } catch (RuntimeException e) {
+                LOGGER.log(Level.WARNING, "Failed to load models", e);
+            }
+        });
     }
 
     /**
      * Replaces the registered models with the given configurations, keeping their order. A configuration that no
-     * provider handles, that can't be described, or whose model id is already taken is skipped and logged.
+     * provider handles or whose model id is already taken is skipped and logged. A configuration that can't be
+     * described, for example because its provider is briefly unreachable, is logged and left out for now; the global
+     * registry retries those periodically, see {@link #retryFailed}.
      */
     public void reload(
             List<? extends ModelConfiguration> configurations, Collection<? extends ModelProvider<?>> providers) {
         List<RegisteredModel> loaded = new ArrayList<>();
+        List<ModelConfiguration> notDescribed = new ArrayList<>();
         Set<String> seenIds = new HashSet<>();
         for (ModelConfiguration configuration : configurations) {
             String modelId = configuration.getModelId();
@@ -57,22 +93,118 @@ public class ModelRegistry {
                 continue;
             }
             try {
-                ModelData data = provider.describeModel(configuration);
-                if (data == null) {
-                    LOGGER.severe(
-                            "Model provider " + provider.getClass().getName() + " returned no data for " + modelId);
-                    continue;
+                RegisteredModel model = describe(configuration, provider);
+                if (model == null) {
+                    notDescribed.add(configuration);
+                } else {
+                    loaded.add(model);
                 }
-                loaded.add(new RegisteredModel(configuration, provider, data));
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 LOGGER.log(Level.WARNING, "Interrupted while getting model data for " + modelId, e);
                 break;
-            } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "Failed to get model data for " + modelId, e);
             }
         }
+        this.providers = providers;
+        configured = List.copyOf(configurations);
+        failed = List.copyOf(notDescribed);
         models = List.copyOf(loaded);
+        scheduleRetry();
+    }
+
+    /**
+     * @return null if the model can't be described, after logging why.
+     */
+    private static @Nullable RegisteredModel describe(ModelConfiguration configuration, ModelProvider<?> provider)
+            throws InterruptedException {
+        String modelId = configuration.getModelId();
+        try {
+            ModelData data = provider.describeModel(configuration);
+            if (data == null) {
+                LOGGER.severe("Model provider " + provider.getClass().getName() + " returned no data for " + modelId);
+                return null;
+            }
+            return new RegisteredModel(configuration, provider, data);
+        } catch (InterruptedException e) {
+            throw e;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to get model data for " + modelId, e);
+            return null;
+        }
+    }
+
+    /**
+     * Models that failed to describe are retried on a timer, not when a request names them: a request would have to
+     * wait for the provider call, while a retry in the background keeps requests fast. Only the global registry
+     * retries, so that registries made in unit tests don't start timers.
+     */
+    private void scheduleRetry() {
+        if (retryInBackground && !failed.isEmpty() && retryScheduled.compareAndSet(false, true)) {
+            Timer.get().schedule(() -> {
+                retryScheduled.set(false);
+                try {
+                    retryFailed();
+                } catch (RuntimeException e) {
+                    LOGGER.log(Level.WARNING, "Failed to retry loading models", e);
+                }
+            }, RETRY_DELAY_SECONDS, TimeUnit.SECONDS);
+        }
+    }
+
+    /**
+     * Describes the models that the last {@link #reload} could not describe, and registers the ones that succeed in
+     * their configured place. The global registry does this every minute until nothing is left to retry. If the
+     * registry is reloaded while this runs, the outcome is dropped since the new reload made its own list.
+     */
+    public void retryFailed() {
+        List<ModelConfiguration> order = configured;
+        List<ModelConfiguration> pending = failed;
+        try {
+            Map<String, RegisteredModel> recovered = new HashMap<>();
+            List<ModelConfiguration> stillFailed = new ArrayList<>();
+            for (ModelConfiguration configuration : pending) {
+                ModelProvider<?> provider = ModelProvider.forConfiguration(configuration, providers);
+                if (provider == null) {
+                    continue;
+                }
+                try {
+                    RegisteredModel model = describe(configuration, provider);
+                    if (model == null) {
+                        stillFailed.add(configuration);
+                    } else {
+                        recovered.put(model.getModelId(), model);
+                        LOGGER.info("Loaded model data for " + model.getModelId() + " on retry");
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    LOGGER.log(
+                            Level.WARNING,
+                            "Interrupted while retrying model data for " + configuration.getModelId(),
+                            e);
+                    stillFailed.addAll(pending.subList(pending.indexOf(configuration), pending.size()));
+                    break;
+                }
+            }
+            if (order != configured) {
+                return;
+            }
+            Map<String, RegisteredModel> byId = new HashMap<>(recovered);
+            for (RegisteredModel model : models) {
+                byId.put(model.getModelId(), model);
+            }
+            List<RegisteredModel> merged = new ArrayList<>();
+            Set<String> addedIds = new HashSet<>();
+            for (ModelConfiguration configuration : order) {
+                RegisteredModel model = byId.get(configuration.getModelId());
+                if (model != null && addedIds.add(model.getModelId())) {
+                    merged.add(model);
+                }
+            }
+            models = List.copyOf(merged);
+            failed = List.copyOf(stillFailed);
+        } finally {
+            scheduleRetry();
+        }
     }
 
     /**
