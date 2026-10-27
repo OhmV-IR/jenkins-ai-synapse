@@ -40,29 +40,52 @@ public class ModelData {
     }
 
     public boolean supportsRequest(ModelRequest request) {
+        return unsupportedReasons(request).isEmpty();
+    }
+
+    /**
+     * Lists what the request needs that this model can't do, so a failure can say what ruled the model out. Each
+     * reason reads as a continuation of "this model", for example "does not support the TOOLS capability".
+     *
+     * @return The unmet requirements, empty if the model can handle the request.
+     */
+    public List<String> unsupportedReasons(ModelRequest request) {
+        List<String> reasons = new ArrayList<>();
         Optional<ThinkingLevelContent> thinkingLevel = request.getModelInputs().stream()
                 .filter(ThinkingLevelContent.class::isInstance)
                 .map(ThinkingLevelContent.class::cast)
                 .findFirst();
         if (thinkingLevel.isPresent()
                 && resolveThinkingLevel(thinkingLevel.get().getThinkingLevel()).isEmpty()) {
-            return false;
+            reasons.add("does not support thinking level " + thinkingLevel.get().getThinkingLevel());
         }
-        if (request.getModelInputs().stream()
-                .anyMatch(modelInput -> modelInput instanceof TemperatureContent temperatureContent
-                        && !supportsTemperature(temperatureContent.getTemperature()))) {
-            return false;
+        request.getModelInputs().stream()
+                .filter(TemperatureContent.class::isInstance)
+                .map(TemperatureContent.class::cast)
+                .map(TemperatureContent::getTemperature)
+                .filter(temperature -> !supportsTemperature(temperature))
+                .forEach(temperature -> reasons.add(temperatureReason(temperature)));
+        sortedById(request.getInputTypes()).stream()
+                .filter(inputType -> !supportsInput(inputType))
+                .forEach(inputType -> reasons.add("does not support the " + inputType + " input type"));
+        sortedById(request.getOutputTypes()).stream()
+                .filter(outputType -> !supportsOutput(outputType))
+                .forEach(outputType -> reasons.add("does not support the " + outputType + " output type"));
+        sortedById(request.getRequiredCapabilities()).stream()
+                .filter(capability -> !hasCapability(capability))
+                .forEach(capability -> reasons.add("does not support the " + capability + " capability"));
+        return reasons;
+    }
+
+    private String temperatureReason(double temperature) {
+        if (temperature < 0) {
+            return "temperature " + temperature + " is negative";
         }
-        if (request.getInputTypes().stream().anyMatch(inputType -> !supportsInput(inputType))) {
-            return false;
-        }
-        if (request.getOutputTypes().stream().anyMatch(outputType -> !supportsOutput(outputType))) {
-            return false;
-        }
-        if (request.getRequiredCapabilities().stream().anyMatch(capability -> !hasCapability(capability))) {
-            return false;
-        }
-        return true;
+        return "temperature " + temperature + " exceeds the model's maximum of " + maxTemperature;
+    }
+
+    private static <T> List<T> sortedById(Collection<T> values) {
+        return values.stream().sorted(Comparator.comparing(Object::toString)).toList();
     }
 
     public boolean hasCapability(ModelCapability capability) {

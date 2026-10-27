@@ -49,6 +49,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -306,13 +307,20 @@ public final class AiRequestRunner {
         ModelRegistry registry = ModelRegistry.get();
         RegisteredModel selected = registry.findModelForRequest(request);
         if (selected == null && model != null) {
-            if (registry.getModel(model).isEmpty()) {
+            Optional<RegisteredModel> named = registry.getModel(model);
+            if (named.isEmpty()) {
                 throw new AbortException("Unknown model '" + model + "'");
             }
-            throw new AbortException("Model '" + model + "' does not support this request.");
+            throw new AbortException("Model '" + model + "' does not support this request: "
+                    + String.join("; ", named.get().data().unsupportedReasons(request)));
         }
         if (selected == null) {
-            throw new AbortException("No configured model supports this request");
+            List<String> unsupported = registry.describeUnsupported(request);
+            if (unsupported.isEmpty()) {
+                throw new AbortException("No configured model supports this request: no models are configured");
+            }
+            throw new AbortException(
+                    "No configured model supports this request:\n- " + String.join("\n- ", unsupported));
         }
         return selected;
     }

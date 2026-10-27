@@ -301,7 +301,8 @@ public class ModelRegistry {
                 return null;
             }
             if (!named.get().data().supportsRequest(request)) {
-                LOGGER.warning("Request names model " + requestedModelId + " which cannot handle the request");
+                LOGGER.warning("Request names model " + requestedModelId + " which cannot handle the request: "
+                        + String.join("; ", named.get().data().unsupportedReasons(request)));
                 return null;
             }
             return named.get();
@@ -310,6 +311,18 @@ public class ModelRegistry {
                 .filter(model -> model.data().supportsRequest(request))
                 .findFirst()
                 .orElse(null);
+    }
+
+    /**
+     * Explains why the registered models can't handle a request, one line per model in order of preference.
+     *
+     * @return For each model, its id followed by what it lacks for the request, empty if no models are registered.
+     */
+    public List<String> describeUnsupported(ModelRequest request) {
+        return models.stream()
+                .map(model -> model.getModelId() + ": "
+                        + String.join("; ", model.data().unsupportedReasons(request)))
+                .toList();
     }
 
     /**
