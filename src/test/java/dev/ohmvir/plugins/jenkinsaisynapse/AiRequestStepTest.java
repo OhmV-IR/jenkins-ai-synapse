@@ -250,8 +250,8 @@ public class AiRequestStepTest {
         WorkflowJob p = j.createProject(WorkflowJob.class, "p");
         String script = """
                 node {
-                    writeFile file: 'notes.txt', text: 'some notes'
-                    def result = aiRequest(prompt: 'draw', files: ['notes.txt'], outputTypes: ['text', 'image'],
+                    writeFile file: 'notes.pdf', text: 'some notes'
+                    def result = aiRequest(prompt: 'draw', files: ['notes.pdf'], outputTypes: ['text', 'image'],
                             outputDir: 'out', returnDetails: true)
                     echo "text=${result.text}"
                     echo "files=${result.files.size()} kind=${result.files[0].kind} path=${result.files[0].path}"
@@ -260,7 +260,7 @@ public class AiRequestStepTest {
                 """;
         p.setDefinition(new CpsFlowDefinition(script, true));
         WorkflowRun b = j.buildAndAssertSuccess(p);
-        j.assertLogContains("text=drew with notes.txt=some notes", b);
+        j.assertLogContains("text=drew with notes.pdf=some notes", b);
         j.assertLogContains("files=1 kind=image path=out/image-1.png", b);
         j.assertLogContains("saved=true", b);
     }
