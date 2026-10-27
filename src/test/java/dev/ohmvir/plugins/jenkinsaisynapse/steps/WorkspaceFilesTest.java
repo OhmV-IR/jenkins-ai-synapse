@@ -118,6 +118,72 @@ public class WorkspaceFilesTest {
         assertNotEquals(first, second);
     }
 
+    @Test
+    public void extensionlessOutputFileNamesGetTheExtensionOfTheirContentType() {
+        assertEquals("file_011CN.pdf", withExtension("file_011CN", "pdf"));
+        assertEquals("notes.txt", withExtension("notes", "txt"));
+        // A name that is not usable and falls back to the generated name already has an extension
+        assertEquals("output.bin", withExtension("..", "pdf"));
+        // A trailing dot is not an extension, neither is a version number
+        assertEquals("bashrc.pdf", withExtension(".bashrc", "pdf"));
+        assertEquals("notes.pdf", withExtension("notes.", "pdf"));
+        assertEquals("model-1.5.pdf", withExtension("model-1.5", "pdf"));
+        assertEquals("v1.2.3.pdf", withExtension("v1.2.3", "pdf"));
+        // A name that is reserved on Windows is still avoided once it has an extension
+        assertEquals("file-CON.pdf", withExtension("CON", "pdf"));
+    }
+
+    @Test
+    public void outputFileNamesWithAnExtensionAreNotChanged() {
+        assertEquals("report.pdf", withExtension("report.pdf", "pdf"));
+        assertEquals("report.docx", withExtension("report.docx", "pdf"));
+        assertEquals("Report.PDF", withExtension("Report.PDF", "pdf"));
+        assertEquals("archive.tar.gz", withExtension("archive.tar.gz", "bin"));
+        assertEquals("a.7z", withExtension("a.7z", "bin"));
+    }
+
+    @Test
+    public void outputFileNamesWithAnUnknownContentTypeGetTheUnknownExtension() {
+        // "bin" is what extensionFor returns for a content type it does not know, as for outputs without a name
+        assertEquals("file_011CN.bin", withExtension("file_011CN", "bin"));
+        // Without an extension to add, the name is kept as it is
+        assertEquals(
+                "file_011CN", WorkspaceFiles.uniqueFileName("file_011CN", "output.bin", null, 1, new HashSet<>()));
+    }
+
+    @Test
+    public void outputFileNamesStayBoundedWhenAnExtensionIsAdded() {
+        String fileName = withExtension("a".repeat(500), "pdf");
+        assertEquals(128, fileName.length());
+        assertEquals("a".repeat(124) + ".pdf", fileName);
+        // The name is cut before the extension, not after it, and does not end in a dot
+        String dotted = withExtension("a".repeat(123) + "." + "b".repeat(30) + "-", "pdf");
+        assertTrue(dotted.length() <= 128, dotted);
+        assertTrue(dotted.endsWith(".pdf"), dotted);
+        assertTrue(!dotted.contains(".."), dotted);
+        // A duplicate of a long extensionless name is still bounded, and keeps the added extension
+        Set<String> used = new HashSet<>();
+        withExtension("a".repeat(500), used);
+        String duplicate = withExtension("a".repeat(500), used);
+        assertEquals(128, duplicate.length());
+        assertTrue(duplicate.endsWith(".pdf"), duplicate);
+    }
+
+    @Test
+    public void extensionlessOutputFilesWithTheSameNameDoNotOverwriteEachOther() {
+        Set<String> used = new HashSet<>();
+        assertEquals("a.pdf", withExtension("a", used));
+        assertEquals("2-A.pdf", WorkspaceFiles.uniqueFileName("A", "output.bin", "pdf", 2, used));
+    }
+
+    private static String withExtension(String name, String extension) {
+        return WorkspaceFiles.uniqueFileName(name, "output.bin", extension, 1, new HashSet<>());
+    }
+
+    private static String withExtension(String name, Set<String> used) {
+        return WorkspaceFiles.uniqueFileName(name, "output.bin", "pdf", 1, used);
+    }
+
     private static String uniqueAt(String name, int index, Set<String> used) {
         return WorkspaceFiles.uniqueFileName(name, "output.bin", index, used);
     }

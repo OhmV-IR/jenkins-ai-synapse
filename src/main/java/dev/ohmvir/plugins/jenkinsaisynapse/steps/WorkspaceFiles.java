@@ -92,6 +92,9 @@ final class WorkspaceFiles {
     private static final Pattern WINDOWS_DEVICE_NAME =
             Pattern.compile("(?i)(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\\..*)?");
 
+    /** What follows the last dot of a file name for it to count as an extension, see {@code hasExtension}. */
+    private static final Pattern EXTENSION = Pattern.compile("(?=[0-9]*[A-Za-z])[A-Za-z0-9]{1,10}");
+
     /** The longest output file name, the same as the limit applied by {@code FileDownloadUtils.sanitizeFileName}. */
     private static final int MAX_FILE_NAME_LENGTH = 128;
 
@@ -275,7 +278,9 @@ final class WorkspaceFiles {
 
     /**
      * Describes the images, audio, video and files the model produced, saving them to the output directory if there
-     * is one.
+     * is one. An output is saved under the file name the model gave it, or the provider's file id for a file. A name
+     * without an extension, such as an id, gets the one for the content type of the output, and an output without a
+     * name is called after its kind and position, such as {@code image-1.png}.
      *
      * @param outputDirectory Where to save the outputs, or null to only describe them
      * @param outputDir The output directory as given to the step, used for the returned paths
@@ -329,8 +334,8 @@ final class WorkspaceFiles {
             if (contentType == null) {
                 contentType = "application/octet-stream";
             }
-            String fileName =
-                    uniqueFileName(name, kind + "-" + index + "." + extensionFor(contentType), index, usedNames);
+            String extension = extensionFor(contentType);
+            String fileName = uniqueFileName(name, kind + "-" + index + "." + extension, extension, index, usedNames);
             Map<String, Object> description = new LinkedHashMap<>();
             description.put("name", fileName);
             description.put("kind", kind);
@@ -356,18 +361,32 @@ final class WorkspaceFiles {
     }
 
     /**
+     * Same as {@link #uniqueFileName(String, String, String, int, Set)}, without adding an extension to a name that
+     * has none.
+     */
+    static String uniqueFileName(@Nullable String name, String fallback, int index, Set<String> usedNames) {
+        return uniqueFileName(name, fallback, null, index, usedNames);
+    }
+
+    /**
      * Keeps model chosen file names from escaping the output directory, being too long for the file system, being
      * reserved on Windows, or overwriting each other.
      *
      * @param name The file name the model chose, if any
      * @param fallback The file name to use when the model's name has nothing usable in it, trusted to be safe
+     * @param extension The extension, without the dot, to add to the model's name when it has none, such as the one
+     *     for the content type of a file whose name is only an id. Null to leave the name as it is
      * @param index The position of the output, to tell apart outputs with the same name
      * @param usedNames The names already used in the output directory, this name is added to it. Names are stored in
      *     lower case, as the output directory can be on a case-insensitive file system
      * @return A file name of at most 128 characters that is not used yet, ignoring case
      */
-    static String uniqueFileName(@Nullable String name, String fallback, int index, Set<String> usedNames) {
+    static String uniqueFileName(
+            @Nullable String name, String fallback, @Nullable String extension, int index, Set<String> usedNames) {
         String fileName = FileDownloadUtils.sanitizeFileName(name, fallback);
+        if (extension != null && !hasExtension(fileName)) {
+            fileName = withExtension(fileName, extension);
+        }
         if (WINDOWS_DEVICE_NAME.matcher(fileName).matches()) {
             fileName = "file-" + fileName;
         }
@@ -382,6 +401,27 @@ final class WorkspaceFiles {
                 return candidate;
             }
         }
+    }
+
+    /**
+     * Tells whether a file name ends in something that looks like an extension: a dot after the first character,
+     * followed by up to 10 letters and digits of which at least one is a letter. A version number such as
+     * {@code model-1.5} is not an extension.
+     */
+    private static boolean hasExtension(String fileName) {
+        int dot = fileName.lastIndexOf('.');
+        return dot > 0 && EXTENSION.matcher(fileName.substring(dot + 1)).matches();
+    }
+
+    /**
+     * Adds an extension to a file name, keeping the result within the length limit by shortening the name before it.
+     */
+    private static String withExtension(String fileName, String extension) {
+        String suffix = "." + extension;
+        int stemLength = Math.min(fileName.length(), Math.max(1, MAX_FILE_NAME_LENGTH - suffix.length()));
+        // A cut or a trailing dot in the name would leave two dots in a row
+        String stem = fileName.substring(0, stemLength).replaceFirst("\\.+$", "");
+        return (stem.isEmpty() ? "file" : stem) + suffix;
     }
 
     /**
