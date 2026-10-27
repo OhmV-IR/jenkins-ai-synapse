@@ -90,6 +90,15 @@ for (String name : new String[] {"a.svg", "a.bmp", "a.tif"}) {
     }
 
     @Test
+    public void missingOrBlankAttachmentPathsAreRejectedWithAMessage(@TempDir File dir) {
+        for (String path : new String[] {null, "", "  "}) {
+            AbortException e = assertThrows(
+                    AbortException.class, () -> WorkspaceFiles.readAttachment(new FilePath(dir), path));
+            assertTrue(e.getMessage().contains("has no path"), e.getMessage());
+        }
+    }
+
+    @Test
     public void textFilesAreAttachedAsTextAndBinaryDocumentsAsFiles(@TempDir File dir) throws Exception {
         for (String name : new String[] {"a.md", "a.txt", "a.json", "a.yaml", "a.yml", "a.csv", "a.xml", "a.svg"}) {
             Files.writeString(new File(dir, name).toPath(), "content of " + name);
