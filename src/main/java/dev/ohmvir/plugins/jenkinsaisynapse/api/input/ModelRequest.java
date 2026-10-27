@@ -121,7 +121,8 @@ public class ModelRequest implements Cloneable {
 
     /**
      * Converts attached skills to a system prompt and the built-in skill-file tool. This prepares a fresh request
-     * before model selection and keeps the skill tool restrictions attached to this request.
+     * before model selection and keeps the skill tool restrictions attached to this request. Calling it again once the
+     * skills are expanded has no effect.
      */
     public void expandSkills() {
         List<SkillData> skills = modelInputs.stream()
@@ -187,6 +188,8 @@ public class ModelRequest implements Cloneable {
     }
 
     public @Nullable ModelResponse execute(ModelRegistry registry) {
+        // Expanded first so models are selected by what the client receives, not by the SKILLS capability
+        expandSkills();
         RegisteredModel model = registry.findModelForRequest(this);
         if (model == null) {
             return null;
@@ -223,6 +226,7 @@ public class ModelRequest implements Cloneable {
         Objects.requireNonNull(model, "model");
         Objects.requireNonNull(listener, "listener");
         Objects.requireNonNull(toolExecutor, "toolExecutor");
+        expandSkills();
         ModelClient client = model.createClient();
         if (client == null) {
             throw new ModelRequestException("No client is available for model " + model.getModelId());
