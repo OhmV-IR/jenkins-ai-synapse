@@ -6,22 +6,23 @@
         under <em>AI Conversations</em>.
     </p>
     <p>
-        Aborting the build cancels the request. The request also fails if it takes longer than the <code>timeout</code>
-        of the step or, when the step sets none, the timeout configured for the model's provider.
+        Aborting the build cancels the request. The request also fails if it takes longer than the step's
+        <code>timeout</code> or the timeout configured for the model's client, whichever is shorter.
     </p>
 <pre>
 def answer = aiRequest 'Summarize the changes in this build'
 
 def review = aiRequest(promptId: 'code-review', prompt: diff,
                        model: 'anthropic:claude-opus-5-5',
-                       tools: ['readFile'], skills: ['java-style'],
+                       skills: ['java-style'],
                        returnDetails: true)
 echo review.text
 echo "Used ${review.usage?.outputTokens} output tokens"
 </pre>
     <p>
-        <code>tools</code> and <code>skills</code> are lists of tool and skill names. They are not shown in the
-        snippet generator, and neither are these lists:
+        <code>tools</code> and <code>skills</code> are lists of tool and skill names. Tools are provided by other
+        plugins, and skills also make the built-in <code>read_skill_file</code> tool available. They are not shown in
+        the snippet generator, and neither are these lists:
     </p>
     <dl>
         <dt><code>files</code></dt>
