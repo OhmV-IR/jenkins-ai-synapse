@@ -54,10 +54,14 @@ final class WorkspaceFiles {
             Map.entry("webm", "video/webm"),
             Map.entry("mov", "video/quicktime"));
 
+    /** The only image types providers accept as image input, other images such as SVG or BMP are attached as files. */
+    private static final Set<String> IMAGE_CONTENT_TYPES = Set.of("image/png", "image/jpeg", "image/gif", "image/webp");
+
     private WorkspaceFiles() {}
 
     /**
-     * Reads a workspace file as the input matching its content type: an image, audio, video, or any other file.
+     * Reads a workspace file as the input matching its content type: a PNG, JPEG, GIF or WebP image, audio, video, or
+     * any other file.
      *
      * @param path The path of the file, relative to the workspace
      */
@@ -77,7 +81,7 @@ final class WorkspaceFiles {
             data = in.readAllBytes();
         }
         String contentType = guessContentType(file.getName(), data);
-        if (contentType.startsWith("image/")) {
+        if (IMAGE_CONTENT_TYPES.contains(contentType)) {
             return new InputImageContent(data, contentType);
         }
         if (contentType.startsWith("audio/")) {

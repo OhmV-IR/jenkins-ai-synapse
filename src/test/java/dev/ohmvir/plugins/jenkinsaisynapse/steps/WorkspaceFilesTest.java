@@ -1,11 +1,18 @@
 package dev.ohmvir.plugins.jenkinsaisynapse.steps;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputFileContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputImageContent;
+import hudson.FilePath;
+import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.HashSet;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class WorkspaceFilesTest {
     @Test
@@ -32,5 +39,17 @@ public class WorkspaceFilesTest {
         assertEquals("text/markdown", WorkspaceFiles.guessContentType("README.md", text));
         assertEquals("text/plain", WorkspaceFiles.guessContentType("LICENSE", text));
         assertEquals("application/octet-stream", WorkspaceFiles.guessContentType("blob", new byte[] {1, 0, 2}));
+    }
+
+    @Test
+    public void onlySupportedRasterImagesAreAttachedAsImages(@TempDir File dir) throws Exception {
+        for (String name : new String[] {"a.png", "a.jpg", "a.jpeg", "a.gif", "a.webp"}) {
+            Files.write(new File(dir, name).toPath(), new byte[] {1, 2, 3});
+            assertInstanceOf(InputImageContent.class, WorkspaceFiles.readAttachment(new FilePath(dir), name));
+        }
+        for (String name : new String[] {"a.svg", "a.bmp", "a.tif"}) {
+            Files.write(new File(dir, name).toPath(), new byte[] {1, 2, 3});
+            assertInstanceOf(InputFileContent.class, WorkspaceFiles.readAttachment(new FilePath(dir), name));
+        }
     }
 }
