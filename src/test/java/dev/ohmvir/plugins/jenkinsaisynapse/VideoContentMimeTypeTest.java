@@ -1,11 +1,11 @@
-package io.ohmvir.plugins.jenkinsaisynapse;
+package dev.ohmvir.plugins.jenkinsaisynapse;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.InputVideoContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.OutputVideoContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputVideoContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputVideoContent;
 import org.junit.jupiter.api.Test;
 
 public class VideoContentMimeTypeTest {

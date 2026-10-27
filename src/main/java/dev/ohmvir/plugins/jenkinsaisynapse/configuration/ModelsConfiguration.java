@@ -1,10 +1,10 @@
-package io.ohmvir.plugins.jenkinsaisynapse.configuration;
+package dev.ohmvir.plugins.jenkinsaisynapse.configuration;
 
 import hudson.Extension;
 import hudson.ExtensionList;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelProvider;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelRegistry;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelProvider;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelRegistry;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

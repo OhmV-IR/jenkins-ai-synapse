@@ -1,4 +1,4 @@
-package io.ohmvir.plugins.jenkinsaisynapse.api.client;
+package dev.ohmvir.plugins.jenkinsaisynapse.api.client;
 
 /**
  * Thrown when a model request cannot be completed: no client is available, the client failed, the request timed out

@@ -1,9 +1,9 @@
-package io.ohmvir.plugins.jenkinsaisynapse.api.models;
+package dev.ohmvir.plugins.jenkinsaisynapse.api.models;
 
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.TemperatureContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.TemperatureContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import java.util.*;
 import lombok.Getter;
 import lombok.Setter;

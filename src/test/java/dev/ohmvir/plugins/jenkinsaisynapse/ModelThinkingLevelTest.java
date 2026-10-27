@@ -1,9 +1,9 @@
-package io.ohmvir.plugins.jenkinsaisynapse;
+package dev.ohmvir.plugins.jenkinsaisynapse;
 
-import static io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel.*;
+import static dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;

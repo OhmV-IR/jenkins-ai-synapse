@@ -1,21 +1,21 @@
-package io.ohmvir.plugins.jenkinsaisynapse;
+package dev.ohmvir.plugins.jenkinsaisynapse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
-import io.ohmvir.plugins.jenkinsaisynapse.TestModels.TestConfiguration;
-import io.ohmvir.plugins.jenkinsaisynapse.TestModels.TestProvider;
-import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.InputTextContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.TemperatureContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelRegistry;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.RegisteredModel;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.TestModels.TestConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.TestModels.TestProvider;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputTextContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.TemperatureContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelRegistry;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.RegisteredModel;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

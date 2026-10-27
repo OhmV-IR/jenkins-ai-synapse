@@ -41,6 +41,16 @@ public class DecisionScoreQuestionContent extends ModelInput implements Decision
         return Collections.unmodifiableList(levels);
     }
 
+    @Override
+    public Set<ModelCapability> getRequiredCapabilities() {
+        return Set.of(ModelCapability.DECISIONS);
+    }
+
+    @Override
+    public Set<ModelInputType> getRequiredInputTypes() {
+        return Set.of();
+    }
+
     @Extension
     public static class DescriptorImpl extends ModelInputDescriptor {
         @Override

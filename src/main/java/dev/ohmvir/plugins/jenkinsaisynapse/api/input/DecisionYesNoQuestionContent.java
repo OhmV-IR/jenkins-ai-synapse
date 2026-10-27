@@ -39,6 +39,16 @@ public class DecisionYesNoQuestionContent extends ModelInput implements Decision
         this(name, instructions, null, null);
     }
 
+    @Override
+    public Set<ModelCapability> getRequiredCapabilities() {
+        return Set.of(ModelCapability.DECISIONS);
+    }
+
+    @Override
+    public Set<ModelInputType> getRequiredInputTypes() {
+        return Set.of();
+    }
+
     @Extension
     public static class DescriptorImpl extends ModelInputDescriptor {
         @Override

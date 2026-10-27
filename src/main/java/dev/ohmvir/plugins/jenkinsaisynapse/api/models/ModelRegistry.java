@@ -1,10 +1,10 @@
-package io.ohmvir.plugins.jenkinsaisynapse.api.models;
+package dev.ohmvir.plugins.jenkinsaisynapse.api.models;
 
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsManagementLink;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsManagementLink;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;

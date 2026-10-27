@@ -1,13 +1,13 @@
-package io.ohmvir.plugins.jenkinsaisynapse.steps;
+package dev.ohmvir.plugins.jenkinsaisynapse.steps;
 
-import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelRequestListener;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ToolCallResponseContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.FinishReasonContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.OutputTextContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ThinkingContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.TokenUtilizationContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelRequestListener;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ToolCallResponseContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.FinishReasonContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputTextContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ThinkingContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.TokenUtilizationContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
 import java.io.PrintStream;
 import java.util.List;
 

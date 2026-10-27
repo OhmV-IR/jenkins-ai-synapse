@@ -17,6 +17,9 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * The System One {@code score} answer type.
  */
 public class DecisionScoreAnswerContent extends ModelOutput implements DecisionAnswer {
+    public static final ModelOutputKind<DecisionScoreAnswerContent> KIND =
+            new ModelOutputKind<>(DecisionScoreAnswerContent.class, Set.of(ModelCapability.DECISIONS), Set.of());
+
     private @Getter final String questionName;
     /** The expected level along the rubric, from 0 to the highest level. May fall between two levels. */
     private @Getter final double score;
@@ -51,6 +54,11 @@ public class DecisionScoreAnswerContent extends ModelOutput implements DecisionA
     /** @return The probability of each level, in level order */
     public Map<Integer, Double> getProbabilities() {
         return Collections.unmodifiableMap(probabilities);
+    }
+
+    @Override
+    public ModelOutputKind<DecisionScoreAnswerContent> getKind() {
+        return KIND;
     }
 
     @Extension

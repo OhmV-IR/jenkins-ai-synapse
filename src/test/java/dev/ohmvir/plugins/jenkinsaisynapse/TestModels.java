@@ -1,15 +1,15 @@
-package io.ohmvir.plugins.jenkinsaisynapse;
+package dev.ohmvir.plugins.jenkinsaisynapse;
 
 import hudson.model.Descriptor;
-import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelProvider;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.RegisteredModel;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelProvider;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.RegisteredModel;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;

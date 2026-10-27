@@ -1,50 +1,25 @@
 package dev.ohmvir.plugins.jenkinsaisynapse.api.input;
 
-import dev.ohmvir.plugins.jenkinsaisynapse.api.ModelContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.ModelConversation;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ModelResponse;
-import hudson.Extension;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Set;
-import org.jspecify.annotations.NonNull;
+import lombok.Getter;
 
-/**
- * Prior conversation history attached as input to a model. History is not stored by this plugin, it is taken from
- * {@link ModelResponse#getConversation()} of a previous request.
- */
 public class InputConversationContent extends ModelInput {
-    private final List<ModelContent> history;
+    private @Getter final ModelConversation conversation;
 
-    public InputConversationContent(List<ModelContent> history) {
-        this.history = new ArrayList<>(history);
+    public InputConversationContent(ModelConversation conversation) {
+        this.conversation = conversation;
     }
 
-    public InputConversationContent(ModelResponse previousResponse) {
-        this(previousResponse.getConversation());
+    @Override
+    public Set<ModelCapability> getRequiredCapabilities() {
+        return Set.of(ModelCapability.CONVERSATIONS);
     }
 
-    public List<ModelContent> getHistory() {
-        return Collections.unmodifiableList(history);
-    }
-
-    @Extension
-    public static class DescriptorImpl extends ModelInputDescriptor {
-        @Override
-        public Set<ModelCapability> getRequiredCapabilities() {
-            return Set.of(ModelCapability.CONVERSATIONS);
-        }
-
-        @Override
-        public Set<ModelInputType> getRequiredInputTypes() {
-            return Set.of();
-        }
-
-        @Override
-        public @NonNull String getDisplayName() {
-            return "Input Conversation Content";
-        }
+    @Override
+    public Set<ModelInputType> getRequiredInputTypes() {
+        return Set.of();
     }
 }

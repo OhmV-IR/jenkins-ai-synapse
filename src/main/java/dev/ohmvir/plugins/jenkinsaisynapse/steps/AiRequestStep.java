@@ -1,4 +1,4 @@
-package io.ohmvir.plugins.jenkinsaisynapse.steps;
+package dev.ohmvir.plugins.jenkinsaisynapse.steps;
 
 import hudson.Extension;
 import hudson.Util;

@@ -1,4 +1,4 @@
-package io.ohmvir.plugins.jenkinsaisynapse.configuration;
+package dev.ohmvir.plugins.jenkinsaisynapse.configuration;
 
 import hudson.BulkChange;
 import hudson.Extension;
@@ -8,9 +8,9 @@ import hudson.model.Descriptor;
 import hudson.model.ManagementLink;
 import hudson.model.Saveable;
 import hudson.security.Permission;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelProvider;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelRegistry;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelProvider;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelRegistry;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import jakarta.servlet.ServletException;
 import java.io.File;
 import java.io.IOException;

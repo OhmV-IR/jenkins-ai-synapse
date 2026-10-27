@@ -1,4 +1,4 @@
-package io.ohmvir.plugins.jenkinsaisynapse;
+package dev.ohmvir.plugins.jenkinsaisynapse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -7,9 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
 import org.junit.jupiter.api.Test;
 
 public class ModelCapabilityTest {
@@ -20,7 +20,9 @@ public class ModelCapabilityTest {
         assertSame(ModelOutputType.EMBEDDINGS, ModelOutputType.of("EMBEDDINGS"));
         assertTrue(ModelCapability.TOOLS.isWellKnown());
         assertTrue(ModelCapability.wellKnownValues().contains(ModelCapability.TOKEN_USAGE_METRICS));
-        assertEquals(16, ModelCapability.wellKnownValues().size());
+        assertTrue(ModelCapability.wellKnownValues().contains(ModelCapability.DECISIONS));
+        assertTrue(ModelCapability.wellKnownValues().contains(ModelCapability.INFILL));
+        assertEquals(18, ModelCapability.wellKnownValues().size());
     }
 
     @Test

@@ -45,6 +45,16 @@ public class DecisionChoiceQuestionContent extends ModelInput implements Decisio
         return Collections.unmodifiableMap(criteria);
     }
 
+    @Override
+    public Set<ModelCapability> getRequiredCapabilities() {
+        return Set.of(ModelCapability.DECISIONS);
+    }
+
+    @Override
+    public Set<ModelInputType> getRequiredInputTypes() {
+        return Set.of();
+    }
+
     @Extension
     public static class DescriptorImpl extends ModelInputDescriptor {
         @Override

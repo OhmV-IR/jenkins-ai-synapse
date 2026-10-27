@@ -1,9 +1,10 @@
-package io.ohmvir.plugins.jenkinsaisynapse.api.models;
+package dev.ohmvir.plugins.jenkinsaisynapse.api.models;
 
 import hudson.ExtensionList;
 import hudson.ExtensionPoint;
-import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.client.ModelClientConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
@@ -23,7 +24,7 @@ import org.jspecify.annotations.Nullable;
  * }</pre>
  *
  * Provider-wide settings such as API keys or timeouts usually live in a
- * {@link io.ohmvir.plugins.jenkinsaisynapse.configuration.client.ModelClientConfiguration}, which the provider looks up
+ * {@link dev.ohmvir.plugins.jenkinsaisynapse.configuration.client.ModelClientConfiguration}, which the provider looks up
  * itself when creating a client.
  *
  * @param <C> The model configuration type this provider handles. Subclasses of it are handled too, unless another
@@ -55,6 +56,14 @@ public abstract class ModelProvider<C extends ModelConfiguration> implements Ext
     protected abstract ModelClient createClient(C configuration);
 
     /**
+     * Maximum duration of a request handled by this model, including tool round trips. Override to use a
+     * provider-specific setting. Return 0 for no timeout.
+     */
+    protected long getTimeoutSeconds(C configuration) {
+        return ModelClientConfiguration.DEFAULT_TIMEOUT_SECONDS;
+    }
+
+    /**
      * @throws IllegalArgumentException If this provider doesn't handle the configuration
      */
     public final ModelData describeModel(ModelConfiguration configuration) throws IOException, InterruptedException {
@@ -66,6 +75,14 @@ public abstract class ModelProvider<C extends ModelConfiguration> implements Ext
      */
     public final ModelClient createModelClient(ModelConfiguration configuration) {
         return createClient(cast(configuration));
+    }
+
+    public final long getRequestTimeoutSeconds(ModelConfiguration configuration) {
+        long timeoutSeconds = getTimeoutSeconds(cast(configuration));
+        if (timeoutSeconds < 0) {
+            throw new IllegalStateException("Request timeout must not be negative");
+        }
+        return timeoutSeconds;
     }
 
     private C cast(ModelConfiguration configuration) {

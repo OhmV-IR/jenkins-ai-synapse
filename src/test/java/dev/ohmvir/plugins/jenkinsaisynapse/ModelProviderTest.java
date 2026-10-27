@@ -1,17 +1,17 @@
-package io.ohmvir.plugins.jenkinsaisynapse;
+package dev.ohmvir.plugins.jenkinsaisynapse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.ohmvir.plugins.jenkinsaisynapse.TestModels.SpecialTestConfiguration;
-import io.ohmvir.plugins.jenkinsaisynapse.TestModels.SpecialTestProvider;
-import io.ohmvir.plugins.jenkinsaisynapse.TestModels.TestConfiguration;
-import io.ohmvir.plugins.jenkinsaisynapse.TestModels.TestProvider;
-import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelProvider;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.TestModels.SpecialTestConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.TestModels.SpecialTestProvider;
+import dev.ohmvir.plugins.jenkinsaisynapse.TestModels.TestConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.TestModels.TestProvider;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelProvider;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

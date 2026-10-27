@@ -1,4 +1,4 @@
-package io.ohmvir.plugins.jenkinsaisynapse;
+package dev.ohmvir.plugins.jenkinsaisynapse;
 
 import hudson.AbortException;
 import hudson.EnvVars;
@@ -11,7 +11,7 @@ import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.ListBoxModel;
-import io.ohmvir.plugins.jenkinsaisynapse.steps.AiRequestRunner;
+import dev.ohmvir.plugins.jenkinsaisynapse.steps.AiRequestRunner;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;

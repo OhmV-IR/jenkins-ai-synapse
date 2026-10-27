@@ -1,9 +1,9 @@
-package io.ohmvir.plugins.jenkinsaisynapse.api.output;
+package dev.ohmvir.plugins.jenkinsaisynapse.api.output;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;

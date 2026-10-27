@@ -1,11 +1,11 @@
-package io.ohmvir.plugins.jenkinsaisynapse;
+package dev.ohmvir.plugins.jenkinsaisynapse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutputKind;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutputKind;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import org.junit.jupiter.api.Test;

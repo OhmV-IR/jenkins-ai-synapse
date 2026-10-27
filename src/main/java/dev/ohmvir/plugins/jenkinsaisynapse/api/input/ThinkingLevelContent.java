@@ -1,8 +1,8 @@
-package io.ohmvir.plugins.jenkinsaisynapse.api.input;
+package dev.ohmvir.plugins.jenkinsaisynapse.api.input;
 
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
 import java.util.Set;
 import lombok.Getter;
 

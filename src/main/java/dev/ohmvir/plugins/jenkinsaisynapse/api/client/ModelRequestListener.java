@@ -1,11 +1,11 @@
-package io.ohmvir.plugins.jenkinsaisynapse.api.client;
+package dev.ohmvir.plugins.jenkinsaisynapse.api.client;
 
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ToolCallResponseContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ToolCallResponseContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
 import java.util.List;
 
 /**
- * Receives progress while a {@link io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest} executes, for example to
+ * Receives progress while a {@link dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest} executes, for example to
  * write it to a build log as it happens. Callbacks may come from a thread other than the one executing the request.
  */
 public interface ModelRequestListener {
@@ -13,7 +13,7 @@ public interface ModelRequestListener {
 
     /**
      * Called by clients that stream their responses, with each piece of text as the model generates it. The complete
-     * text is still returned as an {@link io.ohmvir.plugins.jenkinsaisynapse.api.output.OutputTextContent} when the
+     * text is still returned as an {@link dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputTextContent} when the
      * step completes.
      */
     default void onTextDelta(String delta) {}

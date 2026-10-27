@@ -1,4 +1,4 @@
-package io.ohmvir.plugins.jenkinsaisynapse.configuration;
+package dev.ohmvir.plugins.jenkinsaisynapse.configuration;
 
 import hudson.XmlFile;
 import hudson.util.XStream2;

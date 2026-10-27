@@ -1,4 +1,4 @@
-package io.ohmvir.plugins.jenkinsaisynapse;
+package dev.ohmvir.plugins.jenkinsaisynapse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -6,10 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfoList;
 import io.github.classgraph.ScanResult;
-import io.ohmvir.plugins.jenkinsaisynapse.api.ModelConversation;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.*;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.ModelConversation;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.*;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
@@ -19,7 +20,7 @@ public class InputTypeRegistrationTest {
     public static <T> List<Class<T>> getAllSubclasses(Class<T> superClass) {
         try (ScanResult scanResult = new ClassGraph()
                 .enableClassInfo()
-                .acceptPackages("io.ohmvir.plugins.jenkinsaisynapse.api")
+                .acceptPackages("dev.ohmvir.plugins.jenkinsaisynapse.api")
                 .scan()) {
             ClassInfoList subclasses = scanResult.getSubclasses(superClass.getName());
             return subclasses.filter(info -> !info.isAbstract()).loadClasses(superClass);
@@ -37,6 +38,11 @@ public class InputTypeRegistrationTest {
                 new InputTextContent("text"),
                 new InputToolContent(null),
                 new InputVideoContent(new byte[0], "video/mp4"),
+                new InfillPrefixContent("prefix"),
+                new InfillSuffixContent("suffix"),
+                new DecisionChoiceQuestionContent("choice", null, Map.of("a", "A", "b", "B")),
+                new DecisionScoreQuestionContent("score", null, List.of("low", "high")),
+                new DecisionYesNoQuestionContent("yesNo", "Is this true?"),
                 new MaxOutputTokensContent(1),
                 new StopSequencesContent(List.of("stop")),
                 new SystemPromptContent("system"),

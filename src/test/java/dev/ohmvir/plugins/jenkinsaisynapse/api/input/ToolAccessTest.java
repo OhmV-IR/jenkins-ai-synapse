@@ -114,7 +114,7 @@ public class ToolAccessTest {
         // Attached up front so expansion does not look the tool up from Jenkins
         request.attachTool(new ReadSkillFileTool());
         request.attachSkill(skill(List.of("alphaTool")));
-        request.expandSkillInputs();
+        request.expandSkills();
         assertTrue(request.getModelInputs().stream().noneMatch(InputSkillContent.class::isInstance));
         assertEquals(
                 Set.of("alphaTool", ReadSkillFileTool.NAME),
@@ -127,7 +127,7 @@ public class ToolAccessTest {
         request.attachTool(new AlphaTool());
         request.attachTool(new ReadSkillFileTool());
         request.attachSkill(skill(null));
-        request.expandSkillInputs();
+        request.expandSkills();
         assertEquals(
                 Set.of("alphaTool", ReadSkillFileTool.NAME),
                 request.getAvailableTools().keySet());

@@ -1,4 +1,4 @@
-package io.ohmvir.plugins.jenkinsaisynapse.api.models;
+package dev.ohmvir.plugins.jenkinsaisynapse.api.models;
 
 import java.util.Collection;
 import java.util.Collections;

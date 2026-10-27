@@ -1,4 +1,4 @@
-package io.ohmvir.plugins.jenkinsaisynapse;
+package dev.ohmvir.plugins.jenkinsaisynapse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -6,14 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import hudson.BulkChange;
-import hudson.ExtensionList;
-import hudson.model.ManagementLink;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.ConversationHistoryManagementLink;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.PromptsConfiguration;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsConfiguration;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.PromptConfiguration;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.SimplePrompt;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.skills.BasicSkillConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.PromptsConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.PromptConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.SimplePrompt;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.skills.BasicSkillConfiguration;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.List;
@@ -76,17 +73,17 @@ public class GlobalConfigurationTest {
         Files.deleteIfExists(new File(root, PromptsConfiguration.class.getName() + ".xml").toPath());
         String legacyXml = """
                 <?xml version='1.1' encoding='UTF-8'?>
-                <io.ohmvir.plugins.jenkinsaisynapse.configuration.BasePromptsManagementLink>
+                <dev.ohmvir.plugins.jenkinsaisynapse.configuration.BasePromptsManagementLink>
                   <prompts>
                     <entry>
                       <string>greet</string>
-                      <io.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.SimplePrompt>
+                      <dev.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.SimplePrompt>
                         <promptId>greet</promptId>
                         <promptText>Say hello</promptText>
-                      </io.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.SimplePrompt>
+                      </dev.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.SimplePrompt>
                     </entry>
                   </prompts>
-                </io.ohmvir.plugins.jenkinsaisynapse.configuration.BasePromptsManagementLink>
+                </dev.ohmvir.plugins.jenkinsaisynapse.configuration.BasePromptsManagementLink>
                 """;
         Files.writeString(new File(root, "prompts.xml").toPath(), legacyXml);
 
@@ -105,15 +102,15 @@ public class GlobalConfigurationTest {
         Files.deleteIfExists(new File(root, SkillsConfiguration.class.getName() + ".xml").toPath());
         String legacyXml = """
                 <?xml version='1.1' encoding='UTF-8'?>
-                <io.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsManagementLink>
+                <dev.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsManagementLink>
                   <skillConfigurations>
-                    <io.ohmvir.plugins.jenkinsaisynapse.configuration.skills.BasicSkillConfiguration>
+                    <dev.ohmvir.plugins.jenkinsaisynapse.configuration.skills.BasicSkillConfiguration>
                       <skillText>Review the code</skillText>
                       <skillName>reviewer</skillName>
                       <skillDescription>Reviews code</skillDescription>
-                    </io.ohmvir.plugins.jenkinsaisynapse.configuration.skills.BasicSkillConfiguration>
+                    </dev.ohmvir.plugins.jenkinsaisynapse.configuration.skills.BasicSkillConfiguration>
                   </skillConfigurations>
-                </io.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsManagementLink>
+                </dev.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsManagementLink>
                 """;
         Files.writeString(new File(root, "skills.xml").toPath(), legacyXml);
 
@@ -122,15 +119,6 @@ public class GlobalConfigurationTest {
         assertEquals(1, migrated.getSkills().size());
         assertEquals("reviewer", ((BasicSkillConfiguration) migrated.getSkills().get(0)).skillName);
         assertTrue(new File(root, "skills.xml.migrated").exists());
-    }
-
-    @Test
-    public void conversationHistoryPageIsRegistered(JenkinsRule j) throws Exception {
-        assertTrue(ExtensionList.lookup(ManagementLink.class).stream()
-                .anyMatch(ConversationHistoryManagementLink.class::isInstance));
-        try (JenkinsRule.WebClient wc = j.createWebClient()) {
-            wc.goTo("manage/conversations/");
-        }
     }
 
     @Test

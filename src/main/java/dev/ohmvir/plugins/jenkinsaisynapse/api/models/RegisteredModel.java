@@ -1,7 +1,7 @@
-package io.ohmvir.plugins.jenkinsaisynapse.api.models;
+package dev.ohmvir.plugins.jenkinsaisynapse.api.models;
 
-import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import java.util.Objects;
 
 /**
@@ -20,5 +20,9 @@ public record RegisteredModel(ModelConfiguration configuration, ModelProvider<?>
 
     public ModelClient createClient() {
         return provider.createModelClient(configuration);
+    }
+
+    public long getRequestTimeoutSeconds() {
+        return provider.getRequestTimeoutSeconds(configuration);
     }
 }

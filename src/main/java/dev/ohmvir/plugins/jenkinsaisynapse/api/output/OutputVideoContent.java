@@ -1,7 +1,7 @@
-package io.ohmvir.plugins.jenkinsaisynapse.api.output;
+package dev.ohmvir.plugins.jenkinsaisynapse.api.output;
 
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
-import io.ohmvir.plugins.jenkinsaisynapse.utils.MimeTypeUtils;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
+import dev.ohmvir.plugins.jenkinsaisynapse.utils.MimeTypeUtils;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Set;

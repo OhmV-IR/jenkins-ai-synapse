@@ -1,4 +1,4 @@
-package io.ohmvir.plugins.jenkinsaisynapse.api;
+package dev.ohmvir.plugins.jenkinsaisynapse.api;
 
 import hudson.model.Run;
 import java.io.IOException;

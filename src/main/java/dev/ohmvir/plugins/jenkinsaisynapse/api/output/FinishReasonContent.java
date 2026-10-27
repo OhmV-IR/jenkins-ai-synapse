@@ -1,7 +1,7 @@
-package io.ohmvir.plugins.jenkinsaisynapse.api.output;
+package dev.ohmvir.plugins.jenkinsaisynapse.api.output;
 
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelFinishReason;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelFinishReason;
 import java.util.Objects;
 import java.util.Set;
 import lombok.Getter;

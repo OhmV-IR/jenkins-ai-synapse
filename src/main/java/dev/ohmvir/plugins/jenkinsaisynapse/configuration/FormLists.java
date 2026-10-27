@@ -1,4 +1,4 @@
-package io.ohmvir.plugins.jenkinsaisynapse.configuration;
+package dev.ohmvir.plugins.jenkinsaisynapse.configuration;
 
 import jakarta.servlet.ServletException;
 import java.util.ArrayList;

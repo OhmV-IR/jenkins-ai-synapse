@@ -1,15 +1,15 @@
-package io.ohmvir.plugins.jenkinsaisynapse.configuration.prompts;
+package dev.ohmvir.plugins.jenkinsaisynapse.configuration.prompts;
 
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.MaxOutputTokensContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.SystemPromptContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.TemperatureContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelRegistry;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.MaxOutputTokensContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.SystemPromptContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.TemperatureContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelRegistry;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
 import lombok.Getter;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;

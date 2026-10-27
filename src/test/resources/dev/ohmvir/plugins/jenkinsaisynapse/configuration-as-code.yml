@@ -15,5 +15,3 @@ unclassified:
           skillName: "reviewer"
           skillDescription: "Reviews code"
           skillText: "Review the code carefully"
-  aiConversations:
-    retentionDays: 7

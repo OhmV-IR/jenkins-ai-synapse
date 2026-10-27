@@ -1,33 +1,40 @@
-package io.ohmvir.plugins.jenkinsaisynapse.steps;
+package dev.ohmvir.plugins.jenkinsaisynapse.steps;
 
 import hudson.AbortException;
 import hudson.ExtensionList;
 import hudson.Functions;
 import hudson.model.Item;
+import hudson.model.Queue;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.model.queue.Tasks;
+import hudson.security.ACL;
+import hudson.security.ACLContext;
 import hudson.util.ListBoxModel;
-import io.ohmvir.plugins.jenkinsaisynapse.api.ModelConversation;
-import io.ohmvir.plugins.jenkinsaisynapse.api.ModelConversationsAction;
-import io.ohmvir.plugins.jenkinsaisynapse.api.client.ModelRequestException;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.InputTextContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.MaxOutputTokensContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.SystemPromptContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.input.TemperatureContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.FinishReasonContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ModelResponse;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.OutputTextContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ThinkingContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.TokenUtilizationContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
-import io.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
-import io.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
-import io.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolRegistry;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.PromptsConfiguration;
-import io.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.PromptConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.ModelConversation;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.ModelConversationsAction;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelRequestListener;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelRequestException;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputTextContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.MaxOutputTokensContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelInput;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.SystemPromptContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.TemperatureContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ToolCallResponseContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelRegistry;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.RegisteredModel;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.FinishReasonContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ModelResponse;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputTextContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ThinkingContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.TokenUtilizationContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolRegistry;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.PromptsConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.PromptConfiguration;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -36,14 +43,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import lombok.Setter;
 import org.jspecify.annotations.Nullable;
+import org.springframework.security.core.Authentication;
 
 /**
  * Builds and executes the request for {@link AiRequestStep} and the freestyle
- * {@link io.ohmvir.plugins.jenkinsaisynapse.ModelRequestExecutionStep}. A new request is built for every execution,
+ * {@link dev.ohmvir.plugins.jenkinsaisynapse.ModelRequestExecutionStep}. A new request is built for every execution,
  * so nothing is shared between builds.
  */
 @Setter
@@ -66,7 +80,7 @@ public final class AiRequestRunner {
      */
     public Result execute(@Nullable Run<?, ?> run, TaskListener listener) throws IOException, InterruptedException {
         ModelRequest request = buildRequest();
-        ModelData modelData = selectModel(request);
+        RegisteredModel modelData = selectModel(request);
         PrintStream logger = listener.getLogger();
         if (!quiet) {
             logger.println("[AI] Sending request to " + modelData.getModelId());
@@ -74,14 +88,44 @@ public final class AiRequestRunner {
         ModelConversation conversation = ModelConversation.inMemory();
         conversation.setModelId(modelData.getModelId());
         request.setAssociatedConversation(conversation);
+        Authentication toolAuthentication = getToolAuthentication(run);
+        ModelRequestListener requestListener = quiet ? ModelRequestListener.NOOP : new BuildLogListener(logger);
+        long timeoutSeconds = modelData.getRequestTimeoutSeconds();
+        ExecutorService executor = Executors.newSingleThreadExecutor(task -> {
+            Thread thread = new Thread(task, "jenkins-ai-model-request");
+            thread.setDaemon(true);
+            return thread;
+        });
+        Future<ModelResponse> future = executor.submit(() -> request.executeOrThrow(
+                modelData,
+                requestListener,
+                (tool, toolCall) -> executeTool(tool, toolCall, toolAuthentication, listener)));
         ModelResponse response;
         try {
-            response = request.executeOrThrow(modelData, quiet ? null : new BuildLogListener(logger));
-        } catch (ModelRequestException e) {
-            if (e.getCause() != null) {
-                Functions.printStackTrace(e.getCause(), logger);
+            response = timeoutSeconds == 0
+                    ? future.get()
+                    : future.get(timeoutSeconds, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            future.cancel(true);
+            throw new AbortException("AI request timed out after " + timeoutSeconds + " seconds");
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw interrupted;
             }
-            throw new AbortException("AI request failed: " + e.getMessage());
+            if (cause instanceof ModelRequestException requestException && requestException.getCause() != null) {
+                Functions.printStackTrace(requestException.getCause(), logger);
+            }
+            String message = cause instanceof ModelRequestException requestException
+                    ? requestException.getMessage()
+                    : cause == null ? "unknown failure" : cause.getMessage();
+            throw new AbortException("AI request failed: " + message);
+        } catch (InterruptedException e) {
+            future.cancel(true);
+            throw e;
+        } finally {
+            executor.shutdownNow();
         }
         if (run != null) {
             ModelConversationsAction.record(run, conversation);
@@ -129,28 +173,52 @@ public final class AiRequestRunner {
             }
             request.attachSkill(skill);
         }
-        request.requestOutputType(OutputTextContent.class);
+        request.expandSkills();
+        request.setModelId(model);
+        request.requestOutput(OutputTextContent.KIND);
         return request;
     }
 
-    private ModelData selectModel(ModelRequest request) throws AbortException {
-        if (model != null) {
-            ModelData modelData = ModelData.get(model);
-            if (modelData == null) {
-                throw new AbortException("Unknown model '" + model + "'. Configured models: "
-                        + String.join(", ", new TreeSet<>(ModelData.getModelIds())));
+    private RegisteredModel selectModel(ModelRequest request) throws AbortException {
+        ModelRegistry registry = ModelRegistry.get();
+        RegisteredModel selected = registry.findModelForRequest(request);
+        if (selected == null && model != null) {
+            if (registry.getModel(model).isEmpty()) {
+                throw new AbortException("Unknown model '" + model + "'");
             }
-            if (!modelData.supportsRequest(request)) {
-                throw new AbortException("Model '" + model + "' does not support this request. Check that it supports"
-                        + " the tools, skills, system prompt, temperature and thinking level being used.");
-            }
-            return modelData;
+            throw new AbortException("Model '" + model + "' does not support this request.");
         }
-        ModelData modelData = ModelData.findModelForRequest(request);
-        if (modelData == null) {
+        if (selected == null) {
             throw new AbortException("No configured model supports this request");
         }
-        return modelData;
+        return selected;
+    }
+
+    private static Authentication getToolAuthentication(@Nullable Run<?, ?> run) {
+        if (run != null && run.getParent() instanceof Queue.Task task) {
+            return Tasks.getAuthenticationOf2(task);
+        }
+        return Jenkins.getAuthentication2();
+    }
+
+    private ToolCallResponseContent executeTool(
+            Tool tool,
+            ToolCallContent toolCall,
+            Authentication authentication,
+            TaskListener listener) {
+        if (!quiet) {
+            listener.getLogger().println("[AI Synapse] Model called tool '" + tool.getName() + "' as "
+                    + authentication.getName() + " with arguments " + toolCall.getArgumentsPrettyJson());
+        }
+        ToolCallResponseContent response;
+        try (ACLContext ignored = ACL.as2(authentication)) {
+            response = tool.callTool(toolCall);
+        }
+        if (!quiet && !response.isSuccessful()) {
+            listener.getLogger().println("[AI Synapse] Tool '" + tool.getName() + "' failed: "
+                    + response.getResponseContent());
+        }
+        return response;
     }
 
     private static void replaceInput(ModelRequest request, Class<? extends ModelInput> type, ModelInput input) {
@@ -168,7 +236,10 @@ public final class AiRequestRunner {
         Tool tool = ToolRegistry.getTool(name);
         if (tool == null) {
             throw new AbortException("Unknown tool '" + name + "'. Available tools: "
-                    + String.join(", ", new TreeSet<>(ToolRegistry.getTools().keySet())));
+                    + ToolRegistry.getAllTools().stream()
+                            .map(Tool::getName)
+                            .sorted()
+                            .collect(Collectors.joining(", ")));
         }
         return tool;
     }
@@ -177,7 +248,9 @@ public final class AiRequestRunner {
         ListBoxModel items = new ListBoxModel();
         items.add("(Any model that supports the request)", "");
         if (canConfigure(item)) {
-            items.addAll(ModelData.getAllModelsListBox());
+            for (RegisteredModel model : ModelRegistry.get().getModels()) {
+                items.add(model.configuration().getModelIdDisplayName(), model.getModelId());
+            }
         }
         return items;
     }
