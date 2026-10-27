@@ -58,14 +58,26 @@ public class FileDownloadUtils {
      * @return A file name that is safe to put in a Content-Disposition header
      */
     public static String sanitizeFileName(@Nullable String fileName) {
+        return sanitizeFileName(fileName, DEFAULT_FILE_NAME);
+    }
+
+    /**
+     * Same as {@link #sanitizeFileName(String)}, with a caller chosen name for when nothing is left of the file name.
+     * When the name is too long its end is kept, so that the extension is preserved.
+     * @param fileName The untrusted file name
+     * @param defaultName The name to return if the file name is null or has nothing usable in it, trusted to be safe
+     * @return A safe file name of at most 128 characters, or the default name
+     */
+    public static String sanitizeFileName(@Nullable String fileName, String defaultName) {
         if (fileName == null) {
-            return DEFAULT_FILE_NAME;
+            return defaultName;
         }
         String name = fileName.substring(Math.max(fileName.lastIndexOf('/'), fileName.lastIndexOf('\\')) + 1);
         name = name.replaceAll("[^A-Za-z0-9._-]", "_").replaceFirst("^\\.+", "");
         if (name.length() > MAX_FILE_NAME_LENGTH) {
-            name = name.substring(name.length() - MAX_FILE_NAME_LENGTH);
+            // Cutting the start off can leave the name beginning with a dot
+            name = name.substring(name.length() - MAX_FILE_NAME_LENGTH).replaceFirst("^\\.+", "");
         }
-        return name.isEmpty() ? DEFAULT_FILE_NAME : name;
+        return name.isEmpty() ? defaultName : name;
     }
 }
