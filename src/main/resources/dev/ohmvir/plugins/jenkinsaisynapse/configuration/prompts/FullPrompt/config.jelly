@@ -14,7 +14,8 @@
         <f:entry title="${%Temperature}" field="temperature">
             <f:number min="0" />
         </f:entry>
-        <f:entry title="${%Max Output Tokens}" field="maxOutputTokensCount">
+        <f:entry title="${%Max Output Tokens}" field="maxOutputTokensCount"
+                 description="${%The maximum number of tokens to generate. 0 or empty means not set, so the model's own limit applies}">
             <f:number min="0" />
         </f:entry>
         <f:entry title="${%Thinking Level}" field="thinkingLevel">
