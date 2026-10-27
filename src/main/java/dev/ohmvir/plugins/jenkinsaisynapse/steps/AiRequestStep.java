@@ -325,9 +325,19 @@ public class AiRequestStep extends Step {
         return runner;
     }
 
+    /**
+     * @return The value with its environment variables expanded when {@link #isExpandEnvVars()} is set, or
+     *         {@code null} when that leaves it empty
+     */
     @Nullable
     String expand(@Nullable EnvVars env, @Nullable String value) {
-        return expandEnvVars && env != null && value != null ? env.expand(value) : value;
+        return expandEnvVars ? EnvVarExpansion.expand(env, value) : value;
+    }
+
+    /** Like {@link #expand(EnvVars, String)}, for values such as paths that must not have surrounding whitespace. */
+    @Nullable
+    String expandAndTrim(@Nullable EnvVars env, @Nullable String value) {
+        return expandEnvVars ? EnvVarExpansion.expandAndTrim(env, value) : value;
     }
 
     @Override
@@ -353,10 +363,14 @@ public class AiRequestStep extends Step {
             EnvVars env = getContext().get(EnvVars.class);
             List<ModelInput> attachments = new ArrayList<>();
             for (String path : step.getFiles()) {
-                attachments.add(WorkspaceFiles.readAttachment(requireWorkspace("files"), step.expand(env, path)));
+                String expandedPath = step.expandAndTrim(env, path);
+                if (expandedPath == null) {
+                    throw new AbortException("The file path '" + path + "' is empty after expanding variables");
+                }
+                attachments.add(WorkspaceFiles.readAttachment(requireWorkspace("files"), expandedPath));
             }
             AiRequestRunner.Result result = step.createRunner(env, attachments).execute(run, listener);
-            String outputDir = step.expand(env, step.getOutputDir());
+            String outputDir = step.expandAndTrim(env, step.getOutputDir());
             List<Map<String, Object>> files = WorkspaceFiles.saveOutputs(
                     result.getResponse(),
                     outputDir == null ? null : requireWorkspace("outputDir").child(outputDir),
