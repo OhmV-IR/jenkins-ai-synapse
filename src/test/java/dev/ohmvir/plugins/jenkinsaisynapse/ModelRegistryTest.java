@@ -17,6 +17,7 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.RegisteredModel;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
 
 public class ModelRegistryTest {
@@ -133,6 +134,37 @@ public class ModelRegistryTest {
                 List.of("test:b", "test:a"),
                 registry.getModels().stream().map(RegisteredModel::getModelId).toList());
         assertSame(provider, registry.getModel("test:a").orElseThrow().provider());
+    }
+
+    @Test
+    public void retryFailedRegistersRecoveredModelsInConfigurationOrder() throws Exception {
+        AtomicBoolean providerDown = new AtomicBoolean(true);
+        TestProvider provider = new TestProvider(
+                config -> {
+                    if (config.getModelName().equals("flaky") && providerDown.get()) {
+                        throw new IllegalStateException("API down");
+                    }
+                    return TestModels.textModel(config);
+                },
+                CLIENT);
+        ModelRegistry registry = new ModelRegistry();
+        registry.reload(
+                List.of(new TestConfiguration("a"), new TestConfiguration("flaky"), new TestConfiguration("b")),
+                List.of(provider));
+        assertEquals(
+                List.of("test:a", "test:b"),
+                registry.getModels().stream().map(RegisteredModel::getModelId).toList());
+
+        registry.retryFailed();
+        assertEquals(
+                List.of("test:a", "test:b"),
+                registry.getModels().stream().map(RegisteredModel::getModelId).toList());
+
+        providerDown.set(false);
+        registry.retryFailed();
+        assertEquals(
+                List.of("test:a", "test:flaky", "test:b"),
+                registry.getModels().stream().map(RegisteredModel::getModelId).toList());
     }
 
     @Test

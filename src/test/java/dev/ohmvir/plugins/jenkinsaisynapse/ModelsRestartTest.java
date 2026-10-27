@@ -14,6 +14,7 @@ import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfigurati
 import java.io.File;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import org.jenkinsci.Symbol;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -98,17 +99,24 @@ public class ModelsRestartTest {
         ModelRegistry.get().setModels(List.of());
     }
 
-    private static void assertModels(List<String> modelIds) {
+    private static void assertModels(List<String> modelIds) throws InterruptedException {
         assertEquals(
                 modelIds,
                 ModelsConfiguration.get().getModels().stream()
                         .map(ModelConfiguration::getModelId)
                         .toList());
-        assertEquals(
-                modelIds,
-                ModelRegistry.get().getModels().stream()
-                        .map(RegisteredModel::getModelId)
-                        .toList());
+        // The registry is loaded in the background after startup, so give it time to catch up
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+        while (!registeredModelIds().equals(modelIds) && System.nanoTime() < deadline) {
+            Thread.sleep(50);
+        }
+        assertEquals(modelIds, registeredModelIds());
+    }
+
+    private static List<String> registeredModelIds() {
+        return ModelRegistry.get().getModels().stream()
+                .map(RegisteredModel::getModelId)
+                .toList();
     }
 
     public static class SessionModelConfiguration extends ModelConfiguration {
