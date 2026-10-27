@@ -122,6 +122,10 @@ public class AiRequestStep extends Step {
 
     @DataBoundSetter
     public void setTemperature(@Nullable Double temperature) {
+        // The upper bound differs between providers, so only values no provider accepts are rejected here.
+        if (temperature != null && (temperature.isNaN() || temperature.isInfinite() || temperature < 0)) {
+            throw new IllegalArgumentException("temperature must be a finite number that is not negative");
+        }
         this.temperature = temperature;
     }
 
@@ -157,11 +161,17 @@ public class AiRequestStep extends Step {
 
     @DataBoundSetter
     public void setTopP(@Nullable Double topP) {
+        if (topP != null && !(topP > 0 && topP <= 1)) {
+            throw new IllegalArgumentException("topP must be greater than 0 and at most 1");
+        }
         this.topP = topP;
     }
 
     @DataBoundSetter
     public void setTopK(@Nullable Integer topK) {
+        if (topK != null && topK < 1) {
+            throw new IllegalArgumentException("topK must be at least 1");
+        }
         this.topK = topK;
     }
 

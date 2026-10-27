@@ -46,6 +46,7 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolArgumentDescription;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.client.ModelClientConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.steps.AiRequestStep;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -203,6 +204,19 @@ public class AiRequestStepTest {
         step.setTemperature("warm");
         p.getBuildersList().add(step);
         j.assertLogContains("temperature must be a number", j.buildAndAssertStatus(Result.FAILURE, p));
+    }
+
+    @Test
+    public void pipelineStepRejectsOutOfRangeSamplingOptions() {
+        AiRequestStep step = new AiRequestStep("x");
+        assertThrows(IllegalArgumentException.class, () -> step.setTopP(5.0));
+        assertThrows(IllegalArgumentException.class, () -> step.setTopP(0.0));
+        assertThrows(IllegalArgumentException.class, () -> step.setTopK(-1));
+        assertThrows(IllegalArgumentException.class, () -> step.setTopK(0));
+        assertThrows(IllegalArgumentException.class, () -> step.setTemperature(-0.5));
+        step.setTopP(1.0);
+        step.setTopK(1);
+        step.setTemperature(0.0);
     }
 
     @Test
