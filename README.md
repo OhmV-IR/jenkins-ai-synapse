@@ -45,12 +45,14 @@ def review = aiRequest(
     promptId: 'code-review',
     prompt: diff,
     model: 'anthropic:claude-opus-5-5',
-    tools: ['readFile'],
     skills: ['java-style'],
     returnDetails: true)
 echo review.text
 echo "Used ${review.usage?.outputTokens} output tokens"
 ```
+
+`tools: [...]` lists the names of tools to make available, such as those provided by other plugins; `skills` also
+attaches the built-in `read_skill_file` tool. An unknown tool name fails the request.
 
 With `returnDetails: true` the step returns a map with `text`, `thinking`, `toolCalls`, `citations`, `files`,
 `finishReason`, `usage`, `model` and `conversationId`. Other options are `systemPrompt`, `temperature`,
@@ -137,9 +139,9 @@ Capabilities, input types and output types the core plugin doesn't define can be
 
 ## Choosing a model
 
-A request runs on the model named with `ModelRequest.setModelId(...)` (or the `modelId` option of the build step). If
-no model is named, it runs on the first model that can handle it, in the order the models are listed on the Models
-page. A requested thinking level is mapped to the nearest level the model supports.
+A request runs on the model named with `ModelRequest.setModelId(...)` (or the `model` option of the `aiRequest` and
+freestyle build steps). If no model is named, it runs on the first model that can handle it, in the order the models
+are listed on the Models page. A requested thinking level is mapped to the nearest level the model supports.
 
 ## Contributing
 

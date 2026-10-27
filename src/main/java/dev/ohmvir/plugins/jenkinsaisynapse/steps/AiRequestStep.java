@@ -49,7 +49,7 @@ import org.kohsuke.stapler.StaplerRequest2;
  * <pre>
  * def answer = aiRequest 'Summarize the changes in this build'
  * def details = aiRequest(promptId: 'review', prompt: diff, model: 'anthropic:claude-opus-5-5',
- *                         tools: ['readFile'], skills: ['code-review'], returnDetails: true)
+ *                         skills: ['code-review'], returnDetails: true)
  * echo details.text
  *
  * node {
