@@ -134,8 +134,8 @@ public class ModelRequest {
     }
 
     /**
-     * Converts attached skills to a system prompt and the built-in skill-file tool. This prepares a fresh request
-     * before model selection. Calling it again once the skills are expanded has no effect.
+     * Converts attached skills to a system prompt and a skill-file tool that serves only those skills. This prepares a
+     * fresh request before model selection. Calling it again once the skills are expanded has no effect.
      */
     public void expandSkills() {
         List<SkillData> skills = modelInputs.stream()
@@ -158,12 +158,41 @@ public class ModelRequest {
         } else {
             modelInputs.add(0, new SystemPromptContent(skillPrompt));
         }
-        boolean hasSkillTool = modelInputs.stream()
+        attachSkillTool(skills);
+    }
+
+    /**
+     * Attaches a skill-file tool that serves the given skills and the skills already served by one attached to this
+     * request. The tool is replaced rather than changed, as copies of this request share the tool instance.
+     */
+    private void attachSkillTool(List<SkillData> skills) {
+        boolean hasOtherSkillTool = modelInputs.stream()
                 .filter(InputToolContent.class::isInstance)
                 .map(input -> ((InputToolContent) input).getTool())
-                .anyMatch(tool -> ReadSkillFileTool.NAME.equals(tool.getName()));
-        if (!hasSkillTool) {
-            attachTool(ReadSkillFileTool.get());
+                .anyMatch(tool ->
+                        ReadSkillFileTool.NAME.equals(tool.getName()) && !(tool instanceof ReadSkillFileTool));
+        if (hasOtherSkillTool) {
+            return;
+        }
+        Map<String, SkillData> served = new LinkedHashMap<>();
+        int toolIndex = -1;
+        for (int i = 0; i < modelInputs.size(); i++) {
+            if (modelInputs.get(i) instanceof InputToolContent toolInput
+                    && toolInput.getTool() instanceof ReadSkillFileTool skillTool) {
+                skillTool.getSkills().forEach(skill -> served.put(skill.getSkillName(), skill));
+                if (toolIndex < 0) {
+                    toolIndex = i;
+                } else {
+                    modelInputs.remove(i--);
+                }
+            }
+        }
+        skills.forEach(skill -> served.put(skill.getSkillName(), skill));
+        InputToolContent updatedTool = new InputToolContent(ReadSkillFileTool.forSkills(served.values()));
+        if (toolIndex < 0) {
+            modelInputs.add(updatedTool);
+        } else {
+            modelInputs.set(toolIndex, updatedTool);
         }
     }
 
