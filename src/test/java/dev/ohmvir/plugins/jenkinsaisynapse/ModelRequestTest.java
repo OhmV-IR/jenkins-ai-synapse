@@ -10,6 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.ConversationEntry;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.ModelConversation;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelRequestException;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelRequestListener;
@@ -39,6 +41,7 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolArgumentDescription;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.RequestsConfiguration;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -394,5 +397,115 @@ public class ModelRequestTest {
         request.setMaxSteps(3);
         assertEquals(3, request.getMaxSteps());
         assertEquals(3, new ModelRequest(request).getMaxSteps());
+    }
+
+    private static List<String> entryTypes(ModelConversation conversation) {
+        return conversation.getEntries().stream().map(ConversationEntry::getType).toList();
+    }
+
+    @Test
+    public void conversationHoldsEachStepOnceWhenTheRequestSucceeds() throws Exception {
+        AtomicInteger steps = new AtomicInteger();
+        ObjectNode arguments = new ObjectMapper().createObjectNode().put("text", "ping");
+        ModelClient client = (model, modelRequest, inputs) -> steps.incrementAndGet() == 1
+                ? List.of(new ToolCallContent("call-1", arguments, "echo"))
+                : List.of(new OutputTextContent("done"));
+        ModelConversation conversation = ModelConversation.inMemory();
+        ModelRequest request = toolRequest();
+        request.setAssociatedConversation(conversation);
+
+        request.executeOrThrow(
+                TestModels.registered("m", client, ModelCapability.TOOLS),
+                ModelRequestListener.NOOP,
+                (tool, toolCall) -> tool.callTool(toolCall));
+
+        assertEquals(
+                List.of(
+                        "InputTextContent",
+                        "InputToolContent",
+                        "ToolCallContent",
+                        "ToolCallResponseContent",
+                        "OutputTextContent"),
+                entryTypes(conversation));
+        assertEquals(5, conversation.getConversation().size());
+    }
+
+    @Test
+    public void conversationKeepsTheStepsCompletedBeforeTheClientFails() throws Exception {
+        AtomicInteger steps = new AtomicInteger();
+        ObjectNode arguments = new ObjectMapper().createObjectNode().put("text", "ping");
+        ModelClient client = (model, modelRequest, inputs) -> {
+            if (steps.incrementAndGet() == 2) {
+                throw new IOException("connection reset");
+            }
+            return List.of(new ToolCallContent("call-1", arguments, "echo"));
+        };
+        ModelConversation conversation = ModelConversation.inMemory();
+        ModelRequest request = toolRequest();
+        request.setAssociatedConversation(conversation);
+
+        assertThrows(
+                ModelRequestException.class,
+                () -> request.executeOrThrow(
+                        TestModels.registered("m", client, ModelCapability.TOOLS),
+                        ModelRequestListener.NOOP,
+                        (tool, toolCall) -> tool.callTool(toolCall)));
+
+        assertEquals(2, steps.get());
+        assertEquals(
+                List.of("InputTextContent", "InputToolContent", "ToolCallContent", "ToolCallResponseContent"),
+                entryTypes(conversation));
+        assertEquals("echo: ping", conversation.getEntries().get(3).getText());
+    }
+
+    @Test
+    public void conversationKeepsTheOutputOfARequestThatMissesARequestedOutput() throws Exception {
+        ModelClient client = (model, modelRequest, inputs) -> List.of(new OutputTextContent("only text"));
+        ModelConversation conversation = ModelConversation.inMemory();
+        ModelRequest request = new ModelRequest();
+        request.addInput(new InputTextContent("draw"));
+        request.requestOutput(OutputImageContent.KIND);
+        request.setAssociatedConversation(conversation);
+
+        assertThrows(
+                ModelRequestException.class,
+                () -> request.executeOrThrow(
+                        TestModels.registered("m", client, ModelCapability.TOOLS),
+                        ModelRequestListener.NOOP,
+                        (tool, toolCall) -> tool.callTool(toolCall)));
+
+        assertEquals(List.of("InputTextContent", "OutputTextContent"), entryTypes(conversation));
+    }
+
+    @Test
+    public void conversationKeepsToolResultsOfACancelledRequest() throws Exception {
+        ObjectNode arguments = new ObjectMapper().createObjectNode().put("text", "ping");
+        ModelClient client = (model, modelRequest, inputs) -> List.of(
+                new ToolCallContent("call-1", arguments, "echo"), new ToolCallContent("call-2", arguments, "echo"));
+        ModelConversation conversation = ModelConversation.inMemory();
+        ModelRequest request = toolRequest();
+        request.setAssociatedConversation(conversation);
+        RegisteredModel registered = TestModels.registered("m", client, ModelCapability.TOOLS);
+
+        try {
+            assertThrows(
+                    InterruptedException.class,
+                    () -> request.executeOrThrow(registered, ModelRequestListener.NOOP, (tool, toolCall) -> {
+                        // The build is aborted while the first tool call runs
+                        Thread.currentThread().interrupt();
+                        return tool.callTool(toolCall);
+                    }));
+        } finally {
+            Thread.interrupted();
+        }
+
+        assertEquals(
+                List.of(
+                        "InputTextContent",
+                        "InputToolContent",
+                        "ToolCallContent",
+                        "ToolCallContent",
+                        "ToolCallResponseContent"),
+                entryTypes(conversation));
     }
 }

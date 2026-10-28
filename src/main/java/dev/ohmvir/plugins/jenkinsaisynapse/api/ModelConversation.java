@@ -58,6 +58,13 @@ public class ModelConversation {
         }
     }
 
+    /**
+     * Ends the conversation of a request that failed with an entry that gives the reason.
+     */
+    public synchronized void addFailure(String reason) {
+        entries.add(ConversationEntry.failure(reason));
+    }
+
     public synchronized List<ModelContent> getConversation() {
         return Collections.unmodifiableList(new ArrayList<>(conversation));
     }
