@@ -146,4 +146,21 @@ public class FileDownloadTest {
                     });
         }
     }
+
+    @Test
+    public void usesTheGivenDefaultName() {
+        assertEquals("image-1.png", FileDownloadUtils.sanitizeFileName(null, "image-1.png"));
+        assertEquals("image-1.png", FileDownloadUtils.sanitizeFileName("...", "image-1.png"));
+        assertEquals("a.txt", FileDownloadUtils.sanitizeFileName("a.txt", "image-1.png"));
+    }
+
+    @Test
+    public void keepsTheEndOfLongNamesWithoutLeadingDots() {
+        String name = FileDownloadUtils.sanitizeFileName("a".repeat(500) + ".txt");
+        assertEquals(128, name.length());
+        assertEquals(".txt", name.substring(name.length() - 4));
+        assertEquals(
+                "b".repeat(127),
+                FileDownloadUtils.sanitizeFileName("a".repeat(500) + "." + "b".repeat(127)));
+    }
 }

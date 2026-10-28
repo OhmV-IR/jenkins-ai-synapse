@@ -12,6 +12,7 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputAudioContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputFileContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputImageContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputVideoContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.utils.FileDownloadUtils;
 import hudson.AbortException;
 import hudson.FilePath;
 import hudson.Util;
@@ -32,6 +33,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import jenkins.MasterToSlaveFileCallable;
 import org.jspecify.annotations.Nullable;
 
@@ -85,6 +87,10 @@ final class WorkspaceFiles {
             "application/sql",
             "application/x-sh",
             "image/svg+xml");
+
+    /** Device names that cannot be used as a file name on Windows, with or without an extension. */
+    private static final Pattern WINDOWS_DEVICE_NAME =
+            Pattern.compile("(?i)(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\\..*)?");
 
     private WorkspaceFiles() {}
 
@@ -320,8 +326,8 @@ final class WorkspaceFiles {
             if (contentType == null) {
                 contentType = "application/octet-stream";
             }
-            String fileName = uniqueFileName(
-                    name == null ? kind + "-" + index + "." + extensionFor(contentType) : name, index, usedNames);
+            String fileName =
+                    uniqueFileName(name, kind + "-" + index + "." + extensionFor(contentType), index, usedNames);
             Map<String, Object> description = new LinkedHashMap<>();
             description.put("name", fileName);
             description.put("kind", kind);
@@ -347,14 +353,18 @@ final class WorkspaceFiles {
     }
 
     /**
-     * Keeps model chosen file names from escaping the output directory or overwriting each other.
+     * Keeps model chosen file names from escaping the output directory, being too long for the file system, being
+     * reserved on Windows, or overwriting each other.
+     *
+     * @param name The file name the model chose, if any
+     * @param fallback The file name to use when the model's name has nothing usable in it, trusted to be safe
+     * @param index The position of the output, to tell apart outputs with the same name
+     * @param usedNames The names already used in the output directory, this name is added to it
      */
-    static String uniqueFileName(@Nullable String name, int index, Set<String> usedNames) {
-        String fileName = name == null ? "" : name;
-        fileName = fileName.substring(Math.max(fileName.lastIndexOf('/'), fileName.lastIndexOf('\\')) + 1);
-        fileName = fileName.replaceAll("[^A-Za-z0-9._-]", "_").replaceFirst("^\\.+", "");
-        if (fileName.isEmpty()) {
-            fileName = "output-" + index;
+    static String uniqueFileName(@Nullable String name, String fallback, int index, Set<String> usedNames) {
+        String fileName = FileDownloadUtils.sanitizeFileName(name, fallback);
+        if (WINDOWS_DEVICE_NAME.matcher(fileName).matches()) {
+            fileName = "file-" + fileName;
         }
         if (!usedNames.add(fileName)) {
             fileName = index + "-" + fileName;
