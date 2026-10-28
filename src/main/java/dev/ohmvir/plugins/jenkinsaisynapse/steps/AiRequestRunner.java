@@ -26,6 +26,7 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputTextContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ThinkingContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.TokenUtilizationContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.ReadSkillFileTool;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.Tool;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolRegistry;
@@ -72,6 +73,13 @@ import org.springframework.security.core.Authentication;
 public final class AiRequestRunner {
     /** How long to wait for the request thread to stop after cancelling it. */
     static final long SHUTDOWN_WAIT_SECONDS = 10;
+
+    static final String SYSTEM_AUTHENTICATION_WARNING =
+            "[AI Synapse] WARNING: tools are attached to this request and this build runs as SYSTEM, so every"
+                    + " tool call the model makes has full administrator rights. The model's choices can be"
+                    + " influenced by untrusted content in the prompt, such as pull request diffs, issue text or"
+                    + " build logs. Configure the Authorize Project plugin (or another QueueItemAuthenticator) so"
+                    + " that builds run as a limited user.";
 
     private @Nullable String prompt;
     private @Nullable String promptId;
@@ -123,6 +131,11 @@ public final class AiRequestRunner {
         conversation.maskSecrets(secrets);
         request.setAssociatedConversation(conversation);
         Authentication toolAuthentication = getToolAuthentication(run);
+        boolean hasTools = request.getAvailableTools().values().stream()
+                .anyMatch(tool -> !(tool instanceof ReadSkillFileTool));
+        if (shouldWarnAboutSystemAuthentication(toolAuthentication, hasTools)) {
+            logger.println(SYSTEM_AUTHENTICATION_WARNING);
+        }
         ModelRequestListener requestListener = quiet ? ModelRequestListener.NOOP : new BuildLogListener(logger);
         long providerTimeoutSeconds = modelData.getRequestTimeoutSeconds();
         long timeoutSeconds = effectiveTimeout(providerTimeoutSeconds, this.timeoutSeconds);
@@ -323,6 +336,17 @@ public final class AiRequestRunner {
                     "No configured model supports this request:\n- " + String.join("\n- ", unsupported));
         }
         return selected;
+    }
+
+    /**
+     * Tools run with the build's authentication, which is {@link ACL#SYSTEM2} unless the Authorize Project plugin (or
+     * another {@code QueueItemAuthenticator}) is configured. The model decides which tools to call, and untrusted
+     * content in the prompt can influence that, so this is worth a warning in the build log.
+     *
+     * @return Whether to warn that the model's tool calls run as SYSTEM
+     */
+    static boolean shouldWarnAboutSystemAuthentication(@Nullable Authentication authentication, boolean hasTools) {
+        return hasTools && ACL.SYSTEM2.equals(authentication);
     }
 
     private static Authentication getToolAuthentication(@Nullable Run<?, ?> run) {

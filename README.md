@@ -31,6 +31,20 @@ skill's name and description in the system prompt and attaches the built-in `rea
 calls to load its `SKILL.md` and any files it references. Any model with the `TOOLS` and
 `ADJUSTABLE_SYSTEM_PROMPT` capabilities can use skills.
 
+## Security model for tools
+
+Tools called by a model run with the authentication of the build that made the request. Without the
+[Authorize Project](https://plugins.jenkins.io/authorize-project/) plugin (or another `QueueItemAuthenticator`) that is
+`SYSTEM`, which has full administrator rights. The model decides which tools to call, and its choices can be influenced
+by untrusted content in the prompt, such as pull request diffs, issue text or build logs. A prompt injection can
+therefore make a tool do anything it can do as `SYSTEM`.
+
+- Configure Authorize Project so that builds that use tools run as a limited user. The build log shows a warning when a
+  request with tools runs as `SYSTEM`, and logs each tool call with the user it ran as.
+- Only attach the tools a request needs.
+- Tool authors should treat all arguments as untrusted input and check permissions explicitly with
+  `Jenkins.get().checkPermission(...)`. Those checks pass under `SYSTEM`. See the `Tool` Javadoc.
+
 ## Using models in jobs
 
 ### Pipeline

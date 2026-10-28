@@ -28,6 +28,17 @@ import org.jspecify.annotations.Nullable;
  * Must have a public no-arg constructor, no arguments should be taken in the tool class.
  * getName() should then match this method name
  * and getArguments() should match your arguments (in order).
+ *
+ * <h2>Security model</h2>
+ * A tool runs with the authentication of the build that made the request, and the model decides when to call it.
+ * That authentication is {@link hudson.security.ACL#SYSTEM2} (full administrator rights) unless the Authorize Project
+ * plugin or another {@code QueueItemAuthenticator} is configured, so a tool must not assume that its caller is trusted
+ * or even a person. The model's choices, including the arguments it passes, can be influenced by untrusted content in
+ * the prompt such as pull request diffs, issue text or build logs (prompt injection). Treat every argument as untrusted
+ * input, do the least that the tool is for, and check permissions explicitly, for example with
+ * {@code Jenkins.get().checkPermission(...)} or {@code item.checkPermission(...)}, instead of relying on the
+ * caller being limited. Under {@code SYSTEM2} those checks pass, so a tool that is dangerous should not be offered to
+ * builds that run as SYSTEM. The build log warns when tools are attached to a request that runs as SYSTEM.
  */
 public abstract class Tool implements Describable<Tool>, ExtensionPoint {
     private final Method toolMethod;
