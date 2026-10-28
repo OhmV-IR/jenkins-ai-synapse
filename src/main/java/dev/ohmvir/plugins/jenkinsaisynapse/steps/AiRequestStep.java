@@ -19,7 +19,6 @@ import hudson.model.Item;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.util.ListBoxModel;
-import java.io.IOException;
 import java.io.Serial;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -399,23 +398,30 @@ public class AiRequestStep extends Step {
             EnvVars env = getContext().get(EnvVars.class);
             List<ModelInput> attachments = new ArrayList<>();
             WorkspaceFiles.AttachmentBudget budget = new WorkspaceFiles.AttachmentBudget();
+            // The expanded value can have a trailing slash even when the configured one does not
+            String expandedOutputDir = step.expand(env, step.getOutputDir());
+            String outputDir = expandedOutputDir == null ? null : WorkspaceFiles.normalizeDirectory(expandedOutputDir);
+            // Check the workspace before the request runs, so a missing one does not discard a paid response
+            FilePath workspace = getContext().get(FilePath.class);
+            if (!step.getFiles().isEmpty()) {
+                requireWorkspace(workspace, "files");
+            }
+            if (outputDir != null) {
+                requireWorkspace(workspace, "outputDir");
+                WorkspaceFiles.requireInsideWorkspace(workspace, outputDir);
+            }
             for (String path : step.getFiles()) {
                 String expandedPath = step.expandAndTrim(env, path);
                 if (expandedPath == null) {
                     throw new AbortException("The file path '" + path + "' is empty after expanding variables");
                 }
-                attachments.add(WorkspaceFiles.readAttachment(requireWorkspace("files"), expandedPath, budget));
+                attachments.add(WorkspaceFiles.readAttachment(workspace, expandedPath, budget));
             }
             AiRequestRunner runner = step.createRunner(env, attachments);
             runner.setSecrets(SecretsUtils.getBuildSecrets(run, env));
             AiRequestRunner.Result result = runner.execute(run, listener);
-            // The expanded value can have a trailing slash even when the configured one does not
-            String expandedOutputDir = step.expand(env, step.getOutputDir());
-            String outputDir = expandedOutputDir == null ? null : WorkspaceFiles.normalizeDirectory(expandedOutputDir);
             List<Map<String, Object>> files = WorkspaceFiles.saveOutputs(
-                    result.getResponse(),
-                    outputDir == null ? null : requireWorkspace("outputDir").child(outputDir),
-                    outputDir);
+                    result.getResponse(), outputDir == null ? null : workspace.child(outputDir), outputDir);
             if (!step.isQuiet() && outputDir == null && !files.isEmpty()) {
                 listener.getLogger()
                         .println("[AI] The model produced " + files.size()
@@ -429,13 +435,11 @@ public class AiRequestStep extends Step {
             return details;
         }
 
-        private FilePath requireWorkspace(String parameter) throws IOException, InterruptedException {
-            FilePath workspace = getContext().get(FilePath.class);
+        private static void requireWorkspace(@Nullable FilePath workspace, String parameter) throws AbortException {
             if (workspace == null) {
                 throw new AbortException(
                         "aiRequest needs a workspace for " + parameter + ", use it inside a node block");
             }
-            return workspace;
         }
     }
 
