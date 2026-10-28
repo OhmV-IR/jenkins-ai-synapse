@@ -9,13 +9,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputFileContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputImageContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.InputTextContent;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ModelResponse;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputImageContent;
 import hudson.AbortException;
 import hudson.FilePath;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -174,6 +178,49 @@ public class WorkspaceFilesTest {
         Set<String> used = new HashSet<>();
         assertEquals("a.pdf", withExtension("a", used));
         assertEquals("2-A.pdf", WorkspaceFiles.uniqueFileName("A", "output.bin", "pdf", 2, used));
+    }
+
+    @Test
+    public void trailingSeparatorsAreRemovedFromTheOutputDirectory() {
+        assertEquals("ai-output", WorkspaceFiles.normalizeDirectory("ai-output"));
+        assertEquals("ai-output", WorkspaceFiles.normalizeDirectory("ai-output/"));
+        assertEquals("ai-output", WorkspaceFiles.normalizeDirectory("ai-output\\"));
+        assertEquals("ai-output", WorkspaceFiles.normalizeDirectory("ai-output//"));
+        assertEquals("ai-output", WorkspaceFiles.normalizeDirectory("ai-output/\\/"));
+        assertEquals("a/b", WorkspaceFiles.normalizeDirectory("a/b/"));
+        assertEquals("a\\b", WorkspaceFiles.normalizeDirectory("a\\b\\"));
+        assertEquals(".", WorkspaceFiles.normalizeDirectory("./"));
+        assertEquals("", WorkspaceFiles.normalizeDirectory("/"));
+        assertEquals("", WorkspaceFiles.normalizeDirectory("\\"));
+        assertEquals("", WorkspaceFiles.normalizeDirectory(""));
+        assertEquals("", WorkspaceFiles.normalizeDirectory(null));
+    }
+
+    @Test
+    public void savedOutputPathsHaveASingleSlashAfterTheOutputDirectory(@TempDir File dir) throws Exception {
+        for (String outputDir : new String[] {"ai-output", "ai-output/", "ai-output\\", "ai-output//", "ai-output/\\"}) {
+            assertEquals("ai-output/image-1.png", savedPath(dir, "ai-output", outputDir));
+        }
+        assertEquals("a/b/image-1.png", savedPath(dir, "a/b", "a/b"));
+        assertEquals("a/b/image-1.png", savedPath(dir, "a/b", "a/b/"));
+        assertEquals("a\\b/image-1.png", savedPath(dir, "a/b", "a\\b\\"));
+    }
+
+    @Test
+    public void outputsInTheWorkspaceRootHaveNoLeadingSlashInTheirPath(@TempDir File dir) throws Exception {
+        assertEquals("image-1.png", savedPath(dir, "", ""));
+        assertEquals("image-1.png", savedPath(dir, "", "/"));
+        assertEquals("./image-1.png", savedPath(dir, ".", "./"));
+    }
+
+    private static String savedPath(File workspace, String relativeDir, String outputDir) throws Exception {
+        FilePath directory =
+                relativeDir.isEmpty() ? new FilePath(workspace) : new FilePath(workspace).child(relativeDir);
+        ModelResponse response = new ModelResponse(List.of(new OutputImageContent(new byte[] {1, 2, 3}, "image/png")));
+        Map<String, Object> saved =
+                WorkspaceFiles.saveOutputs(response, directory, outputDir).get(0);
+        assertTrue(directory.child("image-1.png").exists());
+        return (String) saved.get("path");
     }
 
     private static String withExtension(String name, String extension) {

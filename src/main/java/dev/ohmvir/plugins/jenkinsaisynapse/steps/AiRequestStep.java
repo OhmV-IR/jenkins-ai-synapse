@@ -227,7 +227,10 @@ public class AiRequestStep extends Step {
     /** Workspace directory to save the images, audio, video and files the model produces to. */
     @DataBoundSetter
     public void setOutputDir(@Nullable String outputDir) {
-        this.outputDir = Util.fixEmptyAndTrim(outputDir);
+        String trimmed = Util.fixEmptyAndTrim(outputDir);
+        String normalized = WorkspaceFiles.normalizeDirectory(trimmed);
+        // A value of only slashes is kept, as an empty one would mean the output directory is not set
+        this.outputDir = normalized.isEmpty() ? trimmed : normalized;
     }
 
     /**
@@ -406,7 +409,9 @@ public class AiRequestStep extends Step {
             AiRequestRunner runner = step.createRunner(env, attachments);
             runner.setSecrets(SecretsUtils.getBuildSecrets(run, env));
             AiRequestRunner.Result result = runner.execute(run, listener);
-            String outputDir = step.expand(env, step.getOutputDir());
+            // The expanded value can have a trailing slash even when the configured one does not
+            String expandedOutputDir = step.expand(env, step.getOutputDir());
+            String outputDir = expandedOutputDir == null ? null : WorkspaceFiles.normalizeDirectory(expandedOutputDir);
             List<Map<String, Object>> files = WorkspaceFiles.saveOutputs(
                     result.getResponse(),
                     outputDir == null ? null : requireWorkspace("outputDir").child(outputDir),

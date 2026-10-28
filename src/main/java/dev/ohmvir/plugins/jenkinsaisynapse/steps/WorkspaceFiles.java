@@ -283,7 +283,8 @@ final class WorkspaceFiles {
      * name is called after its kind and position, such as {@code image-1.png}.
      *
      * @param outputDirectory Where to save the outputs, or null to only describe them
-     * @param outputDir The output directory as given to the step, used for the returned paths
+     * @param outputDir The output directory as given to the step, used for the returned paths. Trailing slashes and
+     *     backslashes are ignored, and the returned paths use a forward slash after it.
      * @return A map for each output with its {@code name}, {@code kind}, {@code contentType}, {@code size}, and
      *     {@code path} if it was saved
      */
@@ -292,6 +293,7 @@ final class WorkspaceFiles {
             throws IOException, InterruptedException {
         List<Map<String, Object>> files = new ArrayList<>();
         Set<String> usedNames = new HashSet<>();
+        String directory = normalizeDirectory(outputDir);
         int index = 0;
         if (outputDirectory != null && !response.getOutputs().isEmpty()) {
             outputDirectory.mkdirs();
@@ -343,11 +345,28 @@ final class WorkspaceFiles {
             description.put("size", data.length);
             if (outputDirectory != null) {
                 outputDirectory.child(fileName).copyFrom(new ByteArrayInputStream(data));
-                description.put("path", outputDir + "/" + fileName);
+                description.put("path", directory.isEmpty() ? fileName : directory + "/" + fileName);
             }
             files.add(description);
         }
         return files;
+    }
+
+    /**
+     * Removes the trailing slashes and backslashes of a directory, so that a file name can be appended to it with a
+     * single slash. A directory that is only slashes, such as {@code /}, becomes empty.
+     *
+     * @return The directory without trailing separators, or an empty string for null or a directory of only separators
+     */
+    static String normalizeDirectory(@Nullable String directory) {
+        if (directory == null) {
+            return "";
+        }
+        int end = directory.length();
+        while (end > 0 && (directory.charAt(end - 1) == '/' || directory.charAt(end - 1) == '\\')) {
+            end--;
+        }
+        return directory.substring(0, end);
     }
 
     private static String extensionFor(String contentType) {
