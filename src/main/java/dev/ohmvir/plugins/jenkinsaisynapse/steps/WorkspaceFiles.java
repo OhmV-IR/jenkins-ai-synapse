@@ -50,7 +50,7 @@ final class WorkspaceFiles {
      */
     static final long MAX_TOTAL_ATTACHMENT_BYTES = 64L * 1024 * 1024;
 
-    private static final Map<String, String> CONTENT_TYPES_BY_EXTENSION = Map.ofEntries(
+    static final Map<String, String> CONTENT_TYPES_BY_EXTENSION = Map.ofEntries(
             Map.entry("txt", "text/plain"),
             Map.entry("md", "text/markdown"),
             Map.entry("json", "application/json"),
@@ -72,6 +72,35 @@ final class WorkspaceFiles {
             Map.entry("mp4", "video/mp4"),
             Map.entry("webm", "video/webm"),
             Map.entry("mov", "video/quicktime"));
+
+    /**
+     * The extension to save an output of each content type with. Where several extensions map to a content type in
+     * {@link #CONTENT_TYPES_BY_EXTENSION} the preferred one is chosen here, such as {@code jpg} rather than
+     * {@code jpeg}, and the types that other providers use for the same content are covered as well.
+     */
+    static final Map<String, String> PREFERRED_EXTENSIONS = Map.ofEntries(
+            Map.entry("text/plain", "txt"),
+            Map.entry("text/markdown", "md"),
+            Map.entry("application/json", "json"),
+            Map.entry("application/yaml", "yaml"),
+            Map.entry("application/x-yaml", "yaml"),
+            Map.entry("text/yaml", "yaml"),
+            Map.entry("application/xml", "xml"),
+            Map.entry("text/xml", "xml"),
+            Map.entry("text/csv", "csv"),
+            Map.entry("text/html", "html"),
+            Map.entry("image/svg+xml", "svg"),
+            Map.entry("application/pdf", "pdf"),
+            Map.entry("image/png", "png"),
+            Map.entry("image/jpeg", "jpg"),
+            Map.entry("image/gif", "gif"),
+            Map.entry("image/webp", "webp"),
+            Map.entry("audio/mpeg", "mp3"),
+            Map.entry("audio/wav", "wav"),
+            Map.entry("audio/ogg", "ogg"),
+            Map.entry("video/mp4", "mp4"),
+            Map.entry("video/webm", "webm"),
+            Map.entry("video/quicktime", "mov"));
 
     /** The only image types providers accept as image input, other images such as SVG or BMP are attached as files. */
     private static final Set<String> IMAGE_CONTENT_TYPES = Set.of("image/png", "image/jpeg", "image/gif", "image/webp");
@@ -369,14 +398,17 @@ final class WorkspaceFiles {
         return directory.substring(0, end);
     }
 
-    private static String extensionFor(String contentType) {
+    /**
+     * The extension for a content type, without a dot: the preferred one for a known type, {@code txt} for another
+     * {@code text/} type and {@code bin} for anything else. Parameters such as a charset and the case are ignored.
+     */
+    static String extensionFor(String contentType) {
         String mediaType = contentType.split(";", 2)[0].trim().toLowerCase(Locale.ROOT);
-        return CONTENT_TYPES_BY_EXTENSION.entrySet().stream()
-                .filter(entry -> entry.getValue().equals(mediaType))
-                .map(Map.Entry::getKey)
-                .sorted()
-                .findFirst()
-                .orElse(mediaType.startsWith("text/") ? "txt" : "bin");
+        String extension = PREFERRED_EXTENSIONS.get(mediaType);
+        if (extension != null) {
+            return extension;
+        }
+        return mediaType.startsWith("text/") ? "txt" : "bin";
     }
 
     /**
