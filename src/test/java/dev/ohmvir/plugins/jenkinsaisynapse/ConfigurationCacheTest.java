@@ -40,22 +40,27 @@ public class ConfigurationCacheTest {
         assertNotNull(ModelRegistry.get().getModelData("test:a"));
         assertEquals(2.0, ModelRegistry.get().getModelData("test:a").getMaxTemperature());
         assertNull(ModelRegistry.get().getModelData("test:b"));
-        assertEquals(List.of("test:a"), ModelRegistry.get().getModels().stream()
-                .map(model -> model.getModelId())
-                .toList());
+        assertEquals(
+                List.of("test:a"),
+                ModelRegistry.get().getModels().stream()
+                        .map(model -> model.getModelId())
+                        .toList());
     }
 
     @Test
     public void modelWithoutProviderIsUnavailable(JenkinsRule j) throws Exception {
-        ModelsConfiguration.get().setModels(List.of(
-                new UnsupportedModelConfiguration("x", "Model X"),
-                new TestModelConfiguration("a", "Model A", 1.0)));
+        ModelsConfiguration.get()
+                .setModels(List.of(
+                        new UnsupportedModelConfiguration("x", "Model X"),
+                        new TestModelConfiguration("a", "Model A", 1.0)));
 
         assertNull(ModelRegistry.get().getModelData("unsupported:x"));
         assertNotNull(ModelRegistry.get().getModelData("test:a"));
-        assertEquals(List.of("test:a"), ModelRegistry.get().getModels().stream()
-                .map(model -> model.getModelId())
-                .toList());
+        assertEquals(
+                List.of("test:a"),
+                ModelRegistry.get().getModels().stream()
+                        .map(model -> model.getModelId())
+                        .toList());
     }
 
     @Test

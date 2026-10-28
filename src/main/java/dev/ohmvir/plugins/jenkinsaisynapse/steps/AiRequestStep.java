@@ -245,7 +245,7 @@ public class AiRequestStep extends Step {
     }
 
     /**
-<<<<<<< HEAD
+     * <<<<<<< HEAD
      * The maximum number of times the model may be called, which limits how many rounds of tool calls it can make.
      * The request fails when the model still wants to call tools after that many steps. When not set, the default
      * maximum number of steps from the global configuration (Manage Jenkins &gt; System &gt; AI Requests) applies,

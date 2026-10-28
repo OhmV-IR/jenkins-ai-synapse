@@ -4,11 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsConfiguration;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.skills.SkillConfiguration;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.Descriptor;
-import dev.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsConfiguration;
-import dev.ohmvir.plugins.jenkinsaisynapse.configuration.skills.SkillConfiguration;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -39,6 +39,7 @@ public class SkillData {
      * A map of skill names to SkillData
      */
     private static final Logger LOGGER = Logger.getLogger(SkillData.class.getName());
+
     private static volatile Map<String, SkillData> skillDataCache = Map.of();
     private static volatile List<DuplicateSkillRegistration> duplicateSkillRegistrations = List.of();
 
@@ -148,6 +149,7 @@ public class SkillData {
      */
     private static final Pattern YAML_DATA_PATTERN =
             Pattern.compile("\\A\\uFEFF?---[ \\t]*\\R(?:(.*?)\\R)??---[ \\t]*(?:\\R\\s*(.*))?\\z", Pattern.DOTALL);
+
     private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
 
     /**

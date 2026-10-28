@@ -1,6 +1,5 @@
 package dev.ohmvir.plugins.jenkinsaisynapse;
 
-import hudson.model.Descriptor;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
@@ -10,6 +9,7 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelProvider;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.RegisteredModel;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
+import hudson.model.Descriptor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;

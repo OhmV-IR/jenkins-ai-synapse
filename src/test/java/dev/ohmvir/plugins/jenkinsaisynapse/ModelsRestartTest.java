@@ -3,7 +3,6 @@ package dev.ohmvir.plugins.jenkinsaisynapse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import hudson.model.Descriptor;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelProvider;
@@ -11,6 +10,7 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelRegistry;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.RegisteredModel;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
+import hudson.model.Descriptor;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.List;

@@ -89,8 +89,7 @@ public class ModelConversationTest {
     @Test
     public void secretsAreMaskedBeforeTruncation() {
         String text = "x".repeat(ConversationEntry.MAX_TEXT_LENGTH - 3) + "hunter2";
-        ConversationEntry entry =
-                ConversationEntry.from(new OutputTextContent(text), List.of("hunter2"));
+        ConversationEntry entry = ConversationEntry.from(new OutputTextContent(text), List.of("hunter2"));
         assertTrue(entry.getText().startsWith("x".repeat(ConversationEntry.MAX_TEXT_LENGTH - 3) + "***\n"));
         assertTrue(entry.getText().endsWith("[truncated 1 characters]"));
     }

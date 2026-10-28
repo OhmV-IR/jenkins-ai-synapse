@@ -1,8 +1,8 @@
 package dev.ohmvir.plugins.jenkinsaisynapse.api.output;
 
 import java.util.*;
-import lombok.Getter;
 import java.util.stream.Collectors;
+import lombok.Getter;
 
 public class ModelResponse {
     private @Getter final List<ModelOutput> outputs;

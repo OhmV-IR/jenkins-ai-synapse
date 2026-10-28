@@ -5,8 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import hudson.BulkChange;
-import hudson.util.FormValidation;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.PromptsConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.RequestsConfiguration;
@@ -14,6 +12,8 @@ import dev.ohmvir.plugins.jenkinsaisynapse.configuration.SkillsConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.PromptConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.SimplePrompt;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.skills.BasicSkillConfiguration;
+import hudson.BulkChange;
+import hudson.util.FormValidation;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.List;

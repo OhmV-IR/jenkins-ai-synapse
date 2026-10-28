@@ -29,10 +29,7 @@ public interface ModelClient {
      * Same as {@link #takeStep(ModelData, ModelRequest, List)}, with progress callbacks for streaming clients.
      */
     default List<ModelOutput> takeStep(
-            ModelData modelData,
-            ModelRequest request,
-            List<ModelInput> turnInputs,
-            ModelRequestListener listener)
+            ModelData modelData, ModelRequest request, List<ModelInput> turnInputs, ModelRequestListener listener)
             throws IOException, InterruptedException {
         List<ModelOutput> outputs = takeStep(modelData, request, turnInputs);
         listener.onStepCompleted(outputs);

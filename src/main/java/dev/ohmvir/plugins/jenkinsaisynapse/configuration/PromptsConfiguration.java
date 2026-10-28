@@ -1,8 +1,8 @@
 package dev.ohmvir.plugins.jenkinsaisynapse.configuration;
 
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.PromptConfiguration;
 import hudson.Extension;
 import hudson.ExtensionList;
-import dev.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.PromptConfiguration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;

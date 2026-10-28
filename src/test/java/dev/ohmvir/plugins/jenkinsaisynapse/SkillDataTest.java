@@ -59,8 +59,7 @@ public class SkillDataTest {
     @Test
     public void textBeforeFrontmatterMeansNoFrontmatter(JenkinsRule j) {
         assertThrows(
-                Descriptor.FormException.class,
-                () -> parseFile("Some intro\n---\nname: my-skill\n---\nSkill body"));
+                Descriptor.FormException.class, () -> parseFile("Some intro\n---\nname: my-skill\n---\nSkill body"));
     }
 
     @Test

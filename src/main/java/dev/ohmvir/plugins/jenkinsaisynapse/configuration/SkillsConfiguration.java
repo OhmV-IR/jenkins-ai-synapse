@@ -1,9 +1,9 @@
 package dev.ohmvir.plugins.jenkinsaisynapse.configuration;
 
-import hudson.Extension;
-import hudson.ExtensionList;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.skills.SkillConfiguration;
+import hudson.Extension;
+import hudson.ExtensionList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

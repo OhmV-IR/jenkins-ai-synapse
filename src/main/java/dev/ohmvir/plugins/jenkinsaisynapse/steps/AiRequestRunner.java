@@ -131,8 +131,8 @@ public final class AiRequestRunner {
         conversation.maskSecrets(secrets);
         request.setAssociatedConversation(conversation);
         Authentication toolAuthentication = getToolAuthentication(run);
-        boolean hasTools = request.getAvailableTools().values().stream()
-                .anyMatch(tool -> !(tool instanceof ReadSkillFileTool));
+        boolean hasTools =
+                request.getAvailableTools().values().stream().anyMatch(tool -> !(tool instanceof ReadSkillFileTool));
         if (shouldWarnAboutSystemAuthentication(toolAuthentication, hasTools)) {
             logger.println(SYSTEM_AUTHENTICATION_WARNING);
         }

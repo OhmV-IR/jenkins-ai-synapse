@@ -1,12 +1,12 @@
 package dev.ohmvir.plugins.jenkinsaisynapse.configuration;
 
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import hudson.BulkChange;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.model.Descriptor;
 import hudson.model.ManagementLink;
 import hudson.security.Permission;
-import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import jakarta.servlet.ServletException;
 import java.io.IOException;
 import java.util.List;

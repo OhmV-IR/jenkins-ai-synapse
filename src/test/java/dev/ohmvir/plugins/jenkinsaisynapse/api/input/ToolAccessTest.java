@@ -83,7 +83,8 @@ public class ToolAccessTest {
         request.attachTool(new AlphaTool());
         request.attachTool(new BetaTool());
         request.attachSkill(skill(List.of("betaTool", "unattachedTool")));
-        assertEquals(Set.of("alphaTool", "betaTool"), request.getAvailableTools().keySet());
+        assertEquals(
+                Set.of("alphaTool", "betaTool"), request.getAvailableTools().keySet());
     }
 
     @Test
@@ -157,7 +158,11 @@ public class ToolAccessTest {
                 .map(SkillData::getSkillName)
                 .collect(Collectors.toSet());
         assertEquals(Set.of("attached", "other"), served);
-        assertEquals(1, request.getModelInputs().stream().filter(InputToolContent.class::isInstance).count());
+        assertEquals(
+                1,
+                request.getModelInputs().stream()
+                        .filter(InputToolContent.class::isInstance)
+                        .count());
     }
 
     @Test
@@ -170,7 +175,11 @@ public class ToolAccessTest {
         ReadSkillFileTool tool = skillTool(request);
         assertEquals("Text of first", tool.read_skill_file("first", ReadSkillFileTool.SKILL_FILE));
         assertEquals("Text of second", tool.read_skill_file("second", ReadSkillFileTool.SKILL_FILE));
-        assertEquals(1, request.getModelInputs().stream().filter(InputToolContent.class::isInstance).count());
+        assertEquals(
+                1,
+                request.getModelInputs().stream()
+                        .filter(InputToolContent.class::isInstance)
+                        .count());
     }
 
     @Test

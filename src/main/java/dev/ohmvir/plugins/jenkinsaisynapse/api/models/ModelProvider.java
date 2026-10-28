@@ -1,10 +1,10 @@
 package dev.ohmvir.plugins.jenkinsaisynapse.api.models;
 
-import hudson.ExtensionList;
-import hudson.ExtensionPoint;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.client.ModelClient;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.client.ModelClientConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
+import hudson.ExtensionList;
+import hudson.ExtensionPoint;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;

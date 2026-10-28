@@ -1,12 +1,12 @@
 package dev.ohmvir.plugins.jenkinsaisynapse.configuration.prompts;
 
+import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
+import dev.ohmvir.plugins.jenkinsaisynapse.configuration.PromptsConfiguration;
 import hudson.ExtensionPoint;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
 import jenkins.model.Jenkins;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
-import dev.ohmvir.plugins.jenkinsaisynapse.configuration.PromptsConfiguration;
 import lombok.Getter;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;

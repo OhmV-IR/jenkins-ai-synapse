@@ -159,8 +159,6 @@ public class FileDownloadTest {
         String name = FileDownloadUtils.sanitizeFileName("a".repeat(500) + ".txt");
         assertEquals(128, name.length());
         assertEquals(".txt", name.substring(name.length() - 4));
-        assertEquals(
-                "b".repeat(127),
-                FileDownloadUtils.sanitizeFileName("a".repeat(500) + "." + "b".repeat(127)));
+        assertEquals("b".repeat(127), FileDownloadUtils.sanitizeFileName("a".repeat(500) + "." + "b".repeat(127)));
     }
 }

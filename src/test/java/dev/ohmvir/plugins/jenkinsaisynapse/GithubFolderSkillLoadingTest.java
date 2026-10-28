@@ -41,8 +41,7 @@ public class GithubFolderSkillLoadingTest {
     @Test
     public void validUtf8TextIsDecoded() {
         assertEquals(
-                "héllo\n",
-                GithubFolderSkillConfiguration.decodeTextFile("héllo\n".getBytes(StandardCharsets.UTF_8)));
+                "héllo\n", GithubFolderSkillConfiguration.decodeTextFile("héllo\n".getBytes(StandardCharsets.UTF_8)));
         assertEquals("", GithubFolderSkillConfiguration.decodeTextFile(new byte[0]));
     }
 

@@ -2,10 +2,6 @@ package dev.ohmvir.plugins.jenkinsaisynapse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import hudson.model.Descriptor;
-import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
-import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
-import io.jenkins.plugins.casc.misc.junit.jupiter.WithJenkinsConfiguredWithCode;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.PromptsConfiguration;
@@ -15,6 +11,10 @@ import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfigurati
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.prompts.SimplePrompt;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.skills.BasicSkillConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.skills.GithubFolderSkillConfiguration;
+import hudson.model.Descriptor;
+import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
+import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
+import io.jenkins.plugins.casc.misc.junit.jupiter.WithJenkinsConfiguredWithCode;
 import org.jenkinsci.Symbol;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.TestExtension;
@@ -36,7 +36,6 @@ public class ConfigurationAsCodeTest {
         BasicSkillConfiguration skill =
                 (BasicSkillConfiguration) SkillsConfiguration.get().getSkills().get(0);
         assertEquals("reviewer", skill.skillName);
-
     }
 
     @Test
@@ -57,8 +56,8 @@ public class ConfigurationAsCodeTest {
     @Test
     @ConfiguredWithCode("github-folder-skill.yml")
     public void configuresGithubFolderSkill(JenkinsConfiguredWithCodeRule j) {
-        GithubFolderSkillConfiguration skill =
-                (GithubFolderSkillConfiguration) SkillsConfiguration.get().getSkills().get(0);
+        GithubFolderSkillConfiguration skill = (GithubFolderSkillConfiguration)
+                SkillsConfiguration.get().getSkills().get(0);
         assertEquals("https://github.com/example/skills", skill.getRepositoryUrl());
         assertEquals("skills", skill.getFolderPath());
         assertEquals("github-token", skill.getAuthenticationTokenCredentialsId());

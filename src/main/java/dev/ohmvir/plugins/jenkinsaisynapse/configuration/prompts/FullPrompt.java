@@ -1,9 +1,5 @@
 package dev.ohmvir.plugins.jenkinsaisynapse.configuration.prompts;
 
-import hudson.Extension;
-import hudson.model.Descriptor;
-import hudson.util.FormValidation;
-import jenkins.model.Jenkins;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.MaxOutputTokensContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.SystemPromptContent;
@@ -11,6 +7,10 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.input.TemperatureContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ThinkingLevelContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelRegistry;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
+import hudson.Extension;
+import hudson.model.Descriptor;
+import hudson.util.FormValidation;
+import jenkins.model.Jenkins;
 import lombok.Getter;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -23,6 +23,7 @@ public class FullPrompt extends SimplePrompt {
     private @Getter double temperature;
     /** Maximum number of tokens to generate, 0 means not set and leaves the limit to the provider. */
     private @Getter long maxOutputTokensCount;
+
     private @Getter ModelThinkingLevel thinkingLevel;
 
     @DataBoundConstructor

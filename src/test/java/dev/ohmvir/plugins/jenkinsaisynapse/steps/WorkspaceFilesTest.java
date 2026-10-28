@@ -151,8 +151,7 @@ public class WorkspaceFilesTest {
         // "bin" is what extensionFor returns for a content type it does not know, as for outputs without a name
         assertEquals("file_011CN.bin", withExtension("file_011CN", "bin"));
         // Without an extension to add, the name is kept as it is
-        assertEquals(
-                "file_011CN", WorkspaceFiles.uniqueFileName("file_011CN", "output.bin", null, 1, new HashSet<>()));
+        assertEquals("file_011CN", WorkspaceFiles.uniqueFileName("file_011CN", "output.bin", null, 1, new HashSet<>()));
     }
 
     @Test
@@ -234,7 +233,8 @@ public class WorkspaceFilesTest {
 
     @Test
     public void savedOutputPathsHaveASingleSlashAfterTheOutputDirectory(@TempDir File dir) throws Exception {
-        for (String outputDir : new String[] {"ai-output", "ai-output/", "ai-output\\", "ai-output//", "ai-output/\\"}) {
+        for (String outputDir :
+                new String[] {"ai-output", "ai-output/", "ai-output\\", "ai-output//", "ai-output/\\"}) {
             assertEquals("ai-output/image-1.png", savedPath(dir, "ai-output", outputDir));
         }
         assertEquals("a/b/image-1.png", savedPath(dir, "a/b", "a/b"));
@@ -303,8 +303,8 @@ public class WorkspaceFilesTest {
     @Test
     public void missingOrBlankAttachmentPathsAreRejectedWithAMessage(@TempDir File dir) {
         for (String path : new String[] {null, "", "  "}) {
-            AbortException e = assertThrows(
-                    AbortException.class, () -> WorkspaceFiles.readAttachment(new FilePath(dir), path));
+            AbortException e =
+                    assertThrows(AbortException.class, () -> WorkspaceFiles.readAttachment(new FilePath(dir), path));
             assertTrue(e.getMessage().contains("has no path"), e.getMessage());
         }
     }
@@ -312,8 +312,8 @@ public class WorkspaceFilesTest {
     @Test
     public void missingFilesAndDirectoriesAreRejectedWithAMessage(@TempDir File dir) throws Exception {
         assertTrue(new File(dir, "sub").mkdir());
-        AbortException missing = assertThrows(
-                AbortException.class, () -> WorkspaceFiles.readAttachment(new FilePath(dir), "nope.txt"));
+        AbortException missing =
+                assertThrows(AbortException.class, () -> WorkspaceFiles.readAttachment(new FilePath(dir), "nope.txt"));
         assertTrue(missing.getMessage().contains("does not exist: nope.txt"), missing.getMessage());
         AbortException directory =
                 assertThrows(AbortException.class, () -> WorkspaceFiles.readAttachment(new FilePath(dir), "sub"));
