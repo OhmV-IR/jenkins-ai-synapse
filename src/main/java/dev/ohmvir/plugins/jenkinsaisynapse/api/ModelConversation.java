@@ -73,7 +73,7 @@ public class ModelConversation {
         return Collections.unmodifiableList(new ArrayList<>(entries));
     }
 
-    private Object readResolve() {
+    private synchronized Object readResolve() {
         conversation = new ArrayList<>();
         secrets = List.of();
         return this;

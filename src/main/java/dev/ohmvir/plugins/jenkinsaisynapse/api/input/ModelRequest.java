@@ -13,7 +13,6 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.models.RegisteredModel;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutput;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ModelOutputKind;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ModelResponse;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputTextContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.ToolCallContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.ReadSkillFileTool;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.skills.SkillData;
@@ -45,6 +44,7 @@ public class ModelRequest {
     private final Set<ModelCapability> explicitCapabilities = new LinkedHashSet<>();
     private final @Getter List<ModelInput> modelInputs = new ArrayList<>();
     private @Getter @Setter @Nullable String modelId;
+
     @Setter
     private @Nullable ModelConversation associatedConversation;
     /** Null until {@link #setMaxSteps(int)} is called, which means the global default applies. */
@@ -154,7 +154,11 @@ public class ModelRequest {
     }
 
     public void attachTool(String toolName) {
-        attachTool(dev.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolRegistry.getTool(toolName));
+        Tool tool = dev.ohmvir.plugins.jenkinsaisynapse.api.tools.ToolRegistry.getTool(toolName);
+        if (tool == null) {
+            throw new IllegalArgumentException("No tool named '" + toolName + "' is registered");
+        }
+        attachTool(tool);
     }
 
     public void attachSkill(SkillData skill) {
@@ -209,8 +213,8 @@ public class ModelRequest {
         boolean hasOtherSkillTool = modelInputs.stream()
                 .filter(InputToolContent.class::isInstance)
                 .map(input -> ((InputToolContent) input).getTool())
-                .anyMatch(tool ->
-                        ReadSkillFileTool.NAME.equals(tool.getName()) && !(tool instanceof ReadSkillFileTool));
+                .anyMatch(
+                        tool -> ReadSkillFileTool.NAME.equals(tool.getName()) && !(tool instanceof ReadSkillFileTool));
         if (hasOtherSkillTool) {
             return;
         }
@@ -266,10 +270,7 @@ public class ModelRequest {
 
     public @Nullable ModelResponse execute(RegisteredModel model) {
         try {
-            return executeOrThrow(
-                    model,
-                    ModelRequestListener.NOOP,
-                    (tool, toolCall) -> tool.callTool(toolCall));
+            return executeOrThrow(model, ModelRequestListener.NOOP, (tool, toolCall) -> tool.callTool(toolCall));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             LOGGER.log(Level.WARNING, "Interrupted while executing ModelRequest", e);
@@ -315,7 +316,6 @@ public class ModelRequest {
                     throw new ModelRequestException("Model client returned no outputs");
                 }
                 outputs.addAll(stepOutputs);
-                finalContent.addAll(stepOutputs);
                 record(stepOutputs);
                 if (steps >= stepLimit && stepOutputs.stream().anyMatch(ToolCallContent.class::isInstance)) {
                     throw new ModelRequestException("Model " + model.getModelId()
@@ -336,7 +336,8 @@ public class ModelRequest {
                     Tool tool = availableTools.get(toolCall.getName());
                     ToolCallResponseContent response;
                     if (tool == null) {
-                        LOGGER.warning("Rejected call to tool '" + toolCall.getName() + "' not attached to the request");
+                        LOGGER.warning(
+                                "Rejected call to tool '" + toolCall.getName() + "' not attached to the request");
                         response = ToolCallResponseContent.error(
                                 toolCall.getToolUseId(), null, "That tool is not available to this request.");
                     } else {

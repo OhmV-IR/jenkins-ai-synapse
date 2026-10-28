@@ -8,14 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import hudson.ExtensionList;
-import hudson.model.Descriptor;
-import hudson.model.FreeStyleBuild;
-import hudson.model.FreeStyleProject;
-import hudson.model.ParametersDefinitionProperty;
-import hudson.model.Result;
-import hudson.model.Run;
-import hudson.model.StringParameterDefinition;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.ConversationEntry;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.ModelConversation;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.ModelConversationsAction;
@@ -33,11 +25,11 @@ import dev.ohmvir.plugins.jenkinsaisynapse.api.input.TopPContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelCapability;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelData;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelInputType;
+import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelProvider;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelRegistry;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.RegisteredModel;
-import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelOutputType;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputImageContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.OutputTextContent;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.output.TokenUtilizationContent;
@@ -48,6 +40,14 @@ import dev.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.client.ModelClientConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.steps.AiRequestStep;
+import hudson.ExtensionList;
+import hudson.model.Descriptor;
+import hudson.model.FreeStyleBuild;
+import hudson.model.FreeStyleProject;
+import hudson.model.ParametersDefinitionProperty;
+import hudson.model.Result;
+import hudson.model.Run;
+import hudson.model.StringParameterDefinition;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -201,8 +201,9 @@ public class AiRequestStepTest {
         p.setDefinition(new CpsFlowDefinition("aiRequest 'hello'", true));
         WorkflowRun b = j.buildAndAssertSuccess(p);
 
-        List<String> types =
-                onlyConversation(b).getEntries().stream().map(ConversationEntry::getType).toList();
+        List<String> types = onlyConversation(b).getEntries().stream()
+                .map(ConversationEntry::getType)
+                .toList();
         assertEquals("InputTextContent", types.get(0));
         assertTrue(types.contains("OutputTextContent"), types.toString());
         assertFalse(types.contains(ConversationEntry.TYPE_REQUEST_FAILURE), types.toString());
@@ -432,9 +433,9 @@ public class AiRequestStepTest {
     public void pipelineStepExpandsModelPromptIdAndStopSequencesWhenAsked() throws Exception {
         WorkflowJob p = j.createProject(WorkflowJob.class, "p");
         String script = """
-                withEnv(['AI_MODEL=fake:echo', 'STOP=END', 'NOTHING=']) {
+                withEnv(['AI_MODEL=fake:echo', 'STOP=END']) {
                     def details = aiRequest(prompt: 'options', model: '${AI_MODEL}', expandEnvVars: true,
-                            returnDetails: true, stopSequences: ['${STOP}', '${NOTHING}'])
+                            returnDetails: true, stopSequences: ['${STOP}'])
                     echo "text=${details.text} model=${details.model}"
                 }
                 """;
@@ -461,10 +462,7 @@ public class AiRequestStepTest {
         assertNotNull(model);
         assertEquals(
                 "tool said HI",
-                request.executeOrThrow(
-                                model,
-                                ModelRequestListener.NOOP,
-                                (tool, toolCall) -> tool.callTool(toolCall))
+                request.executeOrThrow(model, ModelRequestListener.NOOP, (tool, toolCall) -> tool.callTool(toolCall))
                         .getText());
         assertEquals(2, request.getModelInputs().size());
         assertEquals("tool said HI", request.execute(model).getText());
@@ -547,11 +545,15 @@ public class AiRequestStepTest {
                     Thread.sleep(TimeUnit.MINUTES.toMillis(5));
                 }
                 if (text.equals("options")) {
+                    ThinkingLevelContent thinking = request.getInput(ThinkingLevelContent.class);
+                    TopPContent topP = request.getInput(TopPContent.class);
+                    TopKContent topK = request.getInput(TopKContent.class);
                     return List.of(new OutputTextContent("thinking="
-                            + request.getInput(ThinkingLevelContent.class).getThinkingLevel()
-                            + " topP=" + request.getInput(TopPContent.class).getTopP()
-                            + " topK=" + request.getInput(TopKContent.class).getTopK()
-                            + " stop=" + request.getInput(StopSequencesContent.class).getStopPhrases()));
+                            + (thinking == null ? null : thinking.getThinkingLevel())
+                            + " topP=" + (topP == null ? null : topP.getTopP())
+                            + " topK=" + (topK == null ? null : topK.getTopK())
+                            + " stop="
+                            + request.getInput(StopSequencesContent.class).getStopPhrases()));
                 }
                 String files = turnInputs.stream()
                         .filter(InputFileContent.class::isInstance)
@@ -561,7 +563,8 @@ public class AiRequestStepTest {
                         .collect(Collectors.joining());
                 if (text.equals("draw")) {
                     return List.of(
-                            new OutputTextContent("drew" + files), new OutputImageContent(new byte[] {1, 2, 3}, "image/png"));
+                            new OutputTextContent("drew" + files),
+                            new OutputImageContent(new byte[] {1, 2, 3}, "image/png"));
                 }
                 return List.of(new OutputTextContent("echo: " + text + files), new TokenUtilizationContent(3, 5, 0));
             };

@@ -98,8 +98,8 @@ public class ConversationEntry {
                 entry.setText(c.getSkill() == null ? null : c.getSkill().getSkillName());
             case ToolCallResponseContent c -> {
                 entry.toolUseId = c.getToolUseId();
-                entry.toolName =
-                        c.getCalledTool() == null ? null : c.getCalledTool().getName();
+                var calledTool = c.getCalledTool();
+                entry.toolName = calledTool == null ? null : calledTool.getName();
                 entry.successful = c.isSuccessful();
                 entry.setText(c.getResponseContent());
             }

@@ -43,7 +43,7 @@
     <changelist>-SNAPSHOT</changelist>
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
     <jenkins.baseline>2.555</jenkins.baseline>
-    <jenkins.version>${jenkins.baseline}.1</jenkins.version>
+    <jenkins.version>${jenkins.baseline}.3</jenkins.version>
     <maven.compiler.release>25</maven.compiler.release>
     <gitHubRepo>OhmV-IR/jenkins-ai-synapse</gitHubRepo>
 

@@ -3,12 +3,12 @@ package dev.ohmvir.plugins.jenkinsaisynapse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-import io.github.classgraph.ClassGraph;
-import io.github.classgraph.ClassInfoList;
-import io.github.classgraph.ScanResult;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.ModelConversation;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.*;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.models.ModelThinkingLevel;
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ScanResult;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -17,13 +17,24 @@ import org.junit.jupiter.api.Test;
 
 public class InputTypeRegistrationTest {
 
-    public static <T> List<Class<T>> getAllSubclasses(Class<T> superClass) {
+    public static <T> List<Class<? extends T>> getAllSubclasses(Class<T> superClass) {
         try (ScanResult scanResult = new ClassGraph()
                 .enableClassInfo()
+                .enableClassLoaders(superClass.getClassLoader())
                 .acceptPackages("dev.ohmvir.plugins.jenkinsaisynapse.api")
                 .scan()) {
-            ClassInfoList subclasses = scanResult.getSubclasses(superClass.getName());
-            return subclasses.filter(info -> !info.isAbstract()).loadClasses(superClass);
+            List<Class<? extends T>> subclasses = new ArrayList<>();
+            for (var info : scanResult.getAllSubclasses(superClass)) {
+                if (!info.isAbstract()) {
+                    try {
+                        subclasses.add(Class.forName(info.getName(), false, superClass.getClassLoader())
+                                .asSubclass(superClass));
+                    } catch (ClassNotFoundException e) {
+                        throw new IllegalStateException("Could not load scanned subclass " + info.getName(), e);
+                    }
+                }
+            }
+            return subclasses;
         }
     }
 

@@ -1,10 +1,10 @@
 package dev.ohmvir.plugins.jenkinsaisynapse.api.models;
 
-import hudson.init.InitMilestone;
-import hudson.init.Initializer;
 import dev.ohmvir.plugins.jenkinsaisynapse.api.input.ModelRequest;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.ModelsConfiguration;
 import dev.ohmvir.plugins.jenkinsaisynapse.configuration.models.ModelConfiguration;
+import hudson.init.InitMilestone;
+import hudson.init.Initializer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -136,11 +136,7 @@ public class ModelRegistry {
             }
         }
         Snapshot fresh = new Snapshot(
-                generation,
-                List.copyOf(loaded),
-                List.copyOf(configurations),
-                List.copyOf(notDescribed),
-                providers);
+                generation, List.copyOf(loaded), List.copyOf(configurations), List.copyOf(notDescribed), providers);
         synchronized (this) {
             if (generation <= snapshot.generation()) {
                 LOGGER.info("Dropping the result of a model reload that a newer reload has replaced");
@@ -179,14 +175,18 @@ public class ModelRegistry {
      */
     private void scheduleRetry() {
         if (retryInBackground && !snapshot.failed().isEmpty() && retryScheduled.compareAndSet(false, true)) {
-            Timer.get().schedule(() -> {
-                retryScheduled.set(false);
-                try {
-                    retryFailed();
-                } catch (RuntimeException e) {
-                    LOGGER.log(Level.WARNING, "Failed to retry loading models", e);
-                }
-            }, RETRY_DELAY_SECONDS, TimeUnit.SECONDS);
+            Timer.get()
+                    .schedule(
+                            () -> {
+                                retryScheduled.set(false);
+                                try {
+                                    retryFailed();
+                                } catch (RuntimeException e) {
+                                    LOGGER.log(Level.WARNING, "Failed to retry loading models", e);
+                                }
+                            },
+                            RETRY_DELAY_SECONDS,
+                            TimeUnit.SECONDS);
         }
     }
 
@@ -319,7 +319,7 @@ public class ModelRegistry {
      * @return For each model, its id followed by what it lacks for the request, empty if no models are registered.
      */
     public List<String> describeUnsupported(ModelRequest request) {
-        return models.stream()
+        return snapshot.models().stream()
                 .map(model -> model.getModelId() + ": "
                         + String.join("; ", model.data().unsupportedReasons(request)))
                 .toList();

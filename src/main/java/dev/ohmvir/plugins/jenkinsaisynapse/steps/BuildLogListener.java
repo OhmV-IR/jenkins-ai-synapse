@@ -61,14 +61,14 @@ final class BuildLogListener implements ModelRequestListener {
 
     @Override
     public synchronized void onToolResult(ToolCallResponseContent result) {
-        String toolName = result.getCalledTool() == null
-                ? result.getToolUseId()
-                : result.getCalledTool().getName();
+        var calledTool = result.getCalledTool();
+        String toolName = calledTool == null ? result.getToolUseId() : calledTool.getName();
         if (!result.isSuccessful()) {
             logger.println("[AI] Tool " + toolName + " failed");
             return;
         }
-        String content = result.getResponseContent() == null ? "" : result.getResponseContent();
+        String responseContent = result.getResponseContent();
+        String content = responseContent == null ? "" : responseContent;
         if (content.length() > MAX_TOOL_RESULT_LENGTH) {
             content = content.substring(0, MAX_TOOL_RESULT_LENGTH) + "...";
         }

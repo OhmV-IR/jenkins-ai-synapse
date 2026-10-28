@@ -15,7 +15,7 @@ public class OutputTypeRegistrationTest {
     public void verifyAllOutputClassesDeclareAKind() throws Exception {
         var outputClasses = InputTypeRegistrationTest.getAllSubclasses(ModelOutput.class);
         assertFalse(outputClasses.isEmpty());
-        for (Class<ModelOutput> outputClass : outputClasses) {
+        for (Class<? extends ModelOutput> outputClass : outputClasses) {
             Field kindField = outputClass.getField("KIND");
             assertTrue(Modifier.isStatic(kindField.getModifiers()), outputClass.getName() + ".KIND should be static");
             ModelOutputKind<?> kind = (ModelOutputKind<?>) kindField.get(null);

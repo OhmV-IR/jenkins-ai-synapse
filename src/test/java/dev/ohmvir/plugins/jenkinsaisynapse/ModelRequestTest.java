@@ -74,6 +74,14 @@ public class ModelRequestTest {
     }
 
     @Test
+    public void attachingAnUnknownToolByNameFailsClearly() {
+        ModelRequest request = new ModelRequest();
+        IllegalArgumentException exception =
+                assertThrows(IllegalArgumentException.class, () -> request.attachTool("not-registered"));
+        assertEquals("No tool named 'not-registered' is registered", exception.getMessage());
+    }
+
+    @Test
     public void requirementsComeFromInputsOutputsAndExplicitCapabilities() {
         ModelRequest request = new ModelRequest();
         request.addInput(new InputTextContent("describe this"));
@@ -400,7 +408,9 @@ public class ModelRequestTest {
     }
 
     private static List<String> entryTypes(ModelConversation conversation) {
-        return conversation.getEntries().stream().map(ConversationEntry::getType).toList();
+        return conversation.getEntries().stream()
+                .map(ConversationEntry::getType)
+                .toList();
     }
 
     @Test
