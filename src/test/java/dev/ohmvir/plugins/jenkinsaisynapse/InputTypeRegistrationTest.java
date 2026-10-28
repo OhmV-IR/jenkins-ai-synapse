@@ -20,11 +20,11 @@ public class InputTypeRegistrationTest {
     public static <T> List<Class<? extends T>> getAllSubclasses(Class<T> superClass) {
         try (ScanResult scanResult = new ClassGraph()
                 .enableClassInfo()
-                .enableClassLoaders(superClass.getClassLoader())
+                .overrideClassLoaders(superClass.getClassLoader())
                 .acceptPackages("dev.ohmvir.plugins.jenkinsaisynapse.api")
                 .scan()) {
             List<Class<? extends T>> subclasses = new ArrayList<>();
-            for (var info : scanResult.getAllSubclasses(superClass)) {
+            for (var info : scanResult.getSubclasses(superClass)) {
                 if (!info.isAbstract()) {
                     try {
                         subclasses.add(Class.forName(info.getName(), false, superClass.getClassLoader())

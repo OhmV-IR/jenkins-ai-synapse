@@ -44,7 +44,7 @@
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
     <jenkins.baseline>2.555</jenkins.baseline>
     <jenkins.version>${jenkins.baseline}.3</jenkins.version>
-    <maven.compiler.release>25</maven.compiler.release>
+    <maven.compiler.release>21</maven.compiler.release>
     <gitHubRepo>OhmV-IR/jenkins-ai-synapse</gitHubRepo>
 
     <spotless.check.skip>false</spotless.check.skip>
@@ -101,7 +101,7 @@
     <dependency>
       <groupId>io.github.classgraph</groupId>
       <artifactId>classgraph</artifactId>
-      <version>6.0.0</version>
+      <version>4.8.179</version>
       <scope>test</scope>
     </dependency>
     <dependency>
