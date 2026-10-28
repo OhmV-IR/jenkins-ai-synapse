@@ -99,6 +99,25 @@ for (String name : new String[] {"a.svg", "a.bmp", "a.tif"}) {
     }
 
     @Test
+    public void missingFilesAndDirectoriesAreRejectedWithAMessage(@TempDir File dir) throws Exception {
+        assertTrue(new File(dir, "sub").mkdir());
+        AbortException missing = assertThrows(
+                AbortException.class, () -> WorkspaceFiles.readAttachment(new FilePath(dir), "nope.txt"));
+        assertTrue(missing.getMessage().contains("does not exist: nope.txt"), missing.getMessage());
+        AbortException directory =
+                assertThrows(AbortException.class, () -> WorkspaceFiles.readAttachment(new FilePath(dir), "sub"));
+        assertTrue(directory.getMessage().contains("is a directory: sub"), directory.getMessage());
+    }
+
+    @Test
+    public void theBudgetReportsWhatIsStillAllowed() throws Exception {
+        WorkspaceFiles.AttachmentBudget budget = new WorkspaceFiles.AttachmentBudget(10);
+        assertEquals(10, budget.remaining());
+        budget.add("a.txt", 4);
+        assertEquals(6, budget.remaining());
+    }
+
+    @Test
     public void attachmentsTogetherCannotExceedTheTotalLimit() throws Exception {
         WorkspaceFiles.AttachmentBudget budget = new WorkspaceFiles.AttachmentBudget(10);
         budget.add("a.txt", 4);
