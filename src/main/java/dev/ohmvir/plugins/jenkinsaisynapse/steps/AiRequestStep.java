@@ -395,6 +395,7 @@ public class AiRequestStep extends Step {
             TaskListener listener = getContext().get(TaskListener.class);
             EnvVars env = getContext().get(EnvVars.class);
             List<ModelInput> attachments = new ArrayList<>();
+            WorkspaceFiles.AttachmentBudget budget = new WorkspaceFiles.AttachmentBudget();
             for (String path : step.getFiles()) {
                 String expandedPath = step.expandAndTrim(env, path);
                 if (expandedPath == null) {

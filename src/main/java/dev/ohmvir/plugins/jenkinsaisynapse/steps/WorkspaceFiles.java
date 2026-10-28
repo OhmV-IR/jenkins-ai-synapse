@@ -36,6 +36,12 @@ final class WorkspaceFiles {
     /** Files larger than this cannot be attached to a request. */
     static final long MAX_ATTACHMENT_BYTES = 32L * 1024 * 1024;
 
+    /**
+     * All the files attached to one request together cannot be larger than this. They are held in controller memory
+     * (and again once a provider base64 encodes them), so this is kept to two maximum size files.
+     */
+    static final long MAX_TOTAL_ATTACHMENT_BYTES = 64L * 1024 * 1024;
+
     private static final Map<String, String> CONTENT_TYPES_BY_EXTENSION = Map.ofEntries(
             Map.entry("txt", "text/plain"),
             Map.entry("md", "text/markdown"),
@@ -77,13 +83,55 @@ final class WorkspaceFiles {
     private WorkspaceFiles() {}
 
     /**
+     * Keeps track of the size of the files attached to one request so that attaching one more file can be refused
+     * before it is read, once the files would together be larger than the limit.
+     */
+    static final class AttachmentBudget {
+        private final long limitBytes;
+        private long usedBytes;
+
+        AttachmentBudget() {
+            this(MAX_TOTAL_ATTACHMENT_BYTES);
+        }
+
+        AttachmentBudget(long limitBytes) {
+            this.limitBytes = limitBytes;
+        }
+
+        /**
+         * Counts a file towards the total.
+         *
+         * @param path The path of the file, for the error message
+         * @param length The size of the file in bytes
+         * @throws AbortException If the files attached so far and this one are larger than the limit
+         */
+        void add(String path, long length) throws AbortException {
+            if (length > limitBytes - usedBytes) {
+                throw new AbortException("Files to attach are larger than " + limitBytes / (1024 * 1024)
+                        + " MiB in total (" + limitBytes + " bytes), attaching this file would exceed it: " + path);
+            }
+            usedBytes += length;
+        }
+    }
+
+    /**
+     * Reads a single workspace file, see {@link #readAttachment(FilePath, String, AttachmentBudget)}.
+     */
+    static ModelInput readAttachment(FilePath workspace, @Nullable String path)
+            throws IOException, InterruptedException {
+        return readAttachment(workspace, path, new AttachmentBudget());
+    }
+
+    /**
      * Reads a workspace file as the input matching its content type: a PNG, JPEG, GIF or WebP image, audio, video,
      * text (including JSON, YAML, XML and SVG) headed by the file name, or any other file such as a PDF.
      *
      * @param path The path of the file, relative to the workspace
+     * @param budget The total size of the files attached to the request, the file is counted towards it before it is
+     *     read
      * @throws AbortException If the path is missing or blank, or the file cannot be attached
      */
-    static ModelInput readAttachment(FilePath workspace, @Nullable String path)
+    static ModelInput readAttachment(FilePath workspace, @Nullable String path, AttachmentBudget budget)
             throws IOException, InterruptedException {
         if (Util.fixEmptyAndTrim(path) == null) {
             throw new AbortException("File to attach has no path, check for an empty or unset variable in files");
@@ -95,9 +143,11 @@ final class WorkspaceFiles {
         if (file.isDirectory()) {
             throw new AbortException("File to attach is a directory: " + path);
         }
-        if (file.length() > MAX_ATTACHMENT_BYTES) {
+        long length = file.length();
+        if (length > MAX_ATTACHMENT_BYTES) {
             throw new AbortException("File to attach is larger than " + MAX_ATTACHMENT_BYTES + " bytes: " + path);
         }
+        budget.add(path, length);
         byte[] data;
         try (InputStream in = file.read()) {
             data = in.readAllBytes();
