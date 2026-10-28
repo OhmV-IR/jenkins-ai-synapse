@@ -389,7 +389,19 @@ public class AiRequestStepTest {
     public void outputTypesSelectAModelThatCanProduceThem() throws Exception {
         WorkflowJob p = j.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition("aiRequest(prompt: 'hi', outputTypes: ['video'])", true));
-        j.assertLogContains("No configured model supports this request", j.buildAndAssertStatus(Result.FAILURE, p));
+        WorkflowRun b = j.buildAndAssertStatus(Result.FAILURE, p);
+        j.assertLogContains("No configured model supports this request", b);
+        j.assertLogContains("fake:echo: does not support the VIDEO output type", b);
+    }
+
+    @Test
+    public void namedModelThatCannotHandleTheRequestSaysWhy() throws Exception {
+        WorkflowJob p = j.createProject(WorkflowJob.class, "p");
+        p.setDefinition(
+                new CpsFlowDefinition("aiRequest(prompt: 'hi', model: 'fake:echo', outputTypes: ['video'])", true));
+        WorkflowRun b = j.buildAndAssertStatus(Result.FAILURE, p);
+        j.assertLogContains("Model 'fake:echo' does not support this request", b);
+        j.assertLogContains("does not support the VIDEO output type", b);
     }
 
     @Test
